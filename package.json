@@ -4,7 +4,8 @@
   "description": "Web application for managing kitchen inventory with roles and permissions.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "setup": "node railway-setup.js"
   },
   "keywords": [
     "inventory",

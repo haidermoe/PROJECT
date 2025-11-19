@@ -1,0 +1,49 @@
+# ======================================================
+# Railway Environment Variables Template
+# ======================================================
+# 
+# انسخ هذه المتغيرات وأضفها في Railway → Settings → Variables
+# استبدل القيم بقيمك الفعلية
+
+# ======================================================
+# Database Configuration
+# ======================================================
+DB_HOST=containers-us-west-xxx.railway.app
+DB_USER=root
+DB_PASSWORD=your_password_here
+DB_NAME=kitchen_inventory
+AUTH_DB_NAME=auth_db
+
+# ======================================================
+# JWT Configuration
+# ======================================================
+JWT_SECRET=your_random_secret_key_minimum_32_characters_long_here
+
+# ======================================================
+# Server Configuration
+# ======================================================
+PORT=3000
+NODE_ENV=production
+
+# ======================================================
+# كيفية الحصول على القيم:
+# ======================================================
+# 
+# 1. DB_HOST, DB_USER, DB_PASSWORD:
+#    - في Railway Dashboard
+#    - اضغط "+ New" → "Database" → "Add MySQL"
+#    - Railway سينشئ قاعدة بيانات تلقائياً
+#    - اذهب إلى Database → Variables
+#    - انسخ MYSQLHOST, MYSQLUSER, MYSQLPASSWORD
+# 
+# 2. JWT_SECRET:
+#    - استخدم PowerShell:
+#      -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 32 | ForEach-Object {[char]$_})
+#    - أو استخدم: https://randomkeygen.com
+# 
+# 3. PORT:
+#    - Railway يحدد PORT تلقائياً
+#    - لكن يمكنك تحديده يدوياً إذا أردت
+# 
+# ======================================================
+
