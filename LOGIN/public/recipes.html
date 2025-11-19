@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>إدارة الوصفات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="recipes.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item active" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item">الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+              <!-- Topbar -->
+              <div class="topbar">
+                <a href="/add-recipe.html" class="btn-add" style="text-decoration: none; display: inline-block;">➕ إضافة وصفة</a>
+                <h2 class="page-title">إدارة الوصفات</h2>
+              </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+
+        <div class="kpi-card">
+          <div class="label">إجمالي الوصفات</div>
+          <h2 id="kpiTotalRecipes">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">وصفات نشطة</div>
+          <h2 id="kpiActiveRecipes">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">وصفات اليوم</div>
+          <h2 id="kpiTodayRecipes">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">متوسط التكلفة</div>
+          <h2 id="kpiAvgCost">0</h2>
+        </div>
+
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <h3>قائمة الوصفات</h3>
+
+        <table class="table" id="recipesTable">
+          <thead>
+            <tr>
+              <th>اسم الوصفة</th>
+              <th>Yield</th>
+              <th>Portions</th>
+              <th>Version</th>
+              <th>تاريخ الإنشاء</th>
+              <th style="text-align:center;">عمليات</th>
+            </tr>
+          </thead>
+
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>الوصفات الشائعة</h3>
+      <ul class="notif-list" id="popularRecipes"></ul>
+
+      <h3>آخر الإضافات</h3>
+      <ul class="activity-list" id="recentRecipes"></ul>
+    </div>
+
+  </div>
+
+  <!-- ======================================================
+       MODAL — إضافة وصفة جديدة (Standard Recipe Template)
+  ======================================================= -->
+  <div class="modal" id="addModal" style="overflow-y: auto;">
+    <div class="modal-content" style="max-width: 800px; max-height: 90vh;">
+      <h3>إضافة وصفة جديدة - Standard Recipe Template</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>اسم الوصفة (ITEM NAME) *</label>
+          <input id="recipeItemName" type="text" placeholder="مثال: UNAGI SAUCE" required autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Reference</label>
+          <input id="recipeReference" type="text" placeholder="مثال: RE-OPS-032" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Yield *</label>
+          <input id="recipeYield" type="text" placeholder="مثال: 700 ML" required />
+        </div>
+        <div class="form-group">
+          <label>Portions</label>
+          <input id="recipePortions" type="number" placeholder="عدد الحصص" />
+        </div>
+        <div class="form-group">
+          <label>Shelf Life</label>
+          <input id="recipeShelfLife" type="text" placeholder="مثال: 3 أيام" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Version</label>
+          <input id="recipeVersion" type="text" placeholder="001" value="001" />
+        </div>
+        <div class="form-group">
+          <label>Edition</label>
+          <input id="recipeEdition" type="number" placeholder="1" value="1" />
+        </div>
+      </div>
+
+      <!-- جدول المكونات -->
+      <div class="ingredients-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <label style="margin: 0; font-weight: bold;">المكونات (Ingredients in Order of Mixing & Quantity)</label>
+          <button type="button" class="btn-add-ingredient" id="addIngredientBtn" style="padding: 6px 12px; font-size: 14px;">➕ إضافة مكون</button>
+        </div>
+        
+        <table class="ingredients-table" id="ingredientsTable">
+          <thead>
+            <tr>
+              <th style="width: 5%;">#</th>
+              <th style="width: 60%;">اسم المكون</th>
+              <th style="width: 30%;">الكمية</th>
+              <th style="width: 5%;">حذف</th>
+            </tr>
+          </thead>
+          <tbody id="ingredientsTableBody">
+            <!-- سيتم إضافة الصفوف ديناميكياً -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- خطوات التحضير -->
+      <div class="procedure-section">
+        <label>خطوات التحضير (Procedures for Preparation) *</label>
+        <textarea id="recipeProcedure" rows="8" placeholder="اكتب خطوات التحضير بالترتيب...&#10;مثال:&#10;1. MIX SOYA, WATER, MIRIN, RICE VINAGER, AND HONDASHI TOGETHER&#10;2. PUT IN ON FIRE UNTIL BOILED..." required></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelAdd">إلغاء</button>
+        <button class="btn-save" id="saveAdd">حفظ الوصفة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       MODAL — إنتاج وصفة
+  ======================================================= -->
+  <div class="modal" id="productionModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <h3>إنتاج وصفة</h3>
+
+      <div class="form-group">
+        <label>اسم الوصفة</label>
+        <div id="productionRecipeName" class="info-display-box">—</div>
+      </div>
+
+      <div class="form-group">
+        <label>Yield الأصلي</label>
+        <div id="productionRecipeYield" class="info-display-box">—</div>
+      </div>
+
+      <div class="form-group">
+        <label>مدة الصلاحية</label>
+        <div id="productionRecipeShelfLife" class="info-display-box">—</div>
+      </div>
+
+      <div class="form-group">
+        <label>الكمية المطلوبة للإنتاج *</label>
+        <input id="productionQuantity" type="number" step="0.01" placeholder="مثلاً: 15" required autocomplete="off" />
+        <small style="color: #666; font-size: 12px;">أدخل الكمية المطلوبة (مثلاً: 15 كيلو)</small>
+      </div>
+
+      <div class="form-group">
+        <label>وزن كل بورشن *</label>
+        <input id="portionWeight" type="number" step="0.01" placeholder="مثلاً: 1" required autocomplete="off" />
+        <small style="color: #666; font-size: 12px;">أدخل وزن كل بورشن (مثلاً: 1 كيلو)</small>
+      </div>
+
+      <div class="form-group">
+        <label>تاريخ الإنتاج الفعلي *</label>
+        <input id="productionDate" type="datetime-local" required />
+      </div>
+
+      <input type="hidden" id="productionRecipeId" />
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelProduction">إلغاء</button>
+        <button class="btn-save" id="produceBtn" onclick="handleProduceRecipe()">✅ إنتاج الوصفة</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="recipes.js"></script>
+
+</body>
+
+</html>
+
+

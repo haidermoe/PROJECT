@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>لوحة المخزن</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="inventory.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item active" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item">الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <button class="btn-add" id="addItemBtn">➕ إضافة مادة</button>
+        <h2 class="page-title">لوحة مراقبة المخزن</h2>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+
+        <div class="kpi-card">
+          <div class="label">عدد المواد</div>
+          <h2 id="kpiTotalItems">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">مواد قليلة</div>
+          <h2 id="kpiLowStock">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">عمليات اليوم</div>
+          <h2 id="kpiTodayOps">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">مجموع السحوبات</div>
+          <h2 id="kpiWithdraw">0</h2>
+        </div>
+
+      </div>
+
+      <!-- CHART -->
+      <div class="charts-row">
+        <div class="chart-box">
+          <h3>حركة السحب والإيداع - ٧ أيام</h3>
+          <canvas id="inventoryChart"></canvas>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <h3>المواد في المخزن</h3>
+
+        <table class="table" id="itemsTable">
+          <thead>
+            <tr>
+              <th>المادة</th>
+              <th>الوحدة</th>
+              <th>الكمية</th>
+              <th>الحالة</th>
+              <th style="text-align:center;">عمليات</th>
+            </tr>
+          </thead>
+
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>تنبيهات المخزون</h3>
+      <ul class="notif-list" id="notifList"></ul>
+    </div>
+
+  </div>
+
+  <!-- ======================================================
+       MODAL — إضافة مادة جديدة
+  ======================================================= -->
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <h3>إضافة مادة جديدة</h3>
+
+      <label>اسم المادة</label>
+      <input id="itemName" type="text" placeholder="مثال: رز بسمتي" />
+
+      <label>الوحدة</label>
+      <input id="itemUnit" type="text" placeholder="كغم / لتر / قطعة" />
+
+      <label>الكمية الابتدائية</label>
+      <input id="itemQty" type="number" placeholder="مثال: 50" />
+
+      <label>الحد الأدنى للتحذير</label>
+      <input id="itemMin" type="number" placeholder="مثال: 5" />
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelAdd">إلغاء</button>
+        <button class="btn-save" id="saveAdd">إضافة</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="inventory.js"></script>
+
+</body>
+
+</html>
+ِ

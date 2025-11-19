@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>السحوبات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="withdrawals.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item active" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item">الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <button class="btn-add" id="scanQRBtn">📷 مسح QR Code</button>
+        <h2 class="page-title">السحوبات</h2>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="label">إجمالي السحوبات</div>
+          <h2 id="kpiTotalWithdrawals">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">إجمالي الكمية المسحوبة</div>
+          <h2 id="kpiTotalQuantity">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">عدد المستخدمين</div>
+          <h2 id="kpiUniqueUsers">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">عدد الإنتاجات</div>
+          <h2 id="kpiUniqueProductions">0</h2>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-group">
+          <label>من تاريخ:</label>
+          <input type="date" id="filterStartDate" />
+        </div>
+        <div class="filter-group">
+          <label>إلى تاريخ:</label>
+          <input type="date" id="filterEndDate" />
+        </div>
+        <div class="filter-group">
+          <label>الوصفة:</label>
+          <input type="text" id="filterRecipe" placeholder="اسم الوصفة..." />
+        </div>
+        <div class="filter-group">
+          <button class="btn-filter" onclick="applyFilters()">🔍 تطبيق</button>
+          <button class="btn-filter" onclick="clearFilters()">🔄 إعادة تعيين</button>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <h3>قائمة السحوبات</h3>
+
+        <table class="table" id="withdrawalsTable">
+          <thead>
+            <tr>
+              <th>اسم الوصفة</th>
+              <th>اسم المستخدم</th>
+              <th>كمية السحب</th>
+              <th>تاريخ السحب</th>
+              <th>تاريخ الإنتاج</th>
+              <th>تاريخ الانتهاء</th>
+              <th>ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>آخر السحوبات</h3>
+      <ul class="notif-list" id="recentWithdrawals"></ul>
+    </div>
+
+  </div>
+
+  <!-- ======================================================
+       MODAL — مسح QR Code
+  ======================================================= -->
+  <div class="modal" id="scanQRModal">
+    <div class="modal-content" style="max-width: 600px;">
+      <h3>مسح QR Code</h3>
+
+      <div class="qr-scanner-container">
+        <div id="qr-reader" style="width: 100%; margin-bottom: 20px;"></div>
+        <div id="qr-reader-results" style="display: none;"></div>
+      </div>
+
+      <div id="scannedInfo" style="display: none; margin-top: 20px; padding: 15px; background: rgba(0, 255, 136, 0.1); border-radius: 8px; border: 1px solid rgba(0, 255, 136, 0.3);">
+        <h4 style="color: #00ff88; margin-bottom: 10px;">معلومات الإنتاج:</h4>
+        <div id="scannedInfoContent"></div>
+      </div>
+
+      <div class="form-group" style="margin-top: 20px;">
+        <label>ملاحظات (اختياري)</label>
+        <textarea id="withdrawalNotes" rows="2" placeholder="ملاحظات إضافية..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelScan">إلغاء</button>
+        <button class="btn-save" id="saveScan" onclick="handleScanQR()" style="display: none;">✅ تسجيل السحب (1 بورشن)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="withdrawals.js"></script>
+
+</body>
+
+</html>
+

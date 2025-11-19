@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>إنتاج الوصفة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="recipe-production.css" />
+</head>
+
+<body>
+  <div class="recipe-container">
+    <!-- Header -->
+    <div class="recipe-header">
+      <div class="header-left">
+        <div class="company-logos">
+          <div class="logo">جامعة دجلة قسم علوم الحاسوب</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-info">
+          <div class="info-row">
+            <span class="label">REFERENCE:</span>
+            <span class="value" id="recipeReference">—</span>
+          </div>
+          <div class="info-row">
+            <span class="label">VERSION:</span>
+            <span class="value" id="recipeVersion">001</span>
+          </div>
+          <div class="info-row">
+            <span class="label">EDITION:</span>
+            <span class="value" id="recipeEdition">1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="recipe-title">
+      <h1>STANDARD RECIPE TEMPLATE - PRODUCTION</h1>
+    </div>
+
+    <!-- Production Info -->
+    <div class="production-info">
+      <div class="info-card">
+        <div class="info-label">اسم الوصفة</div>
+        <div class="info-value" id="recipeItemName">—</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">الكمية المنتجة</div>
+        <div class="info-value" id="productionQuantity">—</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">وزن البورشن</div>
+        <div class="info-value" id="portionWeight">—</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">تاريخ الإنتاج</div>
+        <div class="info-value" id="productionDate">—</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">تاريخ الانتهاء</div>
+        <div class="info-value" id="expiryDate">—</div>
+      </div>
+    </div>
+
+    <!-- Item Details -->
+    <div class="item-details">
+      <div class="detail-row">
+        <div class="detail-item">
+          <span class="detail-label">ITEM-:</span>
+          <span class="detail-value" id="recipeItemNameDetail">—</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">PRODUCTION:</span>
+          <span class="detail-value" id="productionQuantityDetail">—</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">PORTION WEIGHT:</span>
+          <span class="detail-value" id="portionWeightDetail">—</span>
+        </div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-item">
+          <span class="detail-label">PRODUCTION DATE:</span>
+          <span class="detail-value" id="productionDateDetail">—</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">EXPIRY DATE:</span>
+          <span class="detail-value" id="expiryDateDetail">—</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">SHELF LIFE:</span>
+          <span class="detail-value" id="recipeShelfLife">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ingredients Section -->
+    <div class="ingredients-section">
+      <h2>INGREDIENTS IN ORDER OF MIXING & QUANTITY (CALCULATED)</h2>
+      <table class="ingredients-table">
+        <thead>
+          <tr>
+            <th style="width: 5%;">#</th>
+            <th style="width: 50%;">INGREDIENT</th>
+            <th style="width: 22.5%;">ORIGINAL QTY</th>
+            <th style="width: 22.5%;">CALCULATED QTY</th>
+          </tr>
+        </thead>
+        <tbody id="ingredientsTableBody">
+          <!-- سيتم ملؤها ديناميكياً -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- QR Code Section -->
+    <div class="qr-section">
+      <h2>QR CODE</h2>
+      <div class="qr-container">
+        <div id="qrCodeImage" class="qr-image">
+          <!-- سيتم إضافة QR Code هنا -->
+        </div>
+        <div class="qr-info">
+          <p>امسح هذا الكود لتسجيل السحب</p>
+          <p class="qr-small">Scan this code to record withdrawal</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="recipe-footer">
+      <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+      <button class="btn-back" onclick="window.history.back()">← رجوع</button>
+    </div>
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="recipe-production.js"></script>
+</body>
+
+</html>
+

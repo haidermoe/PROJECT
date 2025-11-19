@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>ساعات العمل</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="work-hours.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item active" href="/leaves.html">الإجازات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item">الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <h2 class="page-title">ساعات العمل - جميع الموظفين</h2>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-group">
+          <label>من تاريخ:</label>
+          <input type="date" id="filterStartDate" />
+        </div>
+        <div class="filter-group">
+          <label>إلى تاريخ:</label>
+          <input type="date" id="filterEndDate" />
+        </div>
+        <div class="filter-group">
+          <label>الموظف:</label>
+          <select id="filterEmployee">
+            <option value="">الكل</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <button class="btn-filter" onclick="applyFilters()">🔍 تطبيق</button>
+          <button class="btn-filter" onclick="clearFilters()">🔄 إعادة تعيين</button>
+        </div>
+      </div>
+
+      <!-- Stats Summary -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">إجمالي الموظفين</div>
+          <div class="stat-value" id="totalEmployees">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">إجمالي ساعات العمل</div>
+          <div class="stat-value" id="totalHours">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">متوسط الساعات/يوم</div>
+          <div class="stat-value" id="avgHours">0</div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <h3>ساعات العمل لكل موظف</h3>
+
+        <table class="table" id="workHoursTable">
+          <thead>
+            <tr>
+              <th>اسم الموظف</th>
+              <th>الرتبة</th>
+              <th>عدد الأيام</th>
+              <th>إجمالي الساعات</th>
+              <th>متوسط الساعات/يوم</th>
+              <th>أول بصمة</th>
+              <th>آخر بصمة</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>أحدث البصمات</h3>
+      <ul class="notif-list" id="recentAttendance"></ul>
+    </div>
+
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="work-hours.js"></script>
+
+</body>
+
+</html>
+

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>تسجيل الهدر</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="waste.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item active" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item">الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <button class="btn-add" id="addWasteBtn">➕ تسجيل هدر جديد</button>
+        <h2 class="page-title">تسجيل الهدر</h2>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="label">إجمالي السجلات</div>
+          <h2 id="kpiTotalRecords">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">إجمالي الكمية</div>
+          <h2 id="kpiTotalQuantity">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">في انتظار الموافقة</div>
+          <h2 id="kpiPending">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">موافق عليها</div>
+          <h2 id="kpiApproved">0</h2>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-group">
+          <label>من تاريخ:</label>
+          <input type="date" id="filterStartDate" />
+        </div>
+        <div class="filter-group">
+          <label>إلى تاريخ:</label>
+          <input type="date" id="filterEndDate" />
+        </div>
+        <div class="filter-group">
+          <label>الحالة:</label>
+          <select id="filterStatus">
+            <option value="">الكل</option>
+            <option value="pending">في انتظار الموافقة</option>
+            <option value="approved">موافق عليها</option>
+            <option value="rejected">مرفوضة</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>نوع الهدر:</label>
+          <select id="filterWasteType">
+            <option value="">الكل</option>
+            <option value="spoilage">تلف</option>
+            <option value="expired">منتهي الصلاحية</option>
+            <option value="damaged">تالف</option>
+            <option value="overproduction">إنتاج زائد</option>
+            <option value="other">أخرى</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <button class="btn-filter" onclick="applyFilters()">🔍 تطبيق</button>
+          <button class="btn-filter" onclick="clearFilters()">🔄 إعادة تعيين</button>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <h3>سجلات الهدر</h3>
+
+        <table class="table" id="wasteTable">
+          <thead>
+            <tr>
+              <th>اسم المادة/الوصفة</th>
+              <th>الكمية</th>
+              <th>نوع الهدر</th>
+              <th>السبب</th>
+              <th>تاريخ الهدر</th>
+              <th>سجل بواسطة</th>
+              <th>الحالة</th>
+              <th style="text-align:center;">عمليات</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>آخر السجلات</h3>
+      <ul class="notif-list" id="recentWaste"></ul>
+    </div>
+
+  </div>
+
+  <!-- ======================================================
+       MODAL — تسجيل هدر جديد
+  ======================================================= -->
+  <div class="modal" id="addWasteModal">
+    <div class="modal-content" style="max-width: 600px;">
+      <h3>تسجيل هدر جديد</h3>
+
+      <div class="form-group">
+        <label>اسم المادة/الوصفة *</label>
+        <input id="wasteItemName" type="text" placeholder="مثلاً: صلصة الأوناغي" required autocomplete="off" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>الكمية *</label>
+          <input id="wasteQuantity" type="number" step="0.01" placeholder="مثلاً: 2.5" required autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>الوحدة</label>
+          <input id="wasteUnit" type="text" placeholder="مثلاً: كيلو" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>نوع الهدر *</label>
+        <select id="wasteType" required>
+          <option value="">اختر نوع الهدر</option>
+          <option value="spoilage">تلف</option>
+          <option value="expired">منتهي الصلاحية</option>
+          <option value="damaged">تالف</option>
+          <option value="overproduction">إنتاج زائد</option>
+          <option value="other">أخرى</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>سبب الهدر *</label>
+        <textarea id="wasteReason" rows="3" placeholder="اذكر سبب الهدر..." required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>تاريخ الهدر *</label>
+        <input id="wasteDate" type="datetime-local" required />
+      </div>
+
+      <div class="form-group">
+        <label>ملاحظات (اختياري)</label>
+        <textarea id="wasteNotes" rows="2" placeholder="ملاحظات إضافية..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelWaste">إلغاء</button>
+        <button class="btn-save" id="saveWaste" onclick="handleAddWaste()">✅ تسجيل الهدر</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="waste.js"></script>
+
+</body>
+
+</html>
+

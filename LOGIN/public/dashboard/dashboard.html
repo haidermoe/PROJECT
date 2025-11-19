@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <title>الصفحة الرئيسية</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+
+<body>
+
+    <div class="layout">
+
+        <!-- START: Sidebar -->
+        <aside class="sidebar">
+            <div class="user-box">
+                <img src="/chef_pic1.jpg" class="avatar" alt="Avatar">
+                <div class="username">مدير النظام</div>
+            </div>
+
+            <div class="menu">
+                <a class="menu-item active" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+                <a class="menu-item" href="/inventory.html">المخزن</a>
+                <a class="menu-item" href="/recipes.html">الوصفات</a>
+                <a class="menu-item" href="/employees.html">الموظفين</a>
+                <a class="menu-item">المبيعات</a>
+                <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+                <a class="menu-item" href="/waste.html">الهدر</a>
+                <a class="menu-item" href="/attendance.html">البصمة</a>
+                <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+                <a class="menu-item" href="/leaves.html">الإجازات</a>
+                <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+                <a class="menu-item">الإعدادات</a>
+                <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+            </div>
+        </aside>
+        <!-- END: Sidebar -->
+
+        <!-- START: Main content -->
+        <main class="content">
+
+            <!-- TOP BAR -->
+            <div class="topbar">
+                <div class="page-title">الصفحة الرئيسية</div>
+
+                <div class="usd-box">
+                    <span>سعر الدولار (د.ع)</span>
+                    <strong id="usdValue">—</strong>
+                    <small id="usdUpdateTime" style="font-size: 0.7rem; color: #707789; margin-right: 4px;"></small>
+                </div>
+
+                <div class="top-icons">
+                    <i class="icon">🔔</i>
+                    <i class="icon">⚙️</i>
+                </div>
+            </div>
+
+            <!-- KPI CARDS -->
+            <section class="kpi-grid">
+
+                <div class="kpi-card">
+                    <p class="label">مواد قربت تخلص</p>
+                    <h2 id="lowStockCount">0</h2>
+                    <small>تحديث يومي</small>
+                </div>
+
+                <div class="kpi-card">
+                    <p class="label">عدد الموظفين</p>
+                    <h2 id="employeeCount">0</h2>
+                    <small>مجموع المسجلين</small>
+                </div>
+
+                <div class="kpi-card">
+                    <p class="label">الكميات المنتجة اليوم</p>
+                    <h2 id="productionToday">0</h2>
+                    <small>من وصفات الإنتاج</small>
+                </div>
+
+                <div class="kpi-card">
+                    <p class="label">آخر عملية سحب</p>
+                    <h2 id="lastTransaction">—</h2>
+                    <small>وقت آخر عملية</small>
+                </div>
+
+            </section>
+
+            <!-- GRAPHS SECTION -->
+            <section class="charts-row">
+                <div class="chart-box">
+                    <h3>الهدر اليومي</h3>
+                    <canvas id="wasteChart"></canvas>
+                </div>
+
+                <div class="chart-box">
+                    <h3>الإنتاج الشهري</h3>
+                    <canvas id="productionChart"></canvas>
+                </div>
+            </section>
+
+            <!-- EMPLOYEE LIST -->
+            <section class="table-section">
+                <h3>قائمة الموظفين</h3>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الموظف</th>
+                            <th>الدور</th>
+                            <th>مرات الدخول</th>
+                            <th>آخر دخول</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="employeeTable">
+                        <!-- JS will load the employees -->
+                    </tbody>
+                </table>
+            </section>
+
+        </main>
+
+        <!-- RIGHT PANEL -->
+        <aside class="panel">
+            <h3>الإشعارات</h3>
+            <ul class="notif-list">
+                <li>تم تسجيل موظف جديد</li>
+                <li>تمت إضافة وصفة</li>
+                <li>مواد على وشك النفاد</li>
+            </ul>
+
+            <h3>النشاطات</h3>
+            <ul class="activity-list">
+                <li>سحب مواد من المخزن</li>
+                <li>إضافة كمية جديدة</li>
+            </ul>
+        </aside>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../common/auth-check.js"></script>
+    <script src="../common/sidebar.js"></script>
+    <script src="../common/permissions.js"></script>
+    <script src="dashboard.js"></script>
+
+</body>
+</html>
