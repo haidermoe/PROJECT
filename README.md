@@ -27,13 +27,13 @@
 - MySQL (v5.7 أو أحدث)
 - npm أو yarn
 
-## 🚀 التثبيت
+## 🚀 التثبيت والتشغيل المحلي
 
 ### 1. استنساخ المشروع
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-cd YOUR_REPO_NAME
+git clone https://github.com/haidermoe/PROJECT.git
+cd PROJECT
 ```
 
 ### 2. تثبيت المكتبات
@@ -42,7 +42,9 @@ cd YOUR_REPO_NAME
 npm install
 ```
 
-### 3. إعداد قاعدة البيانات
+### 3. إعداد قاعدة البيانات المحلية
+
+تأكد من أن MySQL يعمل على جهازك المحلي، ثم قم بإنشاء قواعد البيانات:
 
 ```bash
 # إنشاء قاعدة بيانات المصادقة
@@ -51,26 +53,52 @@ mysql -u root -p < auth/auth_db.sql
 # إنشاء قاعدة بيانات التطبيق
 mysql -u root -p < init.sql
 
-# إنشاء الجداول الإضافية
-node setup_production_tables.js
-node setup_attendance_tables.js
-node setup_leaves_tables.js
-node setup_waste_tables.js
+# إنشاء الجداول الإضافية (إذا كانت موجودة)
+# node setup_production_tables.js
+# node setup_attendance_tables.js
+# node setup_leaves_tables.js
+# node setup_waste_tables.js
 ```
 
-### 4. إعداد ملف البيئة
+### 4. إعداد متغيرات البيئة
 
-أنشئ ملف `.env` في المجلد الرئيسي:
+1. انسخ ملف `.env.example` إلى `.env`:
+   ```bash
+   # Windows (PowerShell)
+   Copy-Item .env.example .env
+   
+   # Linux/Mac
+   cp .env.example .env
+   ```
+
+2. افتح ملف `.env` وعدّل القيم حسب إعدادات قاعدة البيانات المحلية:
 
 ```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=kitchen_inventory
-AUTH_DB_NAME=auth_db
-JWT_SECRET=your_secret_key_here
+# Server Configuration
 PORT=3000
+BASE_URL=http://localhost:3000
+
+# Authentication Database
+AUTH_DB_HOST=localhost
+AUTH_DB_PORT=3306
+AUTH_DB_USER=root
+AUTH_DB_PASSWORD=your_local_mysql_password
+AUTH_DB_NAME=auth_db
+
+# Application Database
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_local_mysql_password
+DB_NAME=kitchen_inventory
+
+# JWT Secret (استخدم مفتاح قوي!)
+JWT_SECRET=your_super_secret_jwt_key_here
 ```
+
+**ملاحظة مهمة**: 
+- استبدل `your_local_mysql_password` بكلمة مرور MySQL المحلية
+- استبدل `your_super_secret_jwt_key_here` بمفتاح سري قوي (يمكنك استخدام: `openssl rand -base64 32`)
 
 ### 5. إنشاء حساب مدير
 
@@ -84,7 +112,9 @@ node auth/create_first_admin.js
 npm start
 ```
 
-افتح المتصفح على: `http://localhost:3000`
+سيتم تشغيل السيرفر على: `http://localhost:3000`
+
+افتح المتصفح وانتقل إلى: `http://localhost:3000`
 
 ## 👤 الأدوار المتاحة
 
@@ -135,15 +165,147 @@ project/
 - **HTML**: 1,964 سطر
 - **عدد الملفات**: 93+ ملف
 
-## 🌐 النشر
+## 🌐 النشر على Render (مجاني)
 
-راجع ملف `DEPLOYMENT_GUIDE.md` للحصول على دليل شامل للنشر على:
-- GitHub
-- Heroku
-- Railway
-- Vercel
-- DigitalOcean
-- VPS
+Render يوفر استضافة مجانية للتطبيقات Node.js. اتبع الخطوات التالية:
+
+### المتطلبات الأساسية:
+
+1. **حساب على Render**: قم بإنشاء حساب مجاني على [render.com](https://render.com)
+2. **قاعدة بيانات MySQL**: ستحتاج قاعدة بيانات MySQL مُدارة (يمكن استخدام Render MySQL أو أي خدمة أخرى)
+
+### خطوات النشر:
+
+#### 1. إعداد المستودع على GitHub
+
+تأكد من أن جميع التغييرات موجودة على GitHub:
+
+```bash
+git add .
+git commit -m "Prepare for deployment"
+git push origin main
+```
+
+#### 2. إنشاء قاعدة بيانات MySQL على Render
+
+1. اذهب إلى [Render Dashboard](https://dashboard.render.com)
+2. اضغط على **"New +"** → **"PostgreSQL"** أو **"MySQL"**
+   - **ملاحظة**: Render يوفر PostgreSQL مجاناً، لكن مشروعك يستخدم MySQL
+   - يمكنك استخدام [PlanetScale](https://planetscale.com) أو [Aiven](https://aiven.io) للحصول على MySQL مجاني
+   - أو استخدم PostgreSQL وتعديل الكود (يتطلب تغييرات)
+3. اختر الخطة المجانية
+4. سجّل اسم قاعدة البيانات ومعلومات الاتصال
+
+**للإنتاج، ستحتاج إلى قاعدتين منفصلتين**:
+- `auth_db` - للمصادقة
+- `kitchen_inventory` - للتطبيق الرئيسي
+
+#### 3. إنشاء Web Service على Render
+
+1. في Dashboard، اضغط **"New +"** → **"Web Service"**
+2. اختر المستودع من GitHub
+3. املأ المعلومات التالية:
+   - **Name**: `kitchen-inventory` (أو أي اسم تريده)
+   - **Region**: اختر الأقرب إليك
+   - **Branch**: `main`
+   - **Root Directory**: اتركه فارغاً
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+
+#### 4. إعداد متغيرات البيئة
+
+في صفحة Web Service، اذهب إلى **"Environment"** وأضف المتغيرات التالية:
+
+```env
+# Server
+PORT=10000
+BASE_URL=https://your-app-name.onrender.com
+
+# Authentication Database (استخدم معلومات قاعدة البيانات من الخطوة 2)
+AUTH_DB_HOST=your-db-host.render.com
+AUTH_DB_PORT=3306
+AUTH_DB_USER=your-db-user
+AUTH_DB_PASSWORD=your-db-password
+AUTH_DB_NAME=auth_db
+AUTH_DB_CONNECTION_LIMIT=10
+
+# Application Database
+DB_HOST=your-db-host.render.com
+DB_PORT=3306
+DB_USER=your-db-user
+DB_PASSWORD=your-db-password
+DB_NAME=kitchen_inventory
+DB_CONNECTION_LIMIT=20
+
+# JWT (استخدم مفتاح قوي!)
+JWT_SECRET=your-super-secret-jwt-key-min-32-characters-long
+
+# CORS (اختياري)
+CORS_ORIGIN=*
+```
+
+**⚠️ مهم**: 
+- استبدل `your-app-name.onrender.com` باسم تطبيقك الفعلي
+- استخدم معلومات الاتصال الفعلية لقواعد البيانات
+- لا تستخدم نفس JWT_SECRET من التطوير المحلي
+
+#### 5. تهيئة قواعد البيانات
+
+بعد النشر، ستحتاج إلى تشغيل SQL scripts على قواعد البيانات المُدارة:
+
+```sql
+-- على قاعدة auth_db
+SOURCE auth/auth_db.sql;
+
+-- على قاعدة kitchen_inventory
+SOURCE init.sql;
+```
+
+يمكنك استخدام MySQL Workbench أو أي أداة مشابهة للاتصال بقاعدة البيانات المُدارة وتنفيذ هذه الملفات.
+
+#### 6. إنشاء حساب مدير
+
+بعد تهيئة قاعدة البيانات، يمكنك إنشاء حساب مدير عبر SSH أو بتشغيل:
+
+```bash
+node auth/create_first_admin.js
+```
+
+أو يمكنك إنشاءه مباشرة في قاعدة البيانات.
+
+#### 7. النشر
+
+1. اضغط **"Manual Deploy"** → **"Deploy latest commit"**
+2. انتظر حتى يكتمل النشر (5-10 دقائق)
+3. افتح الرابط العام: `https://your-app-name.onrender.com`
+
+### نصائح مهمة:
+
+- ✅ **Health Check**: التطبيق يحتوي على endpoint `/health` للتحقق من الحالة
+- ⚠️ **Free Tier Limitations**: 
+  - التطبيق سينام بعد 15 دقيقة من عدم الاستخدام
+  - الاستيقاظ يستغرق حوالي 30 ثانية
+- 🔒 **الأمان**: تأكد من استخدام JWT_SECRET قوي في الإنتاج
+- 📊 **قاعدة البيانات**: تأكد من نسخ البيانات المهمة بانتظام
+
+### بدائل للنشر:
+
+- **Railway**: [railway.app](https://railway.app) - يوفر MySQL مجاناً
+- **PlanetScale**: [planetscale.com](https://planetscale.com) - MySQL مُدار مجاناً
+- **Aiven**: [aiven.io](https://aiven.io) - MySQL/PostgreSQL مجاني للبدء
+
+---
+
+## 📝 ملاحظات قاعدة البيانات
+
+- **نوع قاعدة البيانات**: MySQL
+- **قاعدتان منفصلتان**: 
+  - `auth_db` - للمصادقة والمستخدمين
+  - `kitchen_inventory` - للتطبيق الرئيسي
+- **متغيرات الاتصال المطلوبة**:
+  - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+  - `AUTH_DB_HOST`, `AUTH_DB_PORT`, `AUTH_DB_USER`, `AUTH_DB_PASSWORD`, `AUTH_DB_NAME`
 
 ## 📝 الترخيص
 

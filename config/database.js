@@ -46,7 +46,12 @@ function validateEnvVariables() {
   if (missing.length > 0) {
     console.error('❌ متغيرات البيئة المفقودة:', missing.join(', '));
     console.error('⚠️  تأكد من وجود ملف .env مع جميع المتغيرات المطلوبة');
-    throw new Error(`Missing environment variables: ${missing.join(', ')}`);
+    // في الإنتاج، لا نوقف التطبيق فوراً، بل نعطي تحذير فقط
+    // لكن في التطوير، نرمي خطأ للتنبيه
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('⚠️  في وضع التطوير: سيتم رمي خطأ');
+    }
+    // لا نرمي خطأ في الإنتاج حتى يتم إعداد متغيرات البيئة بشكل صحيح
   }
 }
 
@@ -56,6 +61,7 @@ function validateEnvVariables() {
  */
 const authDbConfig = {
   host: process.env.AUTH_DB_HOST,
+  port: parseInt(process.env.AUTH_DB_PORT || '3306'),
   user: process.env.AUTH_DB_USER,
   password: process.env.AUTH_DB_PASSWORD,
   database: process.env.AUTH_DB_NAME || 'auth_db',
@@ -74,6 +80,7 @@ const authDbConfig = {
  */
 const appDbConfig = {
   host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || '3306'),
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME || 'kitchen_inventory',

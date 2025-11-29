@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>الإشعارات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="notifications.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item active" href="/notifications.html">🔔 الإشعارات <span id="notificationBadge" class="badge"></span></a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item">الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <h2 class="page-title">🔔 الإشعارات</h2>
+        <div class="topbar-actions">
+          <button class="btn-secondary" onclick="markAllAsRead()">تحديد الكل كمقروء</button>
+          <button class="btn-filter" onclick="toggleUnreadOnly()">
+            <span id="filterText">عرض غير المقروءة فقط</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Notifications List -->
+      <div class="notifications-section">
+        <div id="notificationsList" class="notifications-list">
+          <!-- سيتم تحميل الإشعارات هنا -->
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="notifications.js"></script>
+
+</body>
+
+</html>
+

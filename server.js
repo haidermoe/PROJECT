@@ -109,6 +109,11 @@ app.get('/dashboard.html', (req, res) => {
   res.redirect('/dashboard/dashboard.html');
 });
 
+// Health check endpoint (required by Render and other hosting providers)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // معالج 404 للـ API routes (يجب أن يكون قبل express.static)
 app.use('/api/*', (req, res) => {
   console.error('❌ 404: API route not found:', req.method, req.path);
@@ -140,8 +145,10 @@ app.use(errorHandler);
  *  4) تشغيل السيرفر
   ************************************************************/
 const server = app.listen(PORT, () => {
+  const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🌍 السيرفر يعمل الآن على: http://localhost:${PORT}`);
+  console.log(`🌍 السيرفر يعمل الآن على: ${baseUrl}`);
+  console.log(`🔗 Local: http://localhost:${PORT}`);
   console.log('🔒 الأمان: عزل كامل بين قواعد البيانات');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 });
