@@ -8,6 +8,8 @@
 const { appPool } = require('../database/appConnection');
 // استيراد اتصال قاعدة بيانات المصادقة (للمستخدمين)
 const { authPool } = require('../database/authConnection');
+// استيراد دالة إنشاء الإشعارات
+const { createNotification } = require('./notificationsController');
 
 // ===============================
 //      إرسال طلب إجازة
@@ -105,13 +107,53 @@ exports.requestLeave = async (req, res) => {
       [userId, leave_type, start_date, end_date, diffDays, reason || null]
     );
 
-    console.log('✅ requestLeave: تم إرسال طلب الإجازة بنجاح:', result.insertId);
+    const leaveId = result.insertId;
+    console.log('✅ requestLeave: تم إرسال طلب الإجازة بنجاح:', leaveId);
+
+    // جلب معلومات المستخدم للتحقق من رتبته
+    try {
+      const [userRows] = await authPool.query(
+        `SELECT role, full_name, username FROM users WHERE id = ?`,
+        [userId]
+      );
+      
+      const user = userRows[0];
+      
+      // إذا كان الطلب من kitchen_manager، أرسل إشعار للمدير العام
+      if (user && user.role === 'kitchen_manager') {
+        // جلب جميع المديرين العامين
+        const [adminRows] = await authPool.query(
+          `SELECT id FROM users WHERE role = 'admin' AND is_active = 1`
+        );
+        
+        const leaveTypeNames = {
+          'annual': 'سنوية',
+          'sick': 'مرضية',
+          'mourning': 'حداد',
+          'weekly': 'أسبوعية'
+        };
+        
+        // إرسال إشعار لكل مدير عام
+        for (const admin of adminRows) {
+          await createNotification(
+            admin.id,
+            'leave_request',
+            leaveId,
+            'طلب موافقة على إجازة جديدة',
+            `تم إرسال طلب إجازة ${leaveTypeNames[leave_type] || leave_type} من ${user.full_name || user.username} - عدد الأيام: ${diffDays}`
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.error('⚠️ خطأ في إرسال الإشعار:', notifErr);
+      // لا نوقف العملية إذا فشل الإشعار
+    }
 
     res.json({
       status: "success",
       message: "تم إرسال طلب الإجازة بنجاح",
       data: {
-        id: result.insertId,
+        id: leaveId,
         total_days: diffDays
       }
     });
@@ -130,7 +172,9 @@ exports.requestLeave = async (req, res) => {
 exports.getMyLeaves = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { status, year } = req.query;
+    const { status, leave_type, year } = req.query;
+
+    console.log('🔵 getMyLeaves: Query params:', { status, leave_type, year, userId });
 
     let query = `SELECT * FROM leave_requests WHERE user_id = ?`;
     const params = [userId];
@@ -140,6 +184,11 @@ exports.getMyLeaves = async (req, res) => {
       params.push(status);
     }
 
+    if (leave_type) {
+      query += ' AND leave_type = ?';
+      params.push(leave_type);
+    }
+
     if (year) {
       query += ' AND YEAR(start_date) = ?';
       params.push(year);
@@ -147,7 +196,12 @@ exports.getMyLeaves = async (req, res) => {
 
     query += ' ORDER BY created_at DESC';
 
+    console.log('🔵 getMyLeaves: SQL Query:', query);
+    console.log('🔵 getMyLeaves: Params:', params);
+
     const [rows] = await appPool.query(query, params);
+
+    console.log('✅ getMyLeaves: عدد النتائج:', rows.length);
 
     res.json({
       status: "success",
@@ -351,6 +405,129 @@ exports.approveLeave = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: err.message || 'خطأ في الموافقة على طلب الإجازة'
+    });
+  }
+};
+
+// ===============================
+//      إلغاء طلب إجازة
+// ===============================
+exports.cancelLeave = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        status: "error",
+        message: "المستخدم غير معروف"
+      });
+    }
+
+    // جلب طلب الإجازة
+    const [leaveRows] = await appPool.query(
+      `SELECT * FROM leave_requests WHERE id = ?`,
+      [id]
+    );
+
+    if (leaveRows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "طلب الإجازة غير موجود"
+      });
+    }
+
+    const leave = leaveRows[0];
+
+    // التحقق من أن الطلب ملك المستخدم
+    if (leave.user_id !== userId) {
+      return res.status(403).json({
+        status: "error",
+        message: "ليس لديك صلاحية لإلغاء هذا الطلب"
+      });
+    }
+
+    // التحقق من أن الطلب في حالة pending
+    if (leave.status !== 'pending') {
+      const statusNames = {
+        'approved': 'تمت الموافقة عليه',
+        'rejected': 'تم رفضه',
+        'cancelled': 'تم إلغاؤه مسبقاً'
+      };
+      return res.status(400).json({
+        status: "error",
+        message: `لا يمكن إلغاء الطلب. الطلب ${statusNames[leave.status] || 'تم معالجته مسبقاً'}`
+      });
+    }
+
+    // تحديث حالة الطلب إلى cancelled
+    console.log('🔵 cancelLeave: جاري تحديث حالة الطلب إلى cancelled...', id);
+    const [updateResult] = await appPool.execute(
+      `UPDATE leave_requests 
+       SET status = 'cancelled', 
+           updated_at = NOW()
+       WHERE id = ?`,
+      [id]
+    );
+
+    console.log('🔵 cancelLeave: نتيجة التحديث:', updateResult);
+
+    if (updateResult.affectedRows === 0) {
+      console.error('❌ cancelLeave: لم يتم تحديث أي صف');
+      return res.status(500).json({
+        status: "error",
+        message: "فشل تحديث حالة الطلب"
+      });
+    }
+
+    // إرسال إشعار للمدير العام
+    try {
+      const [userRows] = await authPool.query(
+        `SELECT username, full_name FROM users WHERE id = ?`,
+        [userId]
+      );
+      
+      const user = userRows[0];
+      const userName = user?.full_name || user?.username || 'مستخدم';
+      
+      const leaveTypeNames = {
+        'annual': 'سنوية',
+        'sick': 'مرضية',
+        'mourning': 'حداد',
+        'weekly': 'أسبوعية'
+      };
+      
+      // جلب جميع المديرين العامين
+      const [adminRows] = await authPool.query(
+        `SELECT id FROM users WHERE role = 'admin' AND is_active = 1`
+      );
+      
+      // إرسال إشعار لكل مدير عام
+      for (const admin of adminRows) {
+        await createNotification(
+          admin.id,
+          'leave_request',
+          id,
+          'تم إلغاء طلب إجازة',
+          `تم إلغاء طلب إجازة ${leaveTypeNames[leave.leave_type] || leave.leave_type} من ${userName} - عدد الأيام: ${leave.total_days}`
+        );
+      }
+    } catch (notifErr) {
+      console.error('⚠️ خطأ في إرسال الإشعار:', notifErr);
+      // لا نوقف العملية إذا فشل الإشعار
+    }
+
+    console.log('✅ cancelLeave: تم إلغاء طلب الإجازة بنجاح:', id);
+
+    res.json({
+      status: "success",
+      message: "تم إلغاء طلب الإجازة بنجاح"
+    });
+  } catch (err) {
+    console.error('❌ خطأ في cancelLeave:', err);
+    res.status(500).json({
+      status: "error",
+      message: err.message || 'خطأ في إلغاء طلب الإجازة'
     });
   }
 };

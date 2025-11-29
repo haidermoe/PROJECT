@@ -20,6 +20,9 @@ router.get("/all-leaves", authMiddleware, leaves.getAllLeaves);
 // الموافقة/الرفض على طلب إجازة (للمدير)
 router.post("/approve/:id", authMiddleware, leaves.approveLeave);
 
+// إلغاء طلب إجازة (للمستخدم نفسه)
+router.post("/cancel/:id", authMiddleware, leaves.cancelLeave);
+
 // جلب رصيد الإجازات
 router.get("/balance", authMiddleware, leaves.getLeaveBalance);
 

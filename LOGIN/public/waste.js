@@ -105,16 +105,26 @@ async function API(method, endpoint, body = null) {
 
   try {
     const res = await fetch(endpoint, config);
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('❌ API Error:', res.status, errorText);
-      return { status: "error", message: `خطأ ${res.status}: ${res.statusText}` };
+    
+    // التحقق من نوع المحتوى
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error('❌ API Error: Response is not JSON:', res.status, text.substring(0, 200));
+      return { status: "error", message: `خطأ ${res.status}: استجابة غير صحيحة من السيرفر` };
     }
+    
     const data = await res.json();
+    
+    if (!res.ok) {
+      console.error('❌ API Error:', res.status, data);
+      return { status: "error", message: data.message || `خطأ ${res.status}: ${res.statusText}` };
+    }
+    
     return data;
   } catch (error) {
     console.error("❌ خطأ في API:", error);
-    return { status: "error", message: error.message };
+    return { status: "error", message: error.message || "خطأ في الاتصال بالسيرفر" };
   }
 }
 
@@ -223,7 +233,8 @@ async function loadTable() {
         const statusNames = {
           'pending': '<span class="status-pending">⏳ في انتظار الموافقة</span>',
           'approved': '<span class="status-approved">✅ موافق عليها</span>',
-          'rejected': '<span class="status-rejected">❌ مرفوضة</span>'
+          'rejected': '<span class="status-rejected">❌ مرفوضة</span>',
+          'cancelled': '<span class="status-cancelled">🚫 ملغاة</span>'
         };
 
         const wasteDate = waste.waste_date 
@@ -232,8 +243,19 @@ async function loadTable() {
         const dateStr = wasteDate ? wasteDate.toLocaleString('ar-EG') : '—';
 
         let actionButtons = '';
-        if (isAdmin && waste.status === 'pending') {
+        const currentUserId = user?.id;
+        const isOwner = waste.recorded_by === currentUserId;
+        
+        // زر الإلغاء للمستخدم نفسه إذا كان الطلب pending
+        if (isOwner && waste.status === 'pending') {
           actionButtons = `
+            <button class="btn-mini cancel" onclick="cancelWaste(${waste.id})" title="إلغاء">🚫</button>
+          `;
+        }
+        
+        // أزرار الموافقة/الرفض للمدير العام
+        if (isAdmin && waste.status === 'pending') {
+          actionButtons += `
             <button class="btn-mini approve" onclick="approveWaste(${waste.id}, 'approve')" title="موافقة">✅</button>
             <button class="btn-mini reject" onclick="approveWaste(${waste.id}, 'reject')" title="رفض">❌</button>
           `;
@@ -389,6 +411,40 @@ async function handleAddWaste() {
 
 // ---------------------------------------------
 // الموافقة/رفض الهدر (المدير العام فقط)
+// ---------------------------------------------
+// ---------------------------------------------
+// إلغاء طلب هدر
+// ---------------------------------------------
+async function cancelWaste(id) {
+  if (!confirm("هل أنت متأكد من إلغاء هذا الطلب؟ سيتم إرسال إشعار للمدير العام.")) {
+    return;
+  }
+
+  try {
+    console.log('🔵 cancelWaste: محاولة إلغاء السجل:', id);
+    const endpoint = `/api/waste/${id}/cancel`;
+    console.log('🔵 cancelWaste: Endpoint:', endpoint);
+    const res = await API("POST", endpoint, {});
+
+    console.log('📥 cancelWaste: استجابة API:', res);
+
+    if (res && res.status === "success") {
+      alert("✅ تم إلغاء طلب الهدر بنجاح");
+      loadTable();
+    } else {
+      const errorMsg = res?.message || "حدث خطأ أثناء الإلغاء";
+      console.error("❌ cancelWaste: خطأ من API:", errorMsg);
+      alert("❌ خطأ: " + errorMsg);
+    }
+  } catch (error) {
+    console.error("❌ خطأ في الإلغاء:", error);
+    console.error("❌ تفاصيل الخطأ:", error.message);
+    alert("❌ حدث خطأ في الاتصال بالسيرفر: " + (error.message || "خطأ غير معروف"));
+  }
+}
+
+// ---------------------------------------------
+// الموافقة/رفض الهدر (للمدير)
 // ---------------------------------------------
 async function approveWaste(id, action) {
   try {

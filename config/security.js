@@ -78,6 +78,7 @@ const allowedRoles = [
   'admin',
   'manager',
   'kitchen_manager',
+  'kitchen_employee',
   'employee',
   'waiter',
   'captain',

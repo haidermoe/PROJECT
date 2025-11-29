@@ -41,6 +41,12 @@ const Permissions = {
     return user && user.role === 'employee';
   },
 
+  // موظف المطبخ: يمكنه سحب من المخزن
+  isKitchenEmployee() {
+    const user = getCurrentUser();
+    return user && user.role === 'kitchen_employee';
+  },
+
   // التحقق من أن المستخدم له صلاحيات كاملة (يرى كل الصفحات)
   hasFullAccess() {
     const user = getCurrentUser();
@@ -50,6 +56,7 @@ const Permissions = {
   },
 
   // التحقق من أن المستخدم موظف عادي (يرى فقط البصمة والإجازات)
+  // ملاحظة: kitchen_employee ليس موظف عادي لأنه يمكنه الوصول للمخزن والسحوبات
   isRegularEmployee() {
     const user = getCurrentUser();
     if (!user) return false;
@@ -82,9 +89,14 @@ const Permissions = {
     return this.isAdmin() || this.isKitchenManager();
   },
 
-  // يمكنه فقط سحب وإيداع (الموظف)
+  // يمكنه فقط سحب وإيداع (الموظف وموظف المطبخ)
   canOnlyWithdrawDeposit() {
-    return this.isEmployee();
+    return this.isEmployee() || this.isKitchenEmployee();
+  },
+
+  // يمكنه سحب من المخزن (موظف المطبخ)
+  canWithdrawFromInventory() {
+    return this.isKitchenEmployee() || this.isAdmin() || this.isKitchenManager();
   },
 
   // يحتاج موافقة لتعديل الوصفات (الشيف)
@@ -99,6 +111,7 @@ function applyPermissions() {
   if (!user) return;
 
   // الموظفون العاديون: إخفاء كل الصفحات ما عدا البصمة والإجازات
+  // ملاحظة: kitchen_employee يمكنه الوصول للمخزن والسحوبات
   if (Permissions.isRegularEmployee()) {
     const restrictedPages = [
       '/dashboard/dashboard.html',
@@ -123,8 +136,8 @@ function applyPermissions() {
     restrictedMenuItems.forEach(item => {
       const href = item.getAttribute('href');
       if (href) {
-        // السماح فقط بالبصمة والإجازات وتسجيل الخروج
-        if (href !== '/attendance.html' && href !== '/leaves.html' && !item.classList.contains('logout')) {
+        // السماح فقط بالبصمة والإجازات وتسجيل الخروج (الإشعارات فقط للمدير)
+        if (href !== '/attendance.html' && href !== '/leaves.html' && href !== '/notifications.html' && !item.classList.contains('logout')) {
           item.style.display = 'none';
         }
       } else if (!item.classList.contains('logout')) {
@@ -138,6 +151,14 @@ function applyPermissions() {
   if (!Permissions.isAdmin()) {
     const employeeLinks = document.querySelectorAll('a[href="/employees.html"]');
     employeeLinks.forEach(link => {
+      link.style.display = 'none';
+    });
+  }
+
+  // إخفاء رابط الإشعارات إذا لم يكن مدير عام
+  if (!Permissions.isAdmin()) {
+    const notificationLinks = document.querySelectorAll('a[href="/notifications.html"]');
+    notificationLinks.forEach(link => {
       link.style.display = 'none';
     });
   }

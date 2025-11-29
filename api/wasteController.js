@@ -8,6 +8,8 @@
 const { appPool } = require('../database/appConnection');
 // استيراد اتصال قاعدة بيانات المصادقة (للمستخدمين)
 const { authPool } = require('../database/authConnection');
+// استيراد دالة إنشاء الإشعارات
+const { createNotification } = require('./notificationsController');
 
 // ===============================
 //      تسجيل هدر جديد (مدير المطبخ)
@@ -73,6 +75,30 @@ exports.addWaste = async (req, res) => {
 
       const wasteId = result.insertId;
       console.log('✅ addWaste: تم تسجيل الهدر بنجاح:', wasteId);
+
+      // إذا كان الطلب من kitchen_manager، أرسل إشعار للمدير العام
+      if (userRole === 'kitchen_manager') {
+        try {
+          // جلب جميع المديرين العامين
+          const [adminRows] = await authPool.query(
+            `SELECT id FROM users WHERE role = 'admin' AND is_active = 1`
+          );
+          
+          // إرسال إشعار لكل مدير عام
+          for (const admin of adminRows) {
+            await createNotification(
+              admin.id,
+              'waste_request',
+              wasteId,
+              'طلب موافقة على هدر جديد',
+              `تم إرسال طلب موافقة على هدر: ${item_name} - الكمية: ${quantity} ${unit || ''}`
+            );
+          }
+        } catch (notifErr) {
+          console.error('⚠️ خطأ في إرسال الإشعار:', notifErr);
+          // لا نوقف العملية إذا فشل الإشعار
+        }
+      }
 
       res.json({
         status: "success",
@@ -241,6 +267,123 @@ exports.approveWaste = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: err.message
+    });
+  }
+};
+
+// ===============================
+//      إلغاء طلب هدر
+// ===============================
+exports.cancelWaste = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const { id } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        status: "error",
+        message: "المستخدم غير معروف"
+      });
+    }
+
+    // جلب سجل الهدر
+    const [wasteRows] = await appPool.query(
+      `SELECT * FROM waste_records WHERE id = ?`,
+      [id]
+    );
+
+    if (wasteRows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "سجل الهدر غير موجود"
+      });
+    }
+
+    const waste = wasteRows[0];
+
+    // التحقق من أن السجل ملك المستخدم (kitchen_manager) أو admin
+    if (waste.recorded_by !== userId && userRole !== 'admin') {
+      return res.status(403).json({
+        status: "error",
+        message: "ليس لديك صلاحية لإلغاء هذا السجل"
+      });
+    }
+
+    // التحقق من أن السجل في حالة pending
+    if (waste.status !== 'pending') {
+      const statusNames = {
+        'approved': 'تمت الموافقة عليه',
+        'rejected': 'تم رفضه',
+        'cancelled': 'تم إلغاؤه مسبقاً'
+      };
+      return res.status(400).json({
+        status: "error",
+        message: `لا يمكن إلغاء السجل. السجل ${statusNames[waste.status] || 'تم معالجته مسبقاً'}`
+      });
+    }
+
+    // تحديث حالة السجل إلى cancelled
+    console.log('🔵 cancelWaste: جاري تحديث حالة السجل إلى cancelled...', id);
+    const [updateResult] = await appPool.execute(
+      `UPDATE waste_records 
+       SET status = 'cancelled', 
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = ?`,
+      [id]
+    );
+
+    console.log('🔵 cancelWaste: نتيجة التحديث:', updateResult);
+
+    if (updateResult.affectedRows === 0) {
+      console.error('❌ cancelWaste: لم يتم تحديث أي صف');
+      return res.status(500).json({
+        status: "error",
+        message: "فشل تحديث حالة السجل"
+      });
+    }
+
+    // إرسال إشعار للمدير العام
+    try {
+      const [userRows] = await authPool.query(
+        `SELECT username, full_name FROM users WHERE id = ?`,
+        [userId]
+      );
+      
+      const user = userRows[0];
+      const userName = user?.full_name || user?.username || 'مستخدم';
+      
+      // جلب جميع المديرين العامين
+      const [adminRows] = await authPool.query(
+        `SELECT id FROM users WHERE role = 'admin' AND is_active = 1`
+      );
+      
+      // إرسال إشعار لكل مدير عام
+      for (const admin of adminRows) {
+        await createNotification(
+          admin.id,
+          'waste_request',
+          id,
+          'تم إلغاء طلب هدر',
+          `تم إلغاء طلب هدر: ${waste.item_name} - الكمية: ${waste.quantity} ${waste.unit || ''} من ${userName}`
+        );
+      }
+    } catch (notifErr) {
+      console.error('⚠️ خطأ في إرسال الإشعار:', notifErr);
+      // لا نوقف العملية إذا فشل الإشعار
+    }
+
+    console.log('✅ cancelWaste: تم إلغاء سجل الهدر بنجاح:', id);
+
+    res.json({
+      status: "success",
+      message: "تم إلغاء طلب الهدر بنجاح"
+    });
+  } catch (err) {
+    console.error('❌ خطأ في cancelWaste:', err);
+    res.status(500).json({
+      status: "error",
+      message: err.message || 'خطأ في إلغاء طلب الهدر'
     });
   }
 };

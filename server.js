@@ -90,6 +90,12 @@ app.use('/api/leaves', require('./api/leavesRoutes'));
 // مسارات الموافقات
 app.use('/api/approvals', require('./api/approvalRoutes'));
 
+// مسارات الإشعارات
+app.use('/api/notifications', require('./api/notificationsRoutes'));
+
+// مسارات الإشعارات
+app.use('/api/notifications', require('./api/notificationsRoutes'));
+
 // استيراد middleware للتحقق من التوكن
 const { authMiddleware } = require('./auth/authMiddleware');
 
@@ -101,6 +107,15 @@ const { authMiddleware } = require('./auth/authMiddleware');
 // إعادة توجيه /dashboard.html إلى /dashboard/dashboard.html
 app.get('/dashboard.html', (req, res) => {
   res.redirect('/dashboard/dashboard.html');
+});
+
+// معالج 404 للـ API routes (يجب أن يكون قبل express.static)
+app.use('/api/*', (req, res) => {
+  console.error('❌ 404: API route not found:', req.method, req.path);
+  res.status(404).json({
+    status: 'error',
+    message: 'API route not found'
+  });
 });
 
 // ⚠️ مهم: صفحة تسجيل الدخول يجب أن تكون متاحة بدون حماية

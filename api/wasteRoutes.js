@@ -14,11 +14,14 @@ router.post("/", authMiddleware, waste.addWaste);
 // جلب جميع سجلات الهدر
 router.get("/", authMiddleware, waste.getWasteRecords);
 
+// إحصائيات الهدر (يجب أن يكون قبل /:id routes)
+router.get("/stats", authMiddleware, waste.getWasteStats);
+
 // الموافقة/رفض الهدر (المدير العام فقط)
 router.put("/:id/approve", authMiddleware, waste.approveWaste);
 
-// إحصائيات الهدر
-router.get("/stats", authMiddleware, waste.getWasteStats);
+// إلغاء طلب هدر (للمستخدم نفسه أو admin)
+router.post("/:id/cancel", authMiddleware, waste.cancelWaste);
 
 module.exports = router;
 

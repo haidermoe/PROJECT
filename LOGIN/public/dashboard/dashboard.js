@@ -49,6 +49,20 @@ document.addEventListener('DOMContentLoaded', async function() {
   initializeDashboard();
 });
 
+// التحقق من أن المستخدم admin لعرض الإشعارات
+function shouldLoadNotifications() {
+  const userData = localStorage.getItem('user');
+  if (userData) {
+    try {
+      const user = JSON.parse(userData);
+      return user.role === 'admin';
+    } catch (e) {
+      return false;
+    }
+  }
+  return false;
+}
+
 /* ======================
    تهيئة لوحة التحكم (تعمل فقط بعد التحقق من التوكن)
 ====================== */
@@ -63,11 +77,45 @@ function initializeDashboard() {
   
   // تفعيل التحديث التلقائي لقائمة الموظفين
   startEmployeesUpdates();
+  
+  // تحميل الإشعارات (فقط للمدير العام)
+  if (shouldLoadNotifications()) {
+    console.log('✅ shouldLoadNotifications: true - سيتم تحميل الإشعارات');
+    // تأخير بسيط لضمان تحميل DOM
+    setTimeout(() => {
+      loadNotifications();
+      startNotificationsUpdates();
+    }, 500);
+  } else {
+    console.log('ℹ️ shouldLoadNotifications: false - المستخدم ليس admin');
+    // إخفاء قسم الإشعارات إذا لم يكن admin
+    const panel = document.querySelector('.panel');
+    if (panel) {
+      const panelHeader = panel.querySelector('.panel-header');
+      if (panelHeader) {
+        panelHeader.style.display = 'none';
+      }
+      const notificationsContainer = document.getElementById("notificationsContainer");
+      if (notificationsContainer) {
+        notificationsContainer.style.display = 'none';
+      }
+      const panelActions = panel.querySelector('.panel-actions');
+      if (panelActions) {
+        panelActions.style.display = 'none';
+      }
+    }
+  }
 }
 
 // API Helper
 async function API(method, endpoint, body = null) {
   const token = localStorage.getItem("token");
+  
+  if (!token) {
+    console.error("❌ لا يوجد توكن");
+    return { status: "error", message: "لا يوجد توكن" };
+  }
+  
   const config = {
     method,
     headers: {
@@ -77,8 +125,21 @@ async function API(method, endpoint, body = null) {
   };
   if (body) config.body = JSON.stringify(body);
 
-  const res = await fetch(endpoint, config);
-  return res.json();
+  try {
+    const res = await fetch(endpoint, config);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('❌ API Error:', res.status, errorText);
+      return { status: "error", message: `خطأ ${res.status}: ${res.statusText}` };
+    }
+    
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error("❌ خطأ في API:", error);
+    return { status: "error", message: error.message || "خطأ في الاتصال بالسيرفر" };
+  }
 }
 
 // تحميل بيانات الداشبورد
@@ -321,6 +382,174 @@ function startEmployeesUpdates() {
   console.log("✅ تم تفعيل التحديث التلقائي لقائمة الموظفين (كل 30 ثانية)");
 }
 
+// ===============================
+// تحميل الإشعارات
+// ===============================
+async function loadNotifications() {
+  try {
+    const container = document.getElementById("notificationsContainer");
+    if (!container) {
+      console.warn("⚠️ notificationsContainer غير موجود");
+      return;
+    }
+
+    console.log('🔵 جاري تحميل الإشعارات...');
+    const res = await API("GET", "/api/notifications?unread_only=true&limit=5");
+    
+    console.log('📥 استجابة API للإشعارات:', res);
+    
+    if (!res) {
+      throw new Error('لا توجد استجابة من السيرفر');
+    }
+    
+    if (res.status === "error") {
+      console.error('❌ خطأ من API:', res.message);
+      container.innerHTML = `<div class="empty-notifications">⚠️ ${res.message || 'حدث خطأ في تحميل الإشعارات'}</div>`;
+      updateNotificationCount(0);
+      return;
+    }
+    
+    if (res.status === "success" && res.data) {
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        container.innerHTML = "";
+        
+        res.data.forEach(notification => {
+          const item = createNotificationItem(notification);
+          container.appendChild(item);
+        });
+        
+        // تحديث العداد
+        updateNotificationCount(res.data.length);
+        console.log('✅ تم تحميل', res.data.length, 'إشعار');
+      } else {
+        container.innerHTML = '<div class="empty-notifications">لا توجد إشعارات جديدة</div>';
+        updateNotificationCount(0);
+        console.log('ℹ️ لا توجد إشعارات جديدة');
+      }
+    } else {
+      console.warn('⚠️ استجابة غير متوقعة:', res);
+      container.innerHTML = '<div class="empty-notifications">لا توجد إشعارات جديدة</div>';
+      updateNotificationCount(0);
+    }
+  } catch (error) {
+    console.error("❌ خطأ في تحميل الإشعارات:", error);
+    console.error("❌ تفاصيل الخطأ:", error.message);
+    console.error("❌ Stack:", error.stack);
+    const container = document.getElementById("notificationsContainer");
+    if (container) {
+      container.innerHTML = `<div class="empty-notifications">❌ حدث خطأ: ${error.message || 'خطأ غير معروف'}</div>`;
+    }
+    updateNotificationCount(0);
+  }
+}
+
+// إنشاء عنصر إشعار
+function createNotificationItem(notification) {
+  const item = document.createElement("div");
+  item.className = "notification-item-dashboard";
+  item.style.cssText = `
+    padding: 10px;
+    margin-bottom: 8px;
+    background: rgba(0, 255, 136, 0.08);
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  `;
+  
+  item.onmouseover = () => {
+    item.style.background = 'rgba(0, 255, 136, 0.12)';
+  };
+  item.onmouseout = () => {
+    item.style.background = 'rgba(0, 255, 136, 0.08)';
+  };
+  item.onclick = () => {
+    window.location.href = '/notifications.html';
+  };
+  
+  const typeNames = {
+    'waste_request': '🗑️ طلب هدر',
+    'leave_request': '📅 طلب إجازة'
+  };
+  
+  const typeName = typeNames[notification.type] || notification.type;
+  const date = new Date(notification.created_at);
+  const dateStr = date.toLocaleString('ar-EG', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  item.innerHTML = `
+    <div style="font-size: 0.85rem; font-weight: 600; color: #00ff88; margin-bottom: 4px;">
+      ${notification.title}
+    </div>
+    <div style="font-size: 0.75rem; color: #c6cad3; margin-bottom: 4px; line-height: 1.4;">
+      ${notification.message || ''}
+    </div>
+    <div style="font-size: 0.7rem; color: #9ba3b5; display: flex; justify-content: space-between; align-items: center;">
+      <span>${typeName}</span>
+      <span>${dateStr}</span>
+    </div>
+  `;
+  
+  return item;
+}
+
+// تحديث عداد الإشعارات
+function updateNotificationCount(count) {
+  const badge = document.getElementById("notificationCount");
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+// تحديد الكل كمقروء
+async function markAllNotificationsRead() {
+  try {
+    const res = await API("GET", '/api/notifications?unread_only=true');
+    
+    if (res.status === "success" && res.data && res.data.length > 0) {
+      const promises = res.data.map(notification => 
+        API("PATCH", `/api/notifications/${notification.id}/read`)
+      );
+      
+      await Promise.all(promises);
+      loadNotifications();
+    } else {
+      alert("لا توجد إشعارات غير مقروءة");
+    }
+  } catch (error) {
+    console.error("❌ خطأ في تحديد الكل كمقروء:", error);
+    alert("❌ حدث خطأ في الاتصال بالسيرفر");
+  }
+}
+
+// تحديث الإشعارات كل 30 ثانية
+let notificationsInterval = null;
+
+function startNotificationsUpdates() {
+  // تحديث فوري عند التحميل
+  loadNotifications();
+  
+  // تحديث كل 30 ثانية
+  if (notificationsInterval) {
+    clearInterval(notificationsInterval);
+  }
+  
+  notificationsInterval = setInterval(() => {
+    loadNotifications();
+  }, 30000);
+  
+  console.log("✅ تم تفعيل التحديث التلقائي للإشعارات (كل 30 ثانية)");
+}
+
 // إيقاف التحديث عند إغلاق الصفحة
 window.addEventListener('beforeunload', () => {
   if (usdRateInterval) {
@@ -328,5 +557,8 @@ window.addEventListener('beforeunload', () => {
   }
   if (employeesInterval) {
     clearInterval(employeesInterval);
+  }
+  if (notificationsInterval) {
+    clearInterval(notificationsInterval);
   }
 });

@@ -53,6 +53,7 @@ function initSidebar() {
         'admin': '👑 مدير عام',
         'manager': '👔 مدير',
         'kitchen_manager': '👨‍🍳 مدير مطبخ',
+        'kitchen_employee': '👨‍🍳 موظف مطبخ',
         'employee': '👤 موظف',
         'waiter': '🍽️ ويتر',
         'captain': '👔 كابتن',
@@ -78,6 +79,41 @@ function initSidebar() {
         const employeeLinks = document.querySelectorAll('a[href="/employees.html"]');
         employeeLinks.forEach(link => {
           link.style.display = 'none';
+        });
+      }
+
+      // kitchen_employee: يمكنه الوصول للمخزن والسحوبات والبصمة والإجازات
+      if (user.role === 'kitchen_employee') {
+        const restrictedPages = [
+          '/dashboard/dashboard.html',
+          '/recipes.html',
+          '/employees.html',
+          '/waste.html',
+          '/work-hours.html',
+          '/add-recipe.html',
+          '/notifications.html'
+        ];
+
+        restrictedPages.forEach(page => {
+          const links = document.querySelectorAll(`a[href="${page}"]`);
+          links.forEach(link => {
+            link.style.display = 'none';
+          });
+        });
+
+        // إخفاء عناصر القائمة الأخرى
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+          const href = item.getAttribute('href');
+          if (href) {
+            // السماح فقط بالمخزن والسحوبات والبصمة والإجازات وتسجيل الخروج
+            if (href !== '/inventory.html' && href !== '/withdrawals.html' && href !== '/attendance.html' && href !== '/leaves.html' && !item.classList.contains('logout')) {
+              item.style.display = 'none';
+            }
+          } else if (!item.classList.contains('logout')) {
+            // إخفاء عناصر القائمة بدون رابط (مثل "المبيعات", "إدارة المنيو", "الإعدادات")
+            item.style.display = 'none';
+          }
         });
       }
 
@@ -118,8 +154,8 @@ function initSidebar() {
         menuItems.forEach(item => {
           const href = item.getAttribute('href');
           if (href) {
-            // السماح فقط بالبصمة والإجازات وتسجيل الخروج
-            if (href !== '/attendance.html' && href !== '/leaves.html' && !item.classList.contains('logout')) {
+            // السماح فقط بالبصمة والإجازات والإشعارات وتسجيل الخروج
+            if (href !== '/attendance.html' && href !== '/leaves.html' && href !== '/notifications.html' && !item.classList.contains('logout')) {
               item.style.display = 'none';
             }
           } else if (!item.classList.contains('logout')) {

@@ -377,37 +377,72 @@ async function getUsers(req, res) {
 // تعديل مستخدم
 async function updateUser(req, res) {
   try {
+    console.log('🔵 updateUser: بدء تحديث المستخدم');
     const { id } = req.params;
     const { username, password, role, full_name } = req.body;
+
+    console.log('🔵 updateUser: البيانات المستلمة:', { id, username, role, full_name, hasPassword: !!password });
 
     const fields = [];
     const values = [];
 
-    if (username) { fields.push("username = ?"); values.push(username); }
-    if (role) { fields.push("role = ?"); values.push(role); }
-    if (full_name) { fields.push("full_name = ?"); values.push(full_name); }
+    // التحقق من وجود الحقول في req.body (حتى لو كانت null أو فارغة)
+    if (username !== undefined) { 
+      fields.push("username = ?"); 
+      values.push(username); 
+      console.log('✅ سيتم تحديث username');
+    }
+    
+    if (role !== undefined) { 
+      fields.push("role = ?"); 
+      values.push(role); 
+      console.log('✅ سيتم تحديث role');
+    }
+    
+    // السماح بتحديث full_name حتى لو كان null أو فارغاً
+    if (full_name !== undefined) { 
+      fields.push("full_name = ?"); 
+      values.push(full_name || null); 
+      console.log('✅ سيتم تحديث full_name:', full_name || 'null');
+    }
 
-    if (password) {
+    // تحديث كلمة المرور فقط إذا تم إرسالها
+    if (password && password.trim()) {
       const hash = await bcrypt.hash(password, 10);
       fields.push("password = ?");
       values.push(hash);
+      console.log('✅ سيتم تحديث password');
     }
 
-    if (fields.length === 0)
+    if (fields.length === 0) {
+      console.log('⚠️ لا توجد حقول للتحديث');
       return res.status(400).json({ status: "error", message: "لا يوجد تغييرات" });
+    }
 
     values.push(id);
+
+    console.log('🔵 updateUser: تنفيذ الاستعلام:', `UPDATE users SET ${fields.join(", ")} WHERE id = ?`);
+    console.log('🔵 updateUser: القيم:', values);
 
     await authPool.execute(
       `UPDATE users SET ${fields.join(", ")} WHERE id = ?`,
       values
     );
 
+    console.log('✅ updateUser: تم تحديث المستخدم بنجاح');
     return res.json({ status: "success", message: "تم تحديث بيانات المستخدم" });
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ status: "error", message: "خطأ في السيرفر" });
+    console.error('❌ updateUser: خطأ في تحديث المستخدم:', err);
+    console.error('❌ updateUser: تفاصيل الخطأ:', err.message);
+    console.error('❌ updateUser: Stack:', err.stack);
+    
+    // معالجة أخطاء محددة
+    if (err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ status: "error", message: "اسم المستخدم موجود مسبقاً" });
+    }
+    
+    return res.status(500).json({ status: "error", message: "خطأ في السيرفر: " + (err.message || "خطأ غير معروف") });
   }
 }
 

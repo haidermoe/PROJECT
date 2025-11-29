@@ -56,6 +56,33 @@ function initializeLeaves() {
   // حساب عدد الأيام عند تغيير التواريخ
   document.getElementById('startDate')?.addEventListener('change', calculateDays);
   document.getElementById('endDate')?.addEventListener('change', calculateDays);
+  
+  // إصلاح لون النص في dropdowns
+  fixSelectColors();
+}
+
+// إصلاح لون النص في dropdowns
+function fixSelectColors() {
+  const selects = document.querySelectorAll('select');
+  selects.forEach(select => {
+    // ضمان أن النص مرئي عند التحديد
+    select.style.color = '#f5f5f5';
+    
+    // عند تغيير القيمة، تأكد من أن النص مرئي
+    select.addEventListener('change', function() {
+      this.style.color = '#f5f5f5';
+    });
+    
+    // عند فتح القائمة
+    select.addEventListener('focus', function() {
+      this.style.color = '#f5f5f5';
+    });
+    
+    // عند إغلاق القائمة
+    select.addEventListener('blur', function() {
+      this.style.color = '#f5f5f5';
+    });
+  });
 }
 
 // ---------------------------------------------
@@ -84,16 +111,26 @@ async function API(method, endpoint, body = null) {
 
   try {
     const res = await fetch(endpoint, config);
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('❌ API Error:', res.status, errorText);
-      return { status: "error", message: `خطأ ${res.status}: ${res.statusText}` };
+    
+    // التحقق من نوع المحتوى
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error('❌ API Error: Response is not JSON:', res.status, text.substring(0, 200));
+      return { status: "error", message: `خطأ ${res.status}: استجابة غير صحيحة من السيرفر` };
     }
+    
     const data = await res.json();
+    
+    if (!res.ok) {
+      console.error('❌ API Error:', res.status, data);
+      return { status: "error", message: data.message || `خطأ ${res.status}: ${res.statusText}` };
+    }
+    
     return data;
   } catch (error) {
     console.error("❌ خطأ في API:", error);
-    return { status: "error", message: error.message };
+    return { status: "error", message: error.message || "خطأ في الاتصال بالسيرفر" };
   }
 }
 
@@ -130,8 +167,17 @@ async function loadLeaveBalance() {
 async function loadMyLeaves() {
   try {
     const status = document.getElementById("filterStatus")?.value || "";
+    const leaveType = document.getElementById("filterLeaveType")?.value || "";
+
+    console.log('🔵 loadMyLeaves: الفلاتر:', { status, leaveType });
+
     let endpoint = "/api/leaves/my-leaves";
-    if (status) endpoint += `?status=${status}`;
+    const params = [];
+    if (status) params.push(`status=${status}`);
+    if (leaveType) params.push(`leave_type=${leaveType}`);
+    if (params.length > 0) endpoint += "?" + params.join('&');
+
+    console.log('🔵 loadMyLeaves: Endpoint:', endpoint);
 
     const res = await API("GET", endpoint);
 
@@ -154,7 +200,8 @@ async function loadMyLeaves() {
         const statusNames = {
           'pending': 'قيد الانتظار',
           'approved': 'موافق عليها',
-          'rejected': 'مرفوضة'
+          'rejected': 'مرفوضة',
+          'cancelled': 'ملغاة'
         };
 
         const startDate = new Date(leave.start_date).toLocaleDateString('ar-EG');
@@ -167,7 +214,7 @@ async function loadMyLeaves() {
           <td>${leave.total_days} يوم</td>
           <td>${leave.reason || '—'}</td>
           <td><span class="status-badge ${leave.status}">${statusNames[leave.status] || leave.status}</span></td>
-          <td>${leave.status === 'pending' ? '<button class="btn-action btn-reject" onclick="cancelLeave(' + leave.id + ')">إلغاء</button>' : '—'}</td>
+          <td>${leave.status === 'pending' ? '<button class="btn-action btn-cancel" onclick="cancelLeave(' + leave.id + ')">🚫 إلغاء</button>' : '—'}</td>
         `;
 
         tbody.appendChild(row);
@@ -192,11 +239,15 @@ async function loadAllLeaves() {
     const status = document.getElementById("filterStatus")?.value || "";
     const leaveType = document.getElementById("filterLeaveType")?.value || "";
 
-    let endpoint = "/api/leaves/all-leaves?";
+    console.log('🔵 loadAllLeaves: الفلاتر:', { status, leaveType });
+
+    let endpoint = "/api/leaves/all-leaves";
     const params = [];
     if (status) params.push(`status=${status}`);
     if (leaveType) params.push(`leave_type=${leaveType}`);
-    if (params.length > 0) endpoint += params.join('&');
+    if (params.length > 0) endpoint += "?" + params.join('&');
+
+    console.log('🔵 loadAllLeaves: Endpoint:', endpoint);
 
     const res = await API("GET", endpoint);
 
@@ -219,7 +270,8 @@ async function loadAllLeaves() {
         const statusNames = {
           'pending': 'قيد الانتظار',
           'approved': 'موافق عليها',
-          'rejected': 'مرفوضة'
+          'rejected': 'مرفوضة',
+          'cancelled': 'ملغاة'
         };
 
         const startDate = new Date(leave.start_date).toLocaleDateString('ar-EG');
@@ -267,6 +319,14 @@ function openRequestModal() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("startDate").min = today;
     document.getElementById("endDate").min = today;
+    // إصلاح لون النص في dropdown بعد فتح المودال
+    setTimeout(() => {
+      fixSelectColors();
+      const leaveTypeSelect = document.getElementById("leaveType");
+      if (leaveTypeSelect) {
+        leaveTypeSelect.style.color = '#f5f5f5';
+      }
+    }, 100);
   }
 }
 
@@ -406,12 +466,34 @@ async function rejectLeave(id) {
 // إلغاء طلب إجازة
 // ---------------------------------------------
 async function cancelLeave(id) {
-  if (!confirm("هل أنت متأكد من إلغاء هذا الطلب؟")) {
+  if (!confirm("هل أنت متأكد من إلغاء هذا الطلب؟ سيتم إرسال إشعار للمدير العام.")) {
     return;
   }
 
-  // يمكن إضافة API endpoint لإلغاء الطلب لاحقاً
-  alert("⚠️ ميزة الإلغاء قيد التطوير");
+  try {
+    console.log('🔵 cancelLeave: محاولة إلغاء الطلب:', id);
+    const endpoint = `/api/leaves/cancel/${id}`;
+    console.log('🔵 cancelLeave: Endpoint:', endpoint);
+    const res = await API("POST", endpoint, {});
+
+    console.log('📥 cancelLeave: استجابة API:', res);
+
+    if (res && res.status === "success") {
+      alert("✅ تم إلغاء طلب الإجازة بنجاح");
+      loadMyLeaves();
+      if (isAdmin) {
+        loadAllLeaves();
+      }
+    } else {
+      const errorMsg = res?.message || "حدث خطأ أثناء الإلغاء";
+      console.error("❌ cancelLeave: خطأ من API:", errorMsg);
+      alert("❌ خطأ: " + errorMsg);
+    }
+  } catch (error) {
+    console.error("❌ خطأ في الإلغاء:", error);
+    console.error("❌ تفاصيل الخطأ:", error.message);
+    alert("❌ حدث خطأ في الاتصال بالسيرفر: " + (error.message || "خطأ غير معروف"));
+  }
 }
 
 // ---------------------------------------------

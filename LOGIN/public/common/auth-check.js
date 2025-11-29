@@ -139,10 +139,42 @@ async function requireAuth() {
         'garage_manager'
       ];
 
+      // kitchen_employee يمكنه الوصول للمخزن والسحوبات
+      if (user.role === 'kitchen_employee') {
+        const currentPath = window.location.pathname;
+        const kitchenEmployeeAllowedPages = ['/attendance.html', '/leaves.html', '/index.html', '/inventory.html', '/withdrawals.html'];
+        
+        // صفحة الإشعارات فقط للمدير العام
+        if (currentPath === '/notifications.html') {
+          console.log(`⚠️ المستخدم ${user.username} (${user.role}) يحاول الوصول إلى صفحة الإشعارات. جاري إعادة التوجيه إلى /inventory.html`);
+          window.location.replace("/inventory.html");
+          return false;
+        }
+        
+        const isAllowedPage = kitchenEmployeeAllowedPages.some(page => currentPath.includes(page));
+        
+        if (!isAllowedPage) {
+          // إعادة التوجيه إلى صفحة المخزن
+          console.log('⚠️ موظف المطبخ لا يمكنه الوصول إلى هذه الصفحة. إعادة التوجيه إلى المخزن...');
+          if (document.body) {
+            document.body.style.display = '';
+          }
+          window.location.replace('/inventory.html');
+          return false;
+        }
+      }
+
       // إذا كان موظف عادي وحاول الوصول لصفحة غير مصرح بها
       if (regularEmployeeRoles.includes(user.role)) {
         const currentPath = window.location.pathname;
         const allowedPages = ['/attendance.html', '/leaves.html', '/index.html'];
+      
+      // صفحة الإشعارات فقط للمدير العام
+      if (currentPath === '/notifications.html' && user.role !== 'admin') {
+        console.log(`⚠️ المستخدم ${user.username} (${user.role}) يحاول الوصول إلى صفحة الإشعارات. جاري إعادة التوجيه إلى /dashboard/dashboard.html`);
+        window.location.replace("/dashboard/dashboard.html");
+        return false;
+      }
         const isAllowedPage = allowedPages.some(page => currentPath.includes(page));
 
         if (!isAllowedPage) {

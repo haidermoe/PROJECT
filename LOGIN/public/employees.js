@@ -176,6 +176,20 @@ function setupListeners() {
     });
   }
 
+  // إضافة إمكانية الضغط على Enter في حقول مودال التعديل
+  const editModal = document.getElementById("editModal");
+  if (editModal) {
+    const inputs = editModal.querySelectorAll("input, select");
+    inputs.forEach(input => {
+      input.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleEditUser();
+        }
+      });
+    });
+  }
+
   // زر إلغاء تعديل
   const cancelEdit = document.getElementById("cancelEdit");
   if (cancelEdit) {
@@ -310,7 +324,16 @@ async function loadTable() {
             'admin': '👑 مدير عام',
             'manager': '👔 مدير',
             'kitchen_manager': '👨‍🍳 مدير مطبخ',
-            'employee': '👤 موظف'
+            'kitchen_employee': '👨‍🍳 موظف مطبخ',
+            'employee': '👤 موظف',
+            'waiter': '🍽️ ويتر',
+            'captain': '👔 كابتن',
+            'cleaner': '🧹 عامل نظافة',
+            'hall_manager': '🏢 مسؤول صالة',
+            'hall_captain': '👔 كابتن صالة',
+            'receptionist': '📞 موظف استقبال',
+            'garage_employee': '🚗 موظف كراج',
+            'garage_manager': '🚗 مسؤول كراج'
           };
 
           const status = user.is_active === 1 || user.is_active === true
@@ -474,10 +497,19 @@ async function handleAddUser() {
 // دالة مساعدة للحصول على اسم الرتبة
 function getRoleName(role) {
   const roleNames = {
-    'admin': 'مدير عام',
-    'manager': 'مدير',
-    'kitchen_manager': 'مدير مطبخ',
-    'employee': 'موظف'
+    'admin': '👑 مدير عام',
+    'manager': '👔 مدير',
+    'kitchen_manager': '👨‍🍳 مدير مطبخ',
+    'kitchen_employee': '👨‍🍳 موظف مطبخ',
+    'employee': '👤 موظف',
+    'waiter': '🍽️ ويتر',
+    'captain': '👔 كابتن',
+    'cleaner': '🧹 عامل نظافة',
+    'hall_manager': '🏢 مسؤول صالة',
+    'hall_captain': '👔 كابتن صالة',
+    'receptionist': '📞 موظف استقبال',
+    'garage_employee': '🚗 موظف كراج',
+    'garage_manager': '🚗 مسؤول كراج'
   };
   return roleNames[role] || role;
 }
@@ -487,36 +519,83 @@ function getRoleName(role) {
 // ---------------------------------------------
 async function openEdit(id) {
   try {
+    console.log('🔵 openEdit: فتح نافذة التعديل للمستخدم ID:', id);
+    
     const res = await API("GET", "/auth/users");
     
-    if (res.status === "success" && res.users) {
+    console.log('📥 openEdit: استجابة API:', res);
+    
+    if (res && res.status === "success" && res.users) {
       const user = res.users.find(u => u.id === id);
+      
+      console.log('🔍 openEdit: المستخدم المحدد:', user);
       
       if (user) {
         currentEditId = id;
-        document.getElementById("editUsername").value = user.username;
-        document.getElementById("editFullName").value = user.full_name || '';
-        document.getElementById("editRole").value = user.role;
-        document.getElementById("editPassword").value = '';
-        document.getElementById("editModal").classList.add("active");
+        
+        // ملء الحقول
+        const editUsername = document.getElementById("editUsername");
+        const editFullName = document.getElementById("editFullName");
+        const editRole = document.getElementById("editRole");
+        const editPassword = document.getElementById("editPassword");
+        
+        if (editUsername) editUsername.value = user.username || '';
+        if (editFullName) editFullName.value = user.full_name || '';
+        if (editRole) editRole.value = user.role || 'employee';
+        if (editPassword) editPassword.value = '';
+        
+        // فتح المودال
+        const editModal = document.getElementById("editModal");
+        if (editModal) {
+          editModal.classList.add("active");
+          console.log('✅ openEdit: تم فتح نافذة التعديل بنجاح');
+        } else {
+          console.error('❌ openEdit: لم يتم العثور على editModal');
+        }
+      } else {
+        console.error('❌ openEdit: لم يتم العثور على المستخدم مع ID:', id);
+        alert("⚠️ لم يتم العثور على بيانات المستخدم");
       }
+    } else {
+      console.error('❌ openEdit: استجابة غير صحيحة من API:', res);
+      alert("⚠️ حدث خطأ في تحميل بيانات المستخدم");
     }
   } catch (error) {
-    console.error("خطأ في فتح التعديل:", error);
-    alert("حدث خطأ في تحميل بيانات المستخدم");
+    console.error("❌ openEdit: خطأ في فتح التعديل:", error);
+    console.error("❌ openEdit: تفاصيل الخطأ:", error.message);
+    alert("❌ حدث خطأ في تحميل بيانات المستخدم: " + (error.message || "خطأ غير معروف"));
   }
 }
 
 async function handleEditUser() {
-  if (!currentEditId) return;
+  if (!currentEditId) {
+    console.error("❌ handleEditUser: لا يوجد currentEditId");
+    alert("⚠️ خطأ: لم يتم تحديد المستخدم للتعديل");
+    return;
+  }
+
+  // منع إرسال متعدد
+  const saveBtn = document.getElementById("saveEdit");
+  if (saveBtn && saveBtn.disabled) {
+    return; // الطلب قيد المعالجة
+  }
 
   const username = document.getElementById("editUsername")?.value.trim();
   const password = document.getElementById("editPassword")?.value;
   const fullName = document.getElementById("editFullName")?.value.trim();
   const role = document.getElementById("editRole")?.value;
 
+  console.log('🔵 handleEditUser: البيانات المدخلة:', { 
+    currentEditId, 
+    username, 
+    role, 
+    fullName, 
+    hasPassword: !!password 
+  });
+
   if (!username) {
-    alert("اسم المستخدم مطلوب");
+    alert("⚠️ اسم المستخدم مطلوب");
+    document.getElementById("editUsername")?.focus();
     return;
   }
 
@@ -528,23 +607,52 @@ async function handleEditUser() {
 
   // إضافة كلمة المرور فقط إذا تم إدخالها
   if (password && password.trim()) {
-    updateData.password = password;
+    if (password.trim().length < 4) {
+      alert("⚠️ كلمة المرور يجب أن تكون 4 أحرف على الأقل");
+      document.getElementById("editPassword")?.focus();
+      return;
+    }
+    updateData.password = password.trim();
+  }
+
+  // تعطيل الزر أثناء المعالجة
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "جاري الحفظ...";
   }
 
   try {
+    console.log('📤 handleEditUser: إرسال طلب تحديث:', updateData);
     const res = await API("PUT", `/auth/users/${currentEditId}`, updateData);
 
-    if (res.status === "success") {
+    console.log('📥 handleEditUser: استجابة السيرفر:', res);
+
+    if (res && res.status === "success") {
+      // إغلاق المودال
       document.getElementById("editModal").classList.remove("active");
       currentEditId = null;
       clearEditFields();
-      loadEmployeesPage();
+      
+      // إعادة تحميل البيانات
+      await loadEmployeesPage();
+      
+      // رسالة نجاح
+      alert("✅ تم تحديث بيانات الموظف بنجاح!");
     } else {
-      alert(res.message || "حدث خطأ أثناء تحديث بيانات الموظف");
+      const errorMsg = res?.message || res?.error || "حدث خطأ أثناء تحديث بيانات الموظف";
+      console.error("❌ handleEditUser: خطأ من السيرفر:", errorMsg);
+      alert("❌ خطأ: " + errorMsg);
     }
   } catch (error) {
-    console.error("خطأ في تحديث الموظف:", error);
-    alert("حدث خطأ في الاتصال بالسيرفر");
+    console.error("❌ handleEditUser: خطأ في تحديث الموظف:", error);
+    console.error("❌ handleEditUser: تفاصيل الخطأ:", error.message);
+    alert("❌ حدث خطأ في الاتصال بالسيرفر: " + (error.message || "خطأ غير معروف"));
+  } finally {
+    // إعادة تفعيل الزر
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "حفظ التغييرات";
+    }
   }
 }
 
