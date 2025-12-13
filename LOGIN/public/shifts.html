@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>جداول الدوام</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="shifts.css" />
+</head>
+<body>
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item active" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item" href="/settings.html">⚙️ الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+      <!-- Topbar -->
+      <div class="topbar">
+        <button class="btn-add" id="createScheduleBtn">➕ إنشاء جدول دوام جديد</button>
+        <h2 class="page-title">📅 جداول الدوام</h2>
+      </div>
+
+      <!-- قائمة الجداول -->
+      <section class="schedules-list">
+        <div class="filters">
+          <select id="statusFilter">
+            <option value="">الكل</option>
+            <option value="draft">مسودة</option>
+            <option value="pending_approval">في انتظار الموافقة</option>
+            <option value="approved">معتمد</option>
+            <option value="published">منشور</option>
+            <option value="rejected">مرفوض</option>
+          </select>
+          <button class="btn-filter" onclick="applyFilters()">تطبيق</button>
+        </div>
+
+        <div id="schedulesTable" class="table-container">
+          <!-- سيتم تحميل الجداول هنا -->
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Modal إنشاء جدول دوام -->
+  <div class="modal" id="createScheduleModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>➕ إنشاء جدول دوام جديد</h3>
+        <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>تاريخ بداية الأسبوع (الأحد) *</label>
+          <input type="date" id="weekStartDate" required />
+          <small>اختر تاريخ الأحد (بداية الأسبوع)</small>
+        </div>
+
+        <div class="form-group">
+          <label>إضافة موظفين *</label>
+          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <select id="employeeSelect" style="flex: 1; padding: 10px 15px; background: #2d2d44; border: 1px solid #3d3d5c; border-radius: 8px; color: #ffffff; font-size: 14px;">
+              <option value="">-- اختر موظف لإضافته --</option>
+            </select>
+            <button type="button" onclick="addEmployeeToSchedule()" style="padding: 10px 20px; background: #00ff88; color: #000; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">➕ إضافة</button>
+          </div>
+          <div id="selectedEmployeesList" style="min-height: 60px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid #3d3d5c;">
+            <p style="color: #888; text-align: center; margin: 0; padding: 20px 0;">لم يتم اختيار موظفين بعد</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>ملاحظات (اختياري)</label>
+          <textarea id="scheduleNotes" rows="3" placeholder="ملاحظات إضافية..."></textarea>
+        </div>
+
+        <!-- جدول الدوام -->
+        <div class="shifts-table-container">
+          <h4>جدول الدوام (من الأحد إلى السبت)</h4>
+          <div id="shiftsTable" class="shifts-table">
+            <!-- سيتم إنشاء الجدول ديناميكياً -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeCreateModal()">إلغاء</button>
+        <button class="btn-save" onclick="saveSchedule()">💾 حفظ وإرسال للموافقة</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="shifts.js"></script>
+</body>
+</html>
+

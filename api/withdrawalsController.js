@@ -105,6 +105,7 @@ exports.scanQRCode = async (req, res) => {
     try {
       await connection.beginTransaction();
 
+      // إدراج السحب
       const [result] = await connection.execute(
         `INSERT INTO recipe_withdrawals 
          (production_id, user_id, withdrawal_quantity, notes) 
@@ -112,15 +113,28 @@ exports.scanQRCode = async (req, res) => {
         [productionId, userId, withdrawalQty, notes || null]
       );
 
+      // تحديث إحصائيات الإنتاج
+      const newRemaining = remainingQty - withdrawalQty;
+      await connection.execute(
+        `INSERT INTO production_statistics (production_id, total_withdrawn, remaining_quantity, withdrawal_count)
+         VALUES (?, ?, ?, 1)
+         ON DUPLICATE KEY UPDATE
+         total_withdrawn = total_withdrawn + ?,
+         remaining_quantity = remaining_quantity - ?,
+         withdrawal_count = withdrawal_count + 1,
+         updated_at = CURRENT_TIMESTAMP`,
+        [productionId, withdrawalQty, newRemaining, withdrawalQty, withdrawalQty]
+      );
+
       await connection.commit();
 
       console.log('✅ scanQRCode: تم تسجيل السحب بنجاح:', result.insertId);
 
-      // جلب بيانات السحب الكاملة
+      // جلب بيانات السحب الكاملة مع الكمية المتبقية المحدثة
       const [withdrawalRows] = await appPool.query(
         `SELECT rw.*, rp.production_quantity, rp.production_date, rp.expiry_date,
                 r.item_name, r.name, r.reference,
-                ps.remaining_quantity, ps.total_withdrawn
+                ps.remaining_quantity, ps.total_withdrawn, ps.withdrawal_count
          FROM recipe_withdrawals rw
          LEFT JOIN recipe_productions rp ON rw.production_id = rp.id
          LEFT JOIN recipes r ON rp.recipe_id = r.id

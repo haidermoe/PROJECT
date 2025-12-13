@@ -546,6 +546,33 @@ exports.produceRecipe = async (req, res) => {
       });
     }
 
+    // التحقق من صحة القيم الرقمية
+    const productionQty = parseFloat(production_quantity);
+    const portionWeight = parseFloat(portion_weight);
+
+    if (isNaN(productionQty) || productionQty <= 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "الكمية المنتجة يجب أن تكون رقم صحيح أكبر من صفر"
+      });
+    }
+
+    if (isNaN(portionWeight) || portionWeight <= 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "وزن البورشن يجب أن يكون رقم صحيح أكبر من صفر"
+      });
+    }
+
+    // التحقق من صحة التاريخ
+    const productionDate = new Date(production_date);
+    if (isNaN(productionDate.getTime())) {
+      return res.status(400).json({
+        status: "error",
+        message: "تاريخ الإنتاج غير صحيح"
+      });
+    }
+
     // جلب الوصفة
     const backtick = String.fromCharCode(96);
     const procedureCol = backtick + 'procedure' + backtick;
@@ -576,7 +603,14 @@ exports.produceRecipe = async (req, res) => {
     // حساب المقادير للكمية المطلوبة
     // استخراج الرقم من yield (مثلاً "5 KG" -> 5)
     const originalYield = parseFloat(recipe.yield?.toString().replace(/[^0-9.]/g, '')) || 1;
-    const productionQty = parseFloat(production_quantity);
+    
+    if (originalYield <= 0) {
+      return res.status(400).json({
+        status: "error",
+        message: "Yield الوصفة غير صحيح"
+      });
+    }
+    
     const multiplier = productionQty / originalYield;
 
     const calculatedIngredients = ingredientsRows.map(ing => {
@@ -595,21 +629,44 @@ exports.produceRecipe = async (req, res) => {
     });
 
     // حساب تاريخ الانتهاء من shelf_life
-    const productionDate = new Date(production_date);
     let expiryDate = new Date(productionDate);
     
     if (recipe.shelf_life) {
       const shelfLifeStr = recipe.shelf_life.toString().toLowerCase();
-      // استخراج الأيام (مثلاً "3 أيام" -> 3)
+      // استخراج الأيام (مثلاً "DAY 30" -> 30, "3 أيام" -> 3)
       const daysMatch = shelfLifeStr.match(/(\d+)/);
       if (daysMatch) {
         const days = parseInt(daysMatch[1]);
-        expiryDate.setDate(expiryDate.getDate() + days);
+        if (!isNaN(days) && days > 0) {
+          expiryDate.setDate(expiryDate.getDate() + days);
+        }
       }
     }
 
     // حساب عدد البورتشنات
-    const numberOfPortions = Math.floor(productionQty / parseFloat(portion_weight));
+    const numberOfPortions = Math.floor(productionQty / portionWeight);
+    
+    if (numberOfPortions <= 0) {
+      return res.status(400).json({
+        status: "error",
+        message: `عدد البورتشنات غير صحيح. الكمية المنتجة (${productionQty}) يجب أن تكون أكبر من وزن البورشن (${portionWeight})`
+      });
+    }
+
+    if (numberOfPortions > 1000) {
+      return res.status(400).json({
+        status: "error",
+        message: "عدد البورتشنات كبير جداً (أكثر من 1000). يرجى التحقق من البيانات"
+      });
+    }
+
+    console.log('🔵 produceRecipe: معلومات الحساب:', {
+      productionQty,
+      portionWeight,
+      numberOfPortions,
+      originalYield,
+      multiplier
+    });
     
     // إنشاء QR Codes متعددة (واحد لكل بورشن)
     const qrCodes = [];
@@ -621,7 +678,7 @@ exports.produceRecipe = async (req, res) => {
         recipe_id: recipe.id,
         recipe_name: recipe.item_name || recipe.name,
         production_quantity: productionQty,
-        portion_weight: parseFloat(portion_weight),
+        portion_weight: portionWeight,
         production_date: productionDate.toISOString(),
         expiry_date: expiryDate.toISOString(),
         reference: recipe.reference || null,
@@ -631,24 +688,114 @@ exports.produceRecipe = async (req, res) => {
       qrCodes.push(qrCodeData);
     }
 
-    // إدراج الإنتاج في قاعدة البيانات
+    // إزالة Foreign Key constraint من transactions.user_id إذا كان موجوداً
+    // لأن المستخدمين في auth_db وليس kitchen_inventory
+    // يجب أن يكون خارج transaction لأنها عملية DDL
     const connection = await appPool.getConnection();
     try {
+      try {
+        const [constraints] = await connection.execute(
+          `SELECT CONSTRAINT_NAME 
+           FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+           WHERE TABLE_SCHEMA = DATABASE() 
+             AND TABLE_NAME = 'transactions' 
+             AND COLUMN_NAME = 'user_id'
+             AND REFERENCED_TABLE_NAME = 'users'`
+        );
+        
+        if (constraints.length > 0) {
+          const constraintName = constraints[0].CONSTRAINT_NAME;
+          console.log(`⚠️ إزالة Foreign Key constraint: ${constraintName}`);
+          try {
+            // DDL operations commit automatically, so we don't need transaction
+            await connection.execute(`ALTER TABLE transactions DROP FOREIGN KEY ${constraintName}`);
+            console.log('✅ تم إزالة Foreign Key constraint من transactions.user_id');
+          } catch (dropErr) {
+            console.log('⚠️ تحذير: لم يتم إزالة Foreign Key constraint:', dropErr.message);
+            // لا نوقف العملية، نكمل محاولة الإدراج
+          }
+        }
+      } catch (fkCheckErr) {
+        console.log('⚠️ تحذير: خطأ في التحقق من Foreign Key:', fkCheckErr.message);
+        // لا نوقف العملية
+      }
+
+      // الآن نبدأ Transaction للإدراج
       await connection.beginTransaction();
 
-      // التحقق من وجود جدول recipe_productions
+      // التحقق من وجود جدول recipe_productions وإنشاؤه إذا لم يكن موجوداً
       try {
         await connection.execute('SELECT 1 FROM recipe_productions LIMIT 1');
       } catch (tableErr) {
         if (tableErr.code === 'ER_NO_SUCH_TABLE') {
-          await connection.rollback();
-          connection.release();
-          return res.status(500).json({
-            status: "error",
-            message: "جدول recipe_productions غير موجود. يرجى تشغيل ملف database_updates_production.sql أولاً"
-          });
+          console.log('⚠️ جدول recipe_productions غير موجود، جاري إنشاؤه...');
+          try {
+            // إنشاء جدول recipe_productions
+            await connection.execute(`
+              CREATE TABLE IF NOT EXISTS recipe_productions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                recipe_id INT NOT NULL,
+                production_quantity DECIMAL(12,3) NOT NULL,
+                portion_weight DECIMAL(12,3) NOT NULL,
+                production_date DATETIME NOT NULL,
+                expiry_date DATETIME NOT NULL,
+                qr_code_data JSON,
+                calculated_ingredients JSON,
+                created_by INT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+                INDEX idx_recipe_id (recipe_id),
+                INDEX idx_production_date (production_date),
+                INDEX idx_expiry_date (expiry_date)
+              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+            
+            // إنشاء جدول production_statistics
+            await connection.execute(`
+              CREATE TABLE IF NOT EXISTS production_statistics (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                production_id INT NOT NULL UNIQUE,
+                total_withdrawn DECIMAL(12,3) NOT NULL DEFAULT 0.000,
+                remaining_quantity DECIMAL(12,3) NOT NULL DEFAULT 0.000,
+                withdrawal_count INT NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (production_id) REFERENCES recipe_productions(id) ON DELETE CASCADE,
+                INDEX idx_production_id (production_id)
+              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+            
+            // إنشاء جدول recipe_withdrawals
+            await connection.execute(`
+              CREATE TABLE IF NOT EXISTS recipe_withdrawals (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                production_id INT NOT NULL,
+                user_id INT,
+                withdrawal_quantity DECIMAL(12,3) NOT NULL,
+                notes VARCHAR(255),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (production_id) REFERENCES recipe_productions(id) ON DELETE CASCADE,
+                INDEX idx_production_id (production_id),
+                INDEX idx_user_id (user_id),
+                INDEX idx_created_at (created_at)
+              ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+            
+            console.log('✅ تم إنشاء جداول إنتاج الوصفات بنجاح');
+          } catch (createErr) {
+            await connection.rollback();
+            connection.release();
+            console.error('❌ خطأ في إنشاء الجداول:', createErr);
+            return res.status(500).json({
+              status: "error",
+              message: "خطأ في إنشاء جداول قاعدة البيانات. يرجى تشغيل ملف database/sql/create_production_tables.sql يدوياً",
+              details: process.env.NODE_ENV === 'development' ? createErr.message : undefined
+            });
+          }
+        } else {
+          throw tableErr;
         }
-        throw tableErr;
       }
 
       // التحقق من توفر المكونات في المخزن وخصمها
@@ -695,7 +842,7 @@ exports.produceRecipe = async (req, res) => {
         [
           recipe.id,
           productionQty,
-          parseFloat(portion_weight),
+          portionWeight,
           productionDate,
           expiryDate,
           JSON.stringify(qrCodes[0]), // حفظ أول QR Code كمرجع
@@ -748,14 +895,15 @@ exports.produceRecipe = async (req, res) => {
         );
 
         // تسجيل المعاملة
+        // ⚠️ ملاحظة: user_id يأتي من auth_db، لذلك نستخدم NULL بدلاً من userId
+        // لأن Foreign Key constraint يشير إلى kitchen_inventory.users
         await connection.execute(
           `INSERT INTO transactions (ingredient_id, user_id, type, quantity, note) 
-           VALUES (?, ?, 'withdraw', ?, ?)`,
+           VALUES (?, NULL, 'withdraw', ?, ?)`,
           [
             deduction.ingredient_id,
-            userId || null,
             deduction.quantity,
-            `إنتاج وصفة: ${recipe.item_name || recipe.name} - Production ID: ${productionId}`
+            `إنتاج وصفة: ${recipe.item_name || recipe.name} - Production ID: ${productionId} - User ID: ${userId || 'N/A'}`
           ]
         );
 
@@ -779,14 +927,14 @@ exports.produceRecipe = async (req, res) => {
         );
 
         // تسجيل المعاملة
+        // ⚠️ ملاحظة: user_id يأتي من auth_db، لذلك نستخدم NULL
         await connection.execute(
           `INSERT INTO transactions (ingredient_id, user_id, type, quantity, note) 
-           VALUES (?, ?, 'deposit', ?, ?)`,
+           VALUES (?, NULL, 'deposit', ?, ?)`,
           [
             existingProduct[0].id,
-            userId || null,
             productionQty,
-            `إنتاج وصفة - Production ID: ${productionId}`
+            `إنتاج وصفة - Production ID: ${productionId} - User ID: ${userId || 'N/A'}`
           ]
         );
 
@@ -800,18 +948,33 @@ exports.produceRecipe = async (req, res) => {
         );
 
         // تسجيل المعاملة
+        // ⚠️ ملاحظة: user_id يأتي من auth_db، لذلك نستخدم NULL
         await connection.execute(
           `INSERT INTO transactions (ingredient_id, user_id, type, quantity, note) 
-           VALUES (?, ?, 'deposit', ?, ?)`,
+           VALUES (?, NULL, 'deposit', ?, ?)`,
           [
             newProductResult.insertId,
-            userId || null,
             productionQty,
-            `إنتاج وصفة - Production ID: ${productionId}`
+            `إنتاج وصفة - Production ID: ${productionId} - User ID: ${userId || 'N/A'}`
           ]
         );
 
         console.log(`✅ تم إنشاء مادة جديدة في المخزن: ${productName} بكمية ${productionQty}`);
+      }
+
+      // إنشاء سجل في production_statistics
+      try {
+        await connection.execute(
+          `INSERT INTO production_statistics (production_id, remaining_quantity) 
+           VALUES (?, ?)
+           ON DUPLICATE KEY UPDATE 
+           remaining_quantity = ?,
+           updated_at = CURRENT_TIMESTAMP`,
+          [productionId, productionQty, productionQty]
+        );
+      } catch (statErr) {
+        // إذا فشل إنشاء statistics، نكمل بدونها (ليس ضرورياً)
+        console.log('⚠️ تحذير: لم يتم إنشاء إحصائيات الإنتاج:', statErr.message);
       }
 
       await connection.commit();
@@ -832,7 +995,7 @@ exports.produceRecipe = async (req, res) => {
             edition: recipe.edition
           },
           production_quantity: productionQty,
-          portion_weight: parseFloat(portion_weight),
+          portion_weight: portionWeight,
           number_of_portions: numberOfPortions,
           production_date: productionDate.toISOString(),
           expiry_date: expiryDate.toISOString(),

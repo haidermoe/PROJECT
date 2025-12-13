@@ -7,6 +7,7 @@
 let currentLocation = null;
 let isInsideRestaurant = false;
 let watchId = null;
+let restaurantLocation = null; // سيتم تحميلها من الإعدادات
 
 // التحقق من التوكن عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', async function() {
@@ -29,10 +30,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // تهيئة صفحة البصمة
-function initializeAttendance() {
+async function initializeAttendance() {
   // تحديث الوقت الحالي
   updateCurrentTime();
   setInterval(updateCurrentTime, 1000);
+
+  // تحميل موقع المطعم من الإعدادات أولاً
+  await loadRestaurantLocation();
 
   // تحديد الموقع
   getCurrentLocation();
@@ -110,6 +114,33 @@ function updateCurrentTime() {
 }
 
 // ---------------------------------------------
+// تحميل موقع المطعم من الإعدادات
+// ---------------------------------------------
+async function loadRestaurantLocation() {
+  try {
+    const res = await API('GET', '/api/settings');
+    if (res.status === 'success' && res.data) {
+      const settings = res.data;
+      
+      if (settings.checkin_location_latitude && settings.checkin_location_longitude) {
+        restaurantLocation = {
+          latitude: parseFloat(settings.checkin_location_latitude),
+          longitude: parseFloat(settings.checkin_location_longitude),
+          radius: parseFloat(settings.checkin_location_radius) || 100
+        };
+        console.log('✅ تم تحميل موقع المطعم من الإعدادات:', restaurantLocation);
+      } else {
+        console.log('⚠️ موقع المطعم غير محدد في الإعدادات');
+        restaurantLocation = null;
+      }
+    }
+  } catch (error) {
+    console.error('❌ خطأ في تحميل موقع المطعم من الإعدادات:', error);
+    restaurantLocation = null;
+  }
+}
+
+// ---------------------------------------------
 // تحديد الموقع
 // ---------------------------------------------
 function getCurrentLocation() {
@@ -120,6 +151,14 @@ function getCurrentLocation() {
 
   const locationStatus = document.getElementById("locationStatus");
   
+  // التحقق من وجود موقع المطعم
+  if (!restaurantLocation) {
+    locationStatus.className = "location-status outside";
+    locationStatus.querySelector(".location-text").textContent = 
+      "⚠️ موقع المطعم غير محدد في الإعدادات. يرجى تحديده من صفحة الإعدادات";
+    return;
+  }
+  
   // الحصول على الموقع
   navigator.geolocation.getCurrentPosition(
     (position) => {
@@ -127,14 +166,6 @@ function getCurrentLocation() {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy: position.coords.accuracy
-      };
-
-      // التحقق من أن المستخدم داخل المطعم
-      // يمكنك تعديل هذه الإحداثيات لتطابق موقع المطعم الفعلي
-      const restaurantLocation = {
-        latitude: 33.3152, // مثال: بغداد
-        longitude: 44.3661,
-        radius: 100 // نصف القطر بالمتر (100 متر)
       };
 
       const distance = calculateDistance(

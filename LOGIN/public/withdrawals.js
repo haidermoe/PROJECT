@@ -440,7 +440,23 @@ async function handleScanQR() {
       document.getElementById("scannedInfo").style.display = "none";
       document.getElementById("saveScan").style.display = "none";
 
-      alert("✅ تم تسجيل السحب بنجاح!");
+      // عرض معلومات السحب
+      const withdrawal = res.data;
+      const withdrawalTime = new Date(withdrawal.created_at).toLocaleString('ar-EG');
+      const remainingQty = parseFloat(withdrawal.remaining_quantity || 0).toFixed(2);
+      
+      const successMessage = `
+✅ تم تسجيل السحب بنجاح!
+
+📋 معلومات السحب:
+• اسم الشخص: ${withdrawal.username || 'غير معروف'}
+• وقت السحب: ${withdrawalTime}
+• الكمية المسحوبة: ${withdrawal.withdrawal_quantity || '—'} ${withdrawal.item_name ? 'KG' : ''}
+• الكمية المتبقية: ${remainingQty} ${withdrawal.item_name ? 'KG' : ''}
+• اسم المادة: ${withdrawal.item_name || withdrawal.name || '—'}
+      `.trim();
+      
+      alert(successMessage);
 
       // إعادة تحميل البيانات
       await loadWithdrawalsPage();

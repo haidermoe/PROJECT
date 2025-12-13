@@ -26,6 +26,10 @@ function initSidebar() {
         item.classList.add('active');
       } else if (href === '/employees.html' && currentPath.includes('/employees')) {
         item.classList.add('active');
+      } else if (href === '/settings.html' && (currentPath === '/settings.html' || currentPath.includes('/settings'))) {
+        item.classList.add('active');
+      } else if (href === '/shifts.html' && (currentPath === '/shifts.html' || currentPath.includes('/shifts'))) {
+        item.classList.add('active');
       }
     }
   });
@@ -41,11 +45,31 @@ function initSidebar() {
     });
   }
 
-  // تحديث اسم المستخدم والرتبة من localStorage
-  const userData = localStorage.getItem('user');
-  if (userData) {
-    try {
-      const user = JSON.parse(userData);
+      // إظهار/إخفاء رابط الإعدادات وجداول الدوام بناءً على الرتبة
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          const settingsLink = document.querySelector('.menu-item[href="/settings.html"]');
+          if (settingsLink) {
+            if (user.role === 'admin') {
+              settingsLink.style.display = 'block';
+            } else {
+              settingsLink.style.display = 'none';
+            }
+          }
+          
+          // إظهار/إخفاء رابط جداول الدوام للأدوار الإدارية
+          const shiftsLink = document.querySelector('.menu-item[href="/shifts.html"]');
+          if (shiftsLink) {
+            const adminRoles = ['admin', 'manager', 'kitchen_manager'];
+            if (adminRoles.includes(user.role)) {
+              shiftsLink.style.display = 'block';
+            } else {
+              shiftsLink.style.display = 'none';
+            }
+          }
+      
       const usernameElement = document.querySelector('.user-box .username');
       
       // أسماء الرتب بالعربية
@@ -111,10 +135,16 @@ function initSidebar() {
               item.style.display = 'none';
             }
           } else if (!item.classList.contains('logout')) {
-            // إخفاء عناصر القائمة بدون رابط (مثل "المبيعات", "إدارة المنيو", "الإعدادات")
+            // إخفاء عناصر القائمة بدون رابط (مثل "المبيعات", "إدارة المنيو", "الإعدادات", "جداول الدوام")
             item.style.display = 'none';
           }
         });
+        
+        // إخفاء رابط جداول الدوام لـ kitchen_employee
+        const shiftsLink = document.querySelector('.menu-item[href="/shifts.html"]');
+        if (shiftsLink) {
+          shiftsLink.style.display = 'none';
+        }
       }
 
       // الموظفون العاديون: إخفاء كل الصفحات ما عدا البصمة والإجازات
@@ -159,10 +189,16 @@ function initSidebar() {
               item.style.display = 'none';
             }
           } else if (!item.classList.contains('logout')) {
-            // إخفاء عناصر القائمة بدون رابط (مثل "المبيعات", "إدارة المنيو", "الإعدادات")
+            // إخفاء عناصر القائمة بدون رابط (مثل "المبيعات", "إدارة المنيو", "الإعدادات", "جداول الدوام")
             item.style.display = 'none';
           }
         });
+        
+        // إخفاء رابط جداول الدوام للموظفين العاديين
+        const shiftsLink = document.querySelector('.menu-item[href="/shifts.html"]');
+        if (shiftsLink) {
+          shiftsLink.style.display = 'none';
+        }
       }
       
       // طباعة معلومات المستخدم في Console للمساعدة في التشخيص

@@ -155,16 +155,31 @@ function populateProductionData(data) {
     ingredientsTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">لا توجد مكونات</td></tr>';
   }
 
-  // QR Codes (جميع البورتشنات)
+  // QR Codes (جميع البورتشنات) - قابلة للطباعة
   const qrCodeImage = document.getElementById('qrCodeImage');
   if (data.qr_codes && Array.isArray(data.qr_codes) && data.qr_codes.length > 0) {
-    // عرض جميع QR Codes
-    let qrCodesHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">';
+    // عرض جميع QR Codes بشكل قابل للطباعة - كل بورشن في صندوق منفصل
+    let qrCodesHTML = '<div class="qr-codes-grid">';
     data.qr_codes.forEach((qr, index) => {
+      const qrData = qr.qr_code_data || {};
       qrCodesHTML += `
-        <div style="text-align: center; padding: 10px; background: white; border-radius: 8px;">
-          <p style="font-size: 12px; color: #333; margin-bottom: 5px; font-weight: bold;">بورشن ${qr.portion_number}</p>
-          <img src="${qr.qr_code_image}" alt="QR Code ${qr.portion_number}" style="max-width: 100%; height: auto;" />
+        <div class="qr-code-item" data-portion="${qr.portion_number}">
+          <div class="qr-code-header">
+            <h3>بورشن ${qr.portion_number} / ${qr.total_portions || data.number_of_portions}</h3>
+            <div class="qr-code-info">
+              <p><strong>${data.recipe?.name || '—'}</strong></p>
+              <p>الوزن: ${qr.portion_weight || data.portion_weight} ${data.recipe?.name ? 'KG' : ''}</p>
+              <p>تاريخ الإنتاج: ${new Date(data.production_date).toLocaleDateString('ar-EG')}</p>
+              <p>تاريخ الانتهاء: ${new Date(data.expiry_date).toLocaleDateString('ar-EG')}</p>
+            </div>
+          </div>
+          <div class="qr-code-image-container">
+            <img src="${qr.qr_code_image}" alt="QR Code بورشن ${qr.portion_number}" class="qr-code-img" />
+          </div>
+          <div class="qr-code-footer">
+            <p class="scan-instruction">امسح هذا الكود لتسجيل السحب</p>
+            <p class="scan-instruction-en">Scan to record withdrawal</p>
+          </div>
         </div>
       `;
     });
@@ -172,9 +187,17 @@ function populateProductionData(data) {
     qrCodeImage.innerHTML = qrCodesHTML;
   } else if (data.qr_code_image) {
     // للتوافق مع البيانات القديمة
-    qrCodeImage.innerHTML = `<img src="${data.qr_code_image}" alt="QR Code" />`;
+    qrCodeImage.innerHTML = `
+      <div class="qr-code-item">
+        <div class="qr-code-image-container">
+          <img src="${data.qr_code_image}" alt="QR Code" class="qr-code-img" />
+        </div>
+        <div class="qr-code-footer">
+          <p class="scan-instruction">امسح هذا الكود لتسجيل السحب</p>
+        </div>
+      </div>
+    `;
   } else if (data.qr_code_data) {
-    // إنشاء QR Code من البيانات
     qrCodeImage.innerHTML = '<p>QR Code غير متاح</p>';
   }
 }

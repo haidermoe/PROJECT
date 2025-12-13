@@ -87,6 +87,12 @@ app.use('/api/attendance', require('./api/attendanceRoutes'));
 // مسارات الإجازات
 app.use('/api/leaves', require('./api/leavesRoutes'));
 
+// مسارات جداول الدوام
+app.use('/api/shifts', require('./api/shiftsRoutes'));
+
+// مسارات الإعدادات (admin only)
+app.use('/api/settings', require('./api/settingsRoutes'));
+
 // مسارات الموافقات
 app.use('/api/approvals', require('./api/approvalRoutes'));
 
@@ -107,6 +113,16 @@ const { authMiddleware } = require('./auth/authMiddleware');
 // إعادة توجيه /dashboard.html إلى /dashboard/dashboard.html
 app.get('/dashboard.html', (req, res) => {
   res.redirect('/dashboard/dashboard.html');
+});
+
+// Explicitly serve settings.html
+app.get('/settings.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/settings.html'));
+});
+
+// Redirect /settings to /settings.html
+app.get('/settings', (req, res) => {
+  res.redirect('/settings.html');
 });
 
 // Health check endpoint (required by Render and other hosting providers)

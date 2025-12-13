@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>الإعدادات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item active" href="/settings.html">⚙️ الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+      <div class="topbar">
+        <h2 class="page-title">⚙️ الإعدادات العامة</h2>
+      </div>
+
+      <div class="settings-container">
+        <!-- قسم موقع تسجيل الدخول -->
+        <div class="settings-section">
+          <h3>📍 موقع تسجيل الدخول</h3>
+          <p class="section-description">
+            حدد موقع المطعم (GPS) والمساحة المسموح بها لتسجيل الدخول
+          </p>
+
+          <div class="form-group">
+            <label>خط العرض (Latitude)</label>
+            <input type="number" step="any" id="latitude" placeholder="مثلاً: 33.3152" />
+          </div>
+
+          <div class="form-group">
+            <label>خط الطول (Longitude)</label>
+            <input type="number" step="any" id="longitude" placeholder="مثلاً: 44.3661" />
+          </div>
+
+          <div class="form-group">
+            <label>قطر المساحة المسموحة (بالمتر)</label>
+            <input type="number" id="radius" placeholder="مثلاً: 100" min="1" max="10000" />
+          </div>
+
+          <button class="btn-get-location" onclick="getCurrentLocationForSettings()">📍 الحصول على موقعي الحالي</button>
+          <button class="btn-clear-location" onclick="clearLocation()">🗑️ مسح الموقع</button>
+        </div>
+
+        <!-- قسم ساعات العمل -->
+        <div class="settings-section">
+          <h3>⏰ ساعات العمل</h3>
+          <p class="section-description">
+            حدد ساعات العمل المسموح بها لتسجيل الدخول
+          </p>
+
+          <div class="form-group">
+            <label>بداية ساعات العمل</label>
+            <input 
+              type="text" 
+              id="workHoursStart" 
+              pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+              placeholder="HH:MM"
+              required
+            />
+            <small>وقت بداية ساعات العمل بتنسيق 24 ساعة (مثلاً: 08:00 للساعة 8 صباحاً أو 13:00 للساعة 1 ظهراً)</small>
+          </div>
+
+          <div class="form-group">
+            <label>نهاية ساعات العمل</label>
+            <input 
+              type="text" 
+              id="workHoursEnd" 
+              pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+              placeholder="HH:MM"
+              required
+            />
+            <small>وقت نهاية ساعات العمل بتنسيق 24 ساعة (مثلاً: 17:00 للساعة 5 مساءً أو 23:59 لآخر دقيقة)</small>
+          </div>
+        </div>
+
+        <!-- أزرار الحفظ -->
+        <div class="settings-actions">
+          <button class="btn-save" onclick="saveSettings()">💾 حفظ الإعدادات</button>
+          <button class="btn-cancel" onclick="loadSettings()">🔄 إعادة تحميل</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>
+
