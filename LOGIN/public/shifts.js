@@ -20,13 +20,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
 
-  // التحقق من الصلاحيات (admin, manager, kitchen_manager)
   const userData = localStorage.getItem('user');
   if (userData) {
     try {
       const user = JSON.parse(userData);
       const userRole = user.role;
-      const allowedRoles = ['admin', 'manager', 'kitchen_manager'];
+      const allowedRoles = ['admin', 'manager', 'kitchen_manager', 'hr'];
       
       if (!allowedRoles.includes(userRole)) {
         alert('⚠️ ليس لديك صلاحية للوصول إلى هذه الصفحة');

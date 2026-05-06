@@ -15,6 +15,7 @@ const { sanitizeRequest, errorHandler, logAccess } = require('./middleware/secur
 // استيراد اتصالات قواعد البيانات (معزولة)
 const { testAuthConnection, closeAuthConnection } = require('./database/authConnection');
 const { testAppConnection, closeAppConnection, appPool } = require('./database/appConnection');
+const { testHrConnection, closeHrConnection, hrPool } = require('./database/hrConnection');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,8 +41,9 @@ async function initializeDatabases() {
   
   const authConnected = await testAuthConnection();
   const appConnected = await testAppConnection();
+  const hrConnected = await testHrConnection();
   
-  if (!authConnected || !appConnected) {
+  if (!authConnected || !appConnected || !hrConnected) {
     console.error('❌ فشل الاتصال بإحدى قواعد البيانات');
     process.exit(1);
   }
@@ -50,7 +52,11 @@ async function initializeDatabases() {
 }
 
 // تهيئة قواعد البيانات
-initializeDatabases();
+initializeDatabases().then(() => {
+  // بدء المهام الخلفية التلقائية بعد نجاح الاتصال
+  const { startAutomations } = require('./api/automationService');
+  startAutomations();
+});
 
 // توفير اتصال قاعدة البيانات الرئيسية للـ routes القديمة (للتوافق)
 app.use((req, res, next) => {
@@ -93,11 +99,17 @@ app.use('/api/shifts', require('./api/shiftsRoutes'));
 // مسارات الإعدادات (admin only)
 app.use('/api/settings', require('./api/settingsRoutes'));
 
+// مسارات توجيه طباعة الأوردرات (POS Print Routing)
+app.use('/api/pos', require('./api/printRoutingRoutes'));
+
 // مسارات الموافقات
 app.use('/api/approvals', require('./api/approvalRoutes'));
 
-// مسارات الإشعارات
-app.use('/api/notifications', require('./api/notificationsRoutes'));
+// مسارات الرواتب (النظام القديم أو الانتقالي)
+app.use('/api/payroll', require('./api/payrollRoutes'));
+
+// النظام الجديد: مسارات الموارد البشرية المستقلة تماماً (hr_db)
+app.use('/api/hr', require('./api/hrRoutes'));
 
 // مسارات الإشعارات
 app.use('/api/notifications', require('./api/notificationsRoutes'));
@@ -178,6 +190,7 @@ process.on('SIGTERM', async () => {
   server.close(async () => {
     await closeAuthConnection();
     await closeAppConnection();
+    await closeHrConnection();
     console.log('✅ تم إغلاق السيرفر بشكل نظيف');
     process.exit(0);
   });
@@ -188,6 +201,7 @@ process.on('SIGINT', async () => {
   server.close(async () => {
     await closeAuthConnection();
     await closeAppConnection();
+    await closeHrConnection();
     console.log('✅ تم إغلاق السيرفر بشكل نظيف');
     process.exit(0);
   });

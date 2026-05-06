@@ -18,6 +18,8 @@ function validateEnvVariables() {
     AUTH: ['AUTH_DB_HOST', 'AUTH_DB_USER', 'AUTH_DB_PASSWORD', 'AUTH_DB_NAME'],
     // قاعدة البيانات الرئيسية
     APP: ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'],
+    // قاعدة بيانات الموارد البشرية المستقلة
+    HR: ['HR_DB_HOST', 'HR_DB_USER', 'HR_DB_PASSWORD', 'HR_DB_NAME'],
     // إعدادات JWT
     JWT: ['JWT_SECRET']
   };
@@ -33,6 +35,13 @@ function validateEnvVariables() {
 
   // التحقق من متغيرات قاعدة البيانات الرئيسية
   required.APP.forEach(key => {
+    if (!process.env[key]) {
+      missing.push(key);
+    }
+  });
+
+  // التحقق من متغيرات قاعدة بيانات الموارد البشرية المستقلة
+  required.HR.forEach(key => {
     if (!process.env[key]) {
       missing.push(key);
     }
@@ -94,6 +103,25 @@ const appDbConfig = {
 };
 
 /**
+ * إعدادات قاعدة بيانات الموارد البشرية المستقلة (HR Database)
+ * هذه القاعدة مسؤولة حصرياً عن بيانات الموظفين والرواتب والبصمات 
+ */
+const hrDbConfig = {
+  host: process.env.HR_DB_HOST,
+  port: parseInt(process.env.HR_DB_PORT || '3306'),
+  user: process.env.HR_DB_USER,
+  password: process.env.HR_DB_PASSWORD,
+  database: process.env.HR_DB_NAME || 'hr_db',
+  waitForConnections: true,
+  connectionLimit: parseInt(process.env.HR_DB_CONNECTION_LIMIT || '10'),
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0,
+  charset: 'utf8mb4',
+  timezone: '+00:00'
+};
+
+/**
  * إعدادات JWT
  * ملاحظة: يمكن تغيير مدة الصلاحية من متغير البيئة JWT_EXPIRES_IN
  * أمثلة: '1h' (ساعة), '24h' (يوم), '7d' (أسبوع), '30d' (شهر)
@@ -116,6 +144,7 @@ try {
 module.exports = {
   authDbConfig,
   appDbConfig,
+  hrDbConfig,
   jwtConfig,
   validateEnvVariables
 };

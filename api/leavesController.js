@@ -110,39 +110,34 @@ exports.requestLeave = async (req, res) => {
     const leaveId = result.insertId;
     console.log('✅ requestLeave: تم إرسال طلب الإجازة بنجاح:', leaveId);
 
-    // جلب معلومات المستخدم للتحقق من رتبته
+    // إشعار المدير العام وموارد بشرية بكل طلب إجازة جديد
     try {
       const [userRows] = await authPool.query(
         `SELECT role, full_name, username FROM users WHERE id = ?`,
         [userId]
       );
-      
       const user = userRows[0];
-      
-      // إذا كان الطلب من kitchen_manager، أرسل إشعار للمدير العام
-      if (user && user.role === 'kitchen_manager') {
-        // جلب جميع المديرين العامين
-        const [adminRows] = await authPool.query(
-          `SELECT id FROM users WHERE role = 'admin' AND is_active = 1`
+
+      const [recipientRows] = await authPool.query(
+        `SELECT id FROM users WHERE role IN ('admin', 'hr') AND is_active = 1`
+      );
+
+      const leaveTypeNames = {
+        'annual': 'سنوية',
+        'sick': 'مرضية',
+        'mourning': 'حداد',
+        'weekly': 'أسبوعية'
+      };
+
+      const fromName = user?.full_name || user?.username || 'موظف';
+      for (const r of recipientRows) {
+        await createNotification(
+          r.id,
+          'leave_request',
+          leaveId,
+          'طلب موافقة على إجازة جديدة',
+          `طلب إجازة ${leaveTypeNames[leave_type] || leave_type} من ${fromName} — ${diffDays} يوم`
         );
-        
-        const leaveTypeNames = {
-          'annual': 'سنوية',
-          'sick': 'مرضية',
-          'mourning': 'حداد',
-          'weekly': 'أسبوعية'
-        };
-        
-        // إرسال إشعار لكل مدير عام
-        for (const admin of adminRows) {
-          await createNotification(
-            admin.id,
-            'leave_request',
-            leaveId,
-            'طلب موافقة على إجازة جديدة',
-            `تم إرسال طلب إجازة ${leaveTypeNames[leave_type] || leave_type} من ${user.full_name || user.username} - عدد الأيام: ${diffDays}`
-          );
-        }
       }
     } catch (notifErr) {
       console.error('⚠️ خطأ في إرسال الإشعار:', notifErr);
@@ -223,8 +218,7 @@ exports.getAllLeaves = async (req, res) => {
   try {
     const userRole = req.user?.role;
 
-    // فقط المدير يمكنه رؤية جميع الطلبات
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'hr') {
       return res.status(403).json({
         status: "error",
         message: "ليس لديك صلاحية لعرض جميع طلبات الإجازات"
@@ -309,8 +303,7 @@ exports.approveLeave = async (req, res) => {
     const userRole = req.user?.role;
     const adminId = req.user?.id;
 
-    // فقط المدير يمكنه الموافقة
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'hr') {
       return res.status(403).json({
         status: "error",
         message: "ليس لديك صلاحية للموافقة على طلبات الإجازات"
@@ -497,15 +490,13 @@ exports.cancelLeave = async (req, res) => {
         'weekly': 'أسبوعية'
       };
       
-      // جلب جميع المديرين العامين
-      const [adminRows] = await authPool.query(
-        `SELECT id FROM users WHERE role = 'admin' AND is_active = 1`
+      const [recipientRows] = await authPool.query(
+        `SELECT id FROM users WHERE role IN ('admin', 'hr') AND is_active = 1`
       );
-      
-      // إرسال إشعار لكل مدير عام
-      for (const admin of adminRows) {
+
+      for (const r of recipientRows) {
         await createNotification(
-          admin.id,
+          r.id,
           'leave_request',
           id,
           'تم إلغاء طلب إجازة',

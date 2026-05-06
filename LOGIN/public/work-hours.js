@@ -43,9 +43,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
       }
       
-      // فقط المدير يمكنه الوصول
-      if (user.role !== 'admin') {
-        alert('⚠️ ليس لديك صلاحية للوصول إلى هذه الصفحة. يجب أن تكون مدير عام (admin)');
+      if (user.role !== 'admin' && user.role !== 'hr') {
+        alert('⚠️ ليس لديك صلاحية للوصول إلى هذه الصفحة (مدير عام أو موارد بشرية)');
         window.location.href = "/dashboard/dashboard.html";
         return;
       }

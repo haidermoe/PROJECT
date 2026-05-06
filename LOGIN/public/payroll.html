@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>إدارة الرواتب - HR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/common-layout.css" />
+  <link rel="stylesheet" href="css/hr-pages-shared.css" />
+  <link rel="stylesheet" href="payroll.css" />
+  <style>
+    .tabs-container { margin-bottom: var(--spacing-xl); display: flex; gap: var(--spacing-md); }
+    .tab-content { display: none; animation: fadeIn var(--transition-base) ease-out; }
+    .tab-content.active { display: block; }
+    
+    .period-section {
+      display: flex; gap: var(--spacing-md); align-items: center; margin-bottom: var(--spacing-xl);
+      background: var(--color-bg-card); padding: var(--spacing-lg); border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border-primary); box-shadow: var(--shadow-md);
+    }
+    
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: var(--z-modal); justify-content: center; align-items: center; animation: fadeIn var(--transition-base) ease-out; }
+    .modal-content { background: var(--color-bg-tertiary); padding: var(--spacing-2xl); border-radius: var(--radius-lg); width: 450px; color: var(--color-text-primary); border: 1px solid var(--color-border-accent); box-shadow: var(--shadow-xl); animation: slideInUp 0.3s ease-out; }
+    .modal-content h3 { margin-bottom: var(--spacing-xl); color: var(--color-accent-primary); }
+    
+    .form-group { display: flex; flex-direction: column; gap: var(--spacing-sm); margin-bottom: var(--spacing-lg); }
+    .form-group label { color: var(--color-text-secondary); font-size: var(--font-size-sm); }
+  </style>
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/hr-dashboard.html">🏠 الصفحة الرئيسية</a>
+        <a class="menu-item active" href="/payroll.html">💰 الرواتب</a>
+        <a class="menu-item" href="/hr-attendance.html">📋 البصمات وساعات العمل</a>
+        <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+        <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/employees.html">👥 إدارة الحسابات</a>
+        <a class="menu-item" href="/work-hours.html">⏱️ تقرير ساعات العمل</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <h2 class="page-title">إدارة الرواتب والأجور</h2>
+      </div>
+
+      <div class="tabs-container">
+        <button class="btn btn-primary" id="btnTabProcessing" onclick="switchTab('processing')">عمليات الرواتب</button>
+        <button class="btn btn-secondary" id="btnTabSettings" onclick="switchTab('settings')">إعدادات رواتب الموظفين</button>
+      </div>
+
+      <!-- TAB 1: PROCESSING -->
+      <div id="tabProcessing" class="tab-content active">
+        <!-- KPI CARDS -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="label">إجمالي الرواتب للفترة المحددة</div>
+            <h2 id="kpiTotalPayroll">0.00</h2>
+          </div>
+          <div class="kpi-card">
+            <div class="label">عدد الموظفين المحسوب لهم</div>
+            <h2 id="kpiEmployeesCount">0</h2>
+          </div>
+        </div>
+
+        <!-- Period Selection -->
+        <div class="period-section">
+          <label class="text-secondary">اختر الفترة المفتوحة:</label>
+          <select id="periodSelect" class="input period-select" style="flex: 1;">
+            <option value="">-- اختر فترة --</option>
+          </select>
+          <button class="btn btn-secondary" onclick="loadPayrollForPeriod()">عرض السجلات</button>
+          <button class="btn btn-primary" onclick="openNewPeriodModal()">+ فترة جديدة</button>
+          <button class="btn btn-primary" id="calculatePayrollBtn">حساب الرواتب التلقائي</button>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-section">
+          <h3>سجل الرواتب التفصيلي</h3>
+          <table class="table" id="payrollTable">
+            <thead>
+              <tr>
+                <th>الموظف</th>
+                <th>الراتب الأساسي</th>
+                <th>ساعات مجدولة</th>
+                <th>ساعات فعلية</th>
+                <th>ساعات إضافية (OT)</th>
+                <th>نقص ساعات</th>
+                <th>الراتب الصافي</th>
+              </tr>
+            </thead>
+            <tbody id="payrollTableBody">
+              <tr>
+                <td colspan="7" class="loading-row" style="text-align: center; padding: 20px;">الرجاء اختيار فترة مالية</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 2: SETTINGS -->
+      <div id="tabSettings" class="tab-content">
+        <div class="table-section">
+          <h3>إعدادات رواتب الموظفين (Base Salary & Hourly Rate)</h3>
+          <table class="table" id="salarySettingsTable">
+            <thead>
+              <tr>
+                <th>اسم الموظف</th>
+                <th>المنصب / الصلاحية</th>
+                <th>الراتب الأساسي</th>
+                <th>أجر الساعة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="salaryTableBody">
+              <tr><td colspan="5" style="text-align: center; padding: 20px;">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Modal: Set Salary -->
+  <div class="modal" id="salaryModal">
+    <div class="modal-content">
+      <h3>تحديث راتب الموظف</h3>
+      <div class="form-group">
+        <label>الموظف:</label>
+        <input type="text" class="input" id="modalEmpName" readonly />
+      </div>
+      <div class="form-group">
+        <label>الراتب الأساسي:</label>
+        <input type="number" class="input" id="modalBaseSalary" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>أجر الساعة:</label>
+        <input type="number" class="input" id="modalHourlyRate" step="0.01" />
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+        <button class="btn btn-ghost" onclick="document.getElementById('salaryModal').style.display='none'">إلغاء</button>
+        <button class="btn btn-primary" onclick="saveSalary()">حفظ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: New Period -->
+  <div class="modal" id="periodModal">
+    <div class="modal-content">
+      <h3>فتح فترة رواتب جديدة</h3>
+      <div class="form-group">
+        <label>اسم الفترة (مثال: أسبوع 1 يناير):</label>
+        <input type="text" class="input" id="modalPeriodTitle" />
+      </div>
+      <div class="form-group">
+        <label>تاريخ البداية:</label>
+        <input type="date" class="input" id="modalPeriodStart" />
+      </div>
+      <div class="form-group">
+        <label>تاريخ النهاية:</label>
+        <input type="date" class="input" id="modalPeriodEnd" />
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: var(--spacing-md); margin-top: var(--spacing-xl);">
+        <button class="btn btn-ghost" onclick="document.getElementById('periodModal').style.display='none'">إلغاء</button>
+        <button class="btn btn-primary" onclick="saveNewPeriod()">حفظ وإنشاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/common/auth-check.js"></script>
+  <script src="/common/sidebar.js"></script>
+  <script src="/common/permissions.js"></script>
+  <script src="payroll.js"></script>
+</body>
+</html>

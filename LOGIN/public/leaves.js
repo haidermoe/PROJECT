@@ -4,7 +4,7 @@
  * ======================================================
  */
 
-let isAdmin = false;
+let isLeaveAdmin = false;
 
 // التحقق من التوكن عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', async function() {
@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (userData) {
     try {
       const user = JSON.parse(userData);
-      isAdmin = user.role === 'admin';
-      if (isAdmin) {
+      isLeaveAdmin = user.role === 'admin' || user.role === 'hr';
+      if (isLeaveAdmin) {
         document.getElementById('adminSection').style.display = 'block';
       }
     } catch (e) {
@@ -48,8 +48,7 @@ function initializeLeaves() {
   // تحميل طلباتي
   loadMyLeaves();
   
-  // تحميل جميع الطلبات (للمدير)
-  if (isAdmin) {
+  if (isLeaveAdmin) {
     loadAllLeaves();
   }
 
@@ -398,7 +397,7 @@ async function submitLeaveRequest() {
       closeRequestModal();
       loadLeaveBalance();
       loadMyLeaves();
-      if (isAdmin) {
+      if (isLeaveAdmin) {
         loadAllLeaves();
       }
     } else {
@@ -481,7 +480,7 @@ async function cancelLeave(id) {
     if (res && res.status === "success") {
       alert("✅ تم إلغاء طلب الإجازة بنجاح");
       loadMyLeaves();
-      if (isAdmin) {
+      if (isLeaveAdmin) {
         loadAllLeaves();
       }
     } else {
@@ -501,7 +500,7 @@ async function cancelLeave(id) {
 // ---------------------------------------------
 function applyFilters() {
   loadMyLeaves();
-  if (isAdmin) {
+  if (isLeaveAdmin) {
     loadAllLeaves();
   }
 }
@@ -513,7 +512,7 @@ function clearFilters() {
   document.getElementById("filterStatus").value = "";
   document.getElementById("filterLeaveType").value = "";
   loadMyLeaves();
-  if (isAdmin) {
+  if (isLeaveAdmin) {
     loadAllLeaves();
   }
 }

@@ -164,6 +164,33 @@ async function requireAuth() {
         }
       }
 
+      // موارد بشرية: صفحات تشغيل/مطبخ/مالية ممنوعة (لوحة رئيسية، مخزن، وصفات، …)
+      if (user.role === 'hr') {
+        const currentPath = window.location.pathname.replace(/\\/g, '/');
+        const hrAllowedSuffixes = [
+          '/hr-dashboard.html',
+          '/hr-attendance.html',
+          '/payroll.html',
+          '/attendance.html',
+          '/leaves.html',
+          '/shifts.html',
+          '/employees.html',
+          '/work-hours.html',
+          '/notifications.html',
+          '/index.html'
+        ];
+        const isHrPageAllowed = hrAllowedSuffixes.some(
+          (suffix) => currentPath === suffix || currentPath.endsWith(suffix)
+        );
+        if (!isHrPageAllowed) {
+          console.log(
+            '⚠️ صلاحية HR: هذه الصفحة خارج نطاق الموارد البشرية — إعادة توجيه إلى لوحة HR'
+          );
+          window.location.replace('/hr-dashboard.html');
+          return false;
+        }
+      }
+
       // إذا كان موظف عادي وحاول الوصول لصفحة غير مصرح بها
       if (regularEmployeeRoles.includes(user.role)) {
         const currentPath = window.location.pathname;

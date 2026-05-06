@@ -5,7 +5,7 @@
  */
 
 // استيراد اتصال قاعدة البيانات الرئيسية (معزول)
-const { appPool } = require('../database/appConnection');
+const { hrPool } = require('../database/hrConnection');
 // استيراد اتصال قاعدة بيانات المصادقة (للمستخدمين)
 const { authPool } = require('../database/authConnection');
 
@@ -26,8 +26,8 @@ exports.checkIn = async (req, res) => {
     }
 
     // التحقق من عدم وجود بصمة دخول مفتوحة
-    const [existingCheckIn] = await appPool.query(
-      `SELECT id, check_in_time FROM attendance_records 
+    const [existingCheckIn] = await hrPool.query(
+      `SELECT id, check_in_time FROM hr_attendance_records 
        WHERE user_id = ? AND status = 'checked_in' 
        ORDER BY check_in_time DESC LIMIT 1`,
       [userId]
@@ -42,8 +42,8 @@ exports.checkIn = async (req, res) => {
 
     // تسجيل الدخول
     const checkInTime = new Date();
-    const [result] = await appPool.execute(
-      `INSERT INTO attendance_records 
+    const [result] = await hrPool.execute(
+      `INSERT INTO hr_attendance_records 
        (user_id, check_in_time, check_in_location, status, notes) 
        VALUES (?, ?, ?, 'checked_in', ?)`,
       [userId, checkInTime, location || null, notes || null]
@@ -86,8 +86,8 @@ exports.checkOut = async (req, res) => {
     }
 
     // البحث عن بصمة دخول مفتوحة
-    const [checkInRecord] = await appPool.query(
-      `SELECT id, check_in_time FROM attendance_records 
+    const [checkInRecord] = await hrPool.query(
+      `SELECT id, check_in_time FROM hr_attendance_records 
        WHERE user_id = ? AND status = 'checked_in' 
        ORDER BY check_in_time DESC LIMIT 1`,
       [userId]
@@ -108,8 +108,8 @@ exports.checkOut = async (req, res) => {
     const workHours = (diffMs / (1000 * 60 * 60)).toFixed(2); // تحويل من milliseconds إلى ساعات
 
     // تحديث سجل البصمة
-    await appPool.execute(
-      `UPDATE attendance_records 
+    await hrPool.execute(
+      `UPDATE hr_attendance_records 
        SET check_out_time = ?, 
            check_out_location = ?,
            work_hours = ?,
@@ -147,9 +147,9 @@ exports.getCurrentStatus = async (req, res) => {
   try {
     const userId = req.user?.id;
 
-    const [record] = await appPool.query(
+    const [record] = await hrPool.query(
       `SELECT id, check_in_time, check_out_time, work_hours, status 
-       FROM attendance_records 
+       FROM hr_attendance_records 
        WHERE user_id = ? AND status = 'checked_in' 
        ORDER BY check_in_time DESC LIMIT 1`,
       [userId]
@@ -190,7 +190,7 @@ exports.getMyAttendance = async (req, res) => {
     const { start_date, end_date, limit = 50 } = req.query;
 
     let query = `SELECT id, check_in_time, check_out_time, work_hours, status, notes 
-                 FROM attendance_records 
+                 FROM hr_attendance_records 
                  WHERE user_id = ?`;
     const params = [userId];
 
@@ -207,7 +207,7 @@ exports.getMyAttendance = async (req, res) => {
     query += ' ORDER BY check_in_time DESC LIMIT ?';
     params.push(parseInt(limit));
 
-    const [rows] = await appPool.query(query, params);
+    const [rows] = await hrPool.query(query, params);
 
     res.json({
       status: "success",
@@ -229,8 +229,8 @@ exports.getAllAttendance = async (req, res) => {
   try {
     const userRole = req.user?.role;
 
-    // فقط المدير يمكنه رؤية جميع السجلات
-    if (userRole !== 'admin') {
+    // المدير و HR يمكنهم رؤية جميع السجلات
+    if (userRole !== 'admin' && userRole !== 'hr') {
       return res.status(403).json({
         status: "error",
         message: "ليس لديك صلاحية لعرض سجلات جميع الموظفين"
@@ -240,7 +240,7 @@ exports.getAllAttendance = async (req, res) => {
     const { user_id, start_date, end_date, limit = 100 } = req.query;
 
     // جلب سجلات البصمة
-    let query = `SELECT ar.* FROM attendance_records ar WHERE 1=1`;
+    let query = `SELECT ar.* FROM hr_attendance_records ar WHERE 1=1`;
     const params = [];
 
     if (user_id) {
@@ -261,7 +261,7 @@ exports.getAllAttendance = async (req, res) => {
     query += ' ORDER BY ar.check_in_time DESC LIMIT ?';
     params.push(parseInt(limit));
 
-    const [rows] = await appPool.query(query, params);
+    const [rows] = await hrPool.query(query, params);
 
     // جلب أسماء المستخدمين من auth_db
     const userIds = [...new Set(rows.map(row => row.user_id))];
@@ -296,7 +296,7 @@ exports.getAllAttendance = async (req, res) => {
 
     res.json({
       status: "success",
-      data: rows
+      data: attendanceRecords
     });
   } catch (err) {
     console.error('❌ خطأ في getAllAttendance:', err);
@@ -314,8 +314,8 @@ exports.getWorkHoursStats = async (req, res) => {
   try {
     const userRole = req.user?.role;
 
-    // فقط المدير يمكنه رؤية الإحصائيات
-    if (userRole !== 'admin') {
+    // المدير و HR يمكنهم رؤية الإحصائيات
+    if (userRole !== 'admin' && userRole !== 'hr') {
       return res.status(403).json({
         status: "error",
         message: "ليس لديك صلاحية لعرض إحصائيات ساعات العمل"
@@ -331,7 +331,7 @@ exports.getWorkHoursStats = async (req, res) => {
                  AVG(ar.work_hours) AS avg_hours_per_day,
                  MIN(ar.check_in_time) AS first_check_in,
                  MAX(ar.check_out_time) AS last_check_out
-                 FROM attendance_records ar
+                 FROM hr_attendance_records ar
                  WHERE ar.status = 'checked_out' AND ar.work_hours IS NOT NULL`;
     const params = [];
 
@@ -347,7 +347,7 @@ exports.getWorkHoursStats = async (req, res) => {
 
     query += ' GROUP BY ar.user_id ORDER BY total_hours DESC';
 
-    const [rows] = await appPool.query(query, params);
+    const [rows] = await hrPool.query(query, params);
 
     // جلب أسماء المستخدمين من auth_db
     const userIds = rows.map(row => row.user_id);

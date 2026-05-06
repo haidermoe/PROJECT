@@ -105,10 +105,16 @@
             'Authorization': `Bearer ${existingToken}`
           }
         })
-        .then(response => {
+        .then(async (response) => {
           if (response.ok) {
-            // التوكن صالح - إعادة التوجيه إلى dashboard
-            window.location.href = "/dashboard/dashboard.html";
+            try {
+              const me = await response.json();
+              const role = me?.user?.role;
+              window.location.href =
+                role === 'hr' ? '/hr-dashboard.html' : '/dashboard/dashboard.html';
+            } catch {
+              window.location.href = '/dashboard/dashboard.html';
+            }
           } else {
             // التوكن غير صالح - تنظيف localStorage
             localStorage.removeItem('token');
@@ -195,9 +201,12 @@
           // التحويل للداشبورد الصحيح - استخدام replace لتجنب مشاكل history
           // إضافة تأخير أطول للتأكد من حفظ التوكن
           setTimeout(() => {
-            console.log('🔄 إعادة التوجيه إلى dashboard...');
-            // استخدام replace بدلاً من href لتجنب إضافة إلى history
-            window.location.replace("/dashboard/dashboard.html");
+            const dest =
+              data.user?.role === 'hr'
+                ? '/hr-dashboard.html'
+                : '/dashboard/dashboard.html';
+            console.log('🔄 إعادة التوجيه إلى', dest);
+            window.location.replace(dest);
           }, 500);
 
         } else {

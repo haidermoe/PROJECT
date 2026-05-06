@@ -113,7 +113,66 @@ body {
 
 /* Settings Container */
 .settings-container {
-  max-width: 800px;
+  max-width: 1100px;
+}
+
+.tabs-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+}
+
+.settings-tabs {
+  background: #111a28;
+  border: 1px solid #2d3a50;
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: start;
+  position: sticky;
+  top: 10px;
+}
+
+.tab-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #c7d0de;
+  padding: 12px;
+  border-radius: 10px;
+  text-align: right;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tab-btn:hover {
+  background: rgba(0, 255, 136, 0.08);
+}
+
+.tab-btn.active {
+  color: #00ff88;
+  border-color: #00ff88;
+  background: rgba(0, 255, 136, 0.12);
+}
+
+.tab-btn:focus-visible {
+  outline: 3px solid #78ffd3;
+  outline-offset: 2px;
+}
+
+.tab-panels {
+  min-width: 0;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
 }
 
 .settings-section {
@@ -216,6 +275,11 @@ body {
   margin-top: 32px;
 }
 
+.compact-actions {
+  margin-top: 10px;
+  margin-bottom: 14px;
+}
+
 .btn-save {
   background: linear-gradient(135deg, #00ff88, #00cc6a);
   color: #000;
@@ -246,5 +310,139 @@ body {
 
 .btn-cancel:hover {
   background: #3d3d5c;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 12px 15px;
+  background: #2d2d44;
+  border: 1px solid #3d3d5c;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+}
+
+.table-section {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #131a27;
+  border-radius: 10px;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #2a3348;
+  padding: 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.table th {
+  color: #00ff88;
+  font-size: 13px;
+}
+
+.table td {
+  color: #ebebeb;
+  font-size: 13px;
+}
+
+.btn-test {
+  background: #20354f;
+  color: #d6ecff;
+  border: 1px solid #3d5879;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-test:hover {
+  background: #2a4565;
+}
+
+.hint-box {
+  border: 1px solid #2f4963;
+  background: #102033;
+  border-radius: 10px;
+  padding: 12px;
+  color: #d7e5f8;
+  line-height: 1.6;
+}
+
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  background: rgba(10, 15, 26, 0.95);
+  padding: 10px 0 4px;
+  backdrop-filter: blur(2px);
+}
+
+@media (max-width: 1024px) {
+  .tabs-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-tabs {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .tab-btn {
+    min-width: 160px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .content {
+    padding: 14px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 

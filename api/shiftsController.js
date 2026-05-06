@@ -105,7 +105,7 @@ exports.createSchedule = async (req, res) => {
     const userRole = req.user?.role;
 
     // السماح لجميع الأدوار الإدارية بإنشاء جداول الدوام
-    const allowedRoles = ['admin', 'manager', 'kitchen_manager'];
+    const allowedRoles = ['admin', 'manager', 'kitchen_manager', 'hr'];
     if (!allowedRoles.includes(userRole)) {
       return res.status(403).json({
         status: "error",
@@ -204,7 +204,7 @@ exports.createSchedule = async (req, res) => {
 
       try {
         const [adminRows] = await authPool.query(
-          `SELECT id FROM users WHERE role = 'admin' AND is_active = 1`
+          `SELECT id FROM users WHERE role IN ('admin', 'hr') AND is_active = 1`
         );
         
         for (const admin of adminRows) {
@@ -265,9 +265,9 @@ exports.getSchedules = async (req, res) => {
     let query = `SELECT s.* FROM shifts_schedules s WHERE 1=1`;
     const params = [];
 
-    // admin يرى كل الجداول، manager و kitchen_manager يرون جداولهم فقط
-    if (userRole === 'admin') {
-      // admin يرى كل الجداول - لا حاجة لتحديد
+    // admin و HR يريان كل الجداول، manager و kitchen_manager يرون جداولهم فقط
+    if (userRole === 'admin' || userRole === 'hr') {
+      // يرى كل الجداول
     } else if (userRole === 'manager' || userRole === 'kitchen_manager') {
       query += ' AND s.created_by = ?';
       params.push(userId);
@@ -355,8 +355,7 @@ exports.getScheduleDetails = async (req, res) => {
 
     const schedule = scheduleRows[0];
 
-    // admin يرى كل الجداول، manager و kitchen_manager يرون جداولهم فقط
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'hr') {
       if ((userRole === 'manager' || userRole === 'kitchen_manager') && schedule.created_by !== userId) {
         return res.status(403).json({
           status: "error",
@@ -481,7 +480,7 @@ exports.approveSchedule = async (req, res) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'hr') {
       return res.status(403).json({
         status: "error",
         message: "ليس لديك صلاحية للموافقة على جداول الدوام"

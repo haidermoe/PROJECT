@@ -19,9 +19,29 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
 
+  syncNotificationsSidebarForRole();
+
   // ✅ التوكن صحيح - تهيئة الصفحة
   initializeNotifications();
 });
+
+/** إظهار قائمة HR أو قائمة التشغيل حسب الرتبة (نفس روابط باقي صفحات HR) */
+function syncNotificationsSidebarForRole() {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    const ops = document.getElementById('sidebar-ops');
+    const hrEl = document.getElementById('sidebar-hr');
+    if (!ops || !hrEl) return;
+    const isHr = user && user.role === 'hr';
+    ops.hidden = !!isHr;
+    hrEl.hidden = !isHr;
+    if (typeof window.initSidebar === 'function') {
+      window.initSidebar();
+    }
+  } catch (e) {
+    console.error('syncNotificationsSidebarForRole:', e);
+  }
+}
 
 // تهيئة صفحة الإشعارات
 function initializeNotifications() {
@@ -225,15 +245,15 @@ async function loadUnreadCount() {
     const res = await API("GET", '/api/notifications/unread-count');
     
     if (res.status === "success" && res.data) {
-      const badge = document.getElementById("notificationBadge");
-      if (badge) {
+      document.querySelectorAll('.notification-badge').forEach((badge) => {
         if (res.data.count > 0) {
           badge.textContent = res.data.count;
           badge.style.display = 'inline-block';
         } else {
+          badge.textContent = '';
           badge.style.display = 'none';
         }
-      }
+      });
     }
   } catch (error) {
     console.error("❌ خطأ في تحميل عدد الإشعارات:", error);

@@ -29,8 +29,9 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// التحقق من الدور
-function requireRole(role) {
+// التحقق من الدور — يقبل عدة أدوار: requireRole('admin', 'hr')
+// المدير العام (admin) يمر دائماً لأي مسار يستخدم هذا الميدل وير.
+function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user) {
       console.log('❌ requireRole: لا يوجد مستخدم في req.user');
@@ -39,9 +40,17 @@ function requireRole(role) {
         .json({ status: 'error', message: 'غير مصرح: لا يوجد مستخدم' });
     }
 
-    console.log(`🔍 requireRole: التحقق من الصلاحيات - المطلوب: ${role}, المستخدم: ${req.user.role}`);
+    const userRole = req.user.role;
+    console.log(
+      `🔍 requireRole: المطلوب أحد [${allowedRoles.join(', ')}]، المستخدم: ${userRole}`
+    );
 
-    if (req.user.role === 'admin' || req.user.role === role) {
+    if (userRole === 'admin') {
+      console.log('✅ requireRole: مدير عام — مسموح');
+      return next();
+    }
+
+    if (allowedRoles.length === 0 || allowedRoles.includes(userRole)) {
       console.log('✅ requireRole: الصلاحيات كافية');
       return next();
     }

@@ -21,12 +21,11 @@ async function createUser() {
   const username = 'chef';           // اسم المستخدم
   const password = 'chef123';        // كلمة المرور
   const fullName = 'مدير المطبخ';    // الاسم الكامل
-  const role = 'kitchen_manager';    // الرتبة: admin, manager, kitchen_manager, employee
+  const role = 'kitchen_manager';    // الرتبة: admin, hr, manager, kitchen_manager, employee, ...
   // ═══════════════════════════════════════════════════
 
   try {
-    // التحقق من صحة الرتبة
-    const validRoles = ['admin', 'manager', 'kitchen_manager', 'employee'];
+    const { allowedRoles: validRoles } = require('../config/security');
     if (!validRoles.includes(role)) {
       console.error('❌ رتبة غير صحيحة!');
       console.log('الرتب المتاحة:', validRoles.join(', '));
@@ -57,6 +56,7 @@ async function createUser() {
 
     const roleNames = {
       'admin': '👑 مدير عام',
+      'hr': '👥 موارد بشرية',
       'manager': '👔 مدير',
       'kitchen_manager': '👨‍🍳 مدير مطبخ',
       'employee': '👤 موظف'

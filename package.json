@@ -21,9 +21,13 @@
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
     "mysql": "^2.18.1",
     "mysql2": "^3.15.3",
-    "qrcode": "^1.5.4"
+    "node-thermal-printer": "^4.6.0",
+    "pptxgenjs": "^4.0.1",
+    "qrcode": "^1.5.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "puppeteer": "^24.31.0"

@@ -2,14 +2,14 @@ const express = require("express");
 const router = express.Router();
 const withdrawals = require("./withdrawalsController");
 // استخدام authMiddleware الموحد من auth/authMiddleware.js
-const { authMiddleware } = require("../auth/authMiddleware");
+const { authMiddleware, requireRole } = require("../auth/authMiddleware");
 
 // ===============================
 //          ROUTES
 // ===============================
 
 // مسح QR Code وتسجيل السحب
-router.post("/scan", authMiddleware, withdrawals.scanQRCode);
+router.post("/scan", authMiddleware, requireRole('admin', 'manager', 'kitchen_manager', 'kitchen_employee'), withdrawals.scanQRCode);
 
 // جلب جميع السحوبات
 router.get("/", authMiddleware, withdrawals.getWithdrawals);

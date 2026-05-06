@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>لوحة HR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/common-layout.css" />
+  <link rel="stylesheet" href="css/hr-pages-shared.css" />
+  <link rel="stylesheet" href="hr-dashboard.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item active" href="/hr-dashboard.html">🏠 الصفحة الرئيسية</a>
+        <a class="menu-item" href="/payroll.html">💰 الرواتب</a>
+        <a class="menu-item" href="/hr-attendance.html">📋 البصمات وساعات العمل</a>
+        <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+        <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/employees.html">👥 إدارة الحسابات</a>
+        <a class="menu-item" href="/work-hours.html">⏱️ تقرير ساعات العمل</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <h2 class="page-title">لوحة HR - الموارد البشرية</h2>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="label">إجمالي الموظفين</div>
+          <h2 id="kpiTotalUsers">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">موظفين نشطين</div>
+          <h2 id="kpiActiveUsers">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">موظفين في العمل اليوم</div>
+          <h2 id="kpiTodayActive">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">إجازات معلقة</div>
+          <h2 id="kpiPendingLeaves">0</h2>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <div class="table-header">
+          <h3>قائمة الموظفين</h3>
+          <div class="table-actions">
+            <input type="text" id="searchInput" placeholder="🔍 بحث..." class="search-input" />
+          </div>
+        </div>
+
+        <table class="table" id="employeesTable">
+          <thead>
+            <tr>
+              <th>اسم الموظف</th>
+              <th>اسم المستخدم</th>
+              <th>الرتبة</th>
+              <th>الحالة</th>
+              <th>تاريخ الإنشاء</th>
+            </tr>
+          </thead>
+          <tbody id="employeesTableBody">
+            <tr>
+              <td colspan="5" class="loading-row">جاري التحميل...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>إحصائيات سريعة</h3>
+      <ul class="notif-list" id="statsList"></ul>
+      
+      <h3 style="margin-top: 2rem;">روابط سريعة</h3>
+      <div class="quick-links">
+        <a href="/payroll.html" class="quick-link">💰 الرواتب</a>
+        <a href="/hr-attendance.html" class="quick-link">📋 البصمات</a>
+        <a href="/leaves.html" class="quick-link">📅 الإجازات</a>
+        <a href="/shifts.html" class="quick-link">📅 جداول الدوام</a>
+        <a href="/employees.html" class="quick-link">👥 الحسابات</a>
+        <a href="/work-hours.html" class="quick-link">⏱️ ساعات العمل</a>
+        <a href="/notifications.html" class="quick-link">🔔 إشعارات</a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="/common/auth-check.js"></script>
+  <script src="/common/sidebar.js"></script>
+  <script src="/common/permissions.js"></script>
+  <script src="hr-dashboard.js"></script>
+</body>
+
+</html>
+
+
+

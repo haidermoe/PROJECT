@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <title>إدارة الموظفين</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="employees.css" />
 </head>
 
@@ -43,7 +44,11 @@
 
       <!-- Topbar -->
       <div class="topbar">
-        <button class="btn-add" id="addUserBtn">➕ إضافة موظف</button>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-add" id="addUserBtn">➕ إضافة موظف</button>
+          <button class="btn-add" id="importExcelBtn" style="background-color: #28a745;">📄 رفع إكسل</button>
+          <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;" />
+        </div>
         <h2 class="page-title">إدارة الموظفين</h2>
       </div>
 
@@ -126,6 +131,7 @@
         <option value="garage_manager">🚗 مسؤول كراج</option>
         <option value="kitchen_manager">👨‍🍳 مدير مطبخ</option>
         <option value="manager">👔 مدير</option>
+        <option value="hr">👥 موارد بشرية</option>
         <option value="admin">👑 مدير عام</option>
       </select>
 
@@ -166,6 +172,7 @@
         <option value="garage_manager">🚗 مسؤول كراج</option>
         <option value="kitchen_manager">👨‍🍳 مدير مطبخ</option>
         <option value="manager">👔 مدير</option>
+        <option value="hr">👥 موارد بشرية</option>
         <option value="admin">👑 مدير عام</option>
       </select>
 

@@ -4,6 +4,10 @@
 
 let currentEditId = null;
 
+function canManageEmployeesAccount(role) {
+  return role === 'admin' || role === 'hr';
+}
+
 // ---------------------------------------------
 // 1) حماية الصفحة - التحقق من التوكن والصلاحيات
 // ---------------------------------------------
@@ -31,13 +35,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
       const user = JSON.parse(userData);
       console.log('👤 المستخدم الحالي في initializeEmployees:', user.username, 'الرتبة:', user.role);
-      if (user.role !== 'admin') {
-        console.error('❌ المستخدم ليس admin! الرتبة:', user.role);
-        alert('⚠️ ليس لديك صلاحية للوصول إلى هذه الصفحة. يجب أن تكون مدير عام (admin)');
+      if (!canManageEmployeesAccount(user.role)) {
+        console.error('❌ صلاحية غير كافية، الرتبة:', user.role);
+        alert('⚠️ ليس لديك صلاحية للوصول إلى هذه الصفحة (مدير عام أو موارد بشرية)');
         window.location.href = "/dashboard/dashboard.html";
         return;
       }
-      console.log('✅ المستخدم admin - يمكنه الوصول إلى صفحة الموظفين');
+      console.log('✅ مسموح بالوصول إلى صفحة الموظفين');
     } catch (e) {
       console.error('❌ خطأ في قراءة بيانات المستخدم:', e);
       window.location.href = "/index.html?error=login_required";
@@ -222,6 +226,22 @@ function setupListeners() {
       }
     });
   });
+
+  // زر رفع إكسل
+  const importExcelBtn = document.getElementById("importExcelBtn");
+  const excelFileInput = document.getElementById("excelFileInput");
+  if (importExcelBtn && excelFileInput) {
+    importExcelBtn.addEventListener("click", () => {
+      excelFileInput.click();
+    });
+
+    excelFileInput.addEventListener("change", async (e) => {
+      if (e.target.files.length > 0) {
+        await handleExcelUpload(e.target.files[0]);
+        e.target.value = ''; // Reset
+      }
+    });
+  }
 }
 
 // ---------------------------------------------
@@ -270,8 +290,8 @@ async function loadTable() {
       try {
         const user = JSON.parse(userData);
         console.log('👤 المستخدم الحالي:', user.username, 'الرتبة:', user.role);
-        if (user.role !== 'admin') {
-          console.error('❌ المستخدم ليس admin!');
+        if (!canManageEmployeesAccount(user.role)) {
+          console.error('❌ ليس لديك صلاحية عرض الموظفين');
           const tbody = document.querySelector("#usersTable tbody");
           if (tbody) {
             tbody.innerHTML = "<tr><td colspan='6' style='text-align:center; color:red;'>⚠️ ليس لديك صلاحية لعرض الموظفين</td></tr>";
@@ -322,6 +342,7 @@ async function loadTable() {
 
           const roleNames = {
             'admin': '👑 مدير عام',
+            'hr': '👥 موارد بشرية',
             'manager': '👔 مدير',
             'kitchen_manager': '👨‍🍳 مدير مطبخ',
             'kitchen_employee': '👨‍🍳 موظف مطبخ',
@@ -401,7 +422,8 @@ async function loadStats() {
         `إجمالي الحسابات: ${users.length}`,
         `نشطين: ${users.filter(u => u.is_active === 1).length}`,
         `معطلين: ${users.filter(u => u.is_active === 0).length}`,
-        `مديرين: ${users.filter(u => u.role === 'admin').length}`
+        `مديرين عامين: ${users.filter(u => u.role === 'admin').length}`,
+        `موارد بشرية: ${users.filter(u => u.role === 'hr').length}`
       ];
 
       stats.forEach(stat => {
@@ -498,6 +520,7 @@ async function handleAddUser() {
 function getRoleName(role) {
   const roleNames = {
     'admin': '👑 مدير عام',
+    'hr': '👥 موارد بشرية',
     'manager': '👔 مدير',
     'kitchen_manager': '👨‍🍳 مدير مطبخ',
     'kitchen_employee': '👨‍🍳 موظف مطبخ',
@@ -741,5 +764,54 @@ function clearEditFields() {
   document.getElementById("editPassword").value = "";
   document.getElementById("editFullName").value = "";
   document.getElementById("editRole").value = "employee";
+}
+
+// ---------------------------------------------
+// 14) استيراد موظفين من الإكسل
+// ---------------------------------------------
+async function handleExcelUpload(file) {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const importExcelBtn = document.getElementById("importExcelBtn");
+  if (importExcelBtn) {
+    importExcelBtn.disabled = true;
+    importExcelBtn.textContent = "جاري الرفع...";
+  }
+
+  try {
+    const res = await fetch("/api/hr/import-excel", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    let data;
+    try {
+      data = await res.json();
+    } catch(e) {
+      data = { status: "error", message: "خطأ غير متوقع من السيرفر" };
+    }
+
+    if (res.ok && data.success) {
+      alert("✅ " + data.message);
+      await loadEmployeesPage();
+    } else {
+      alert("❌ خطأ: " + (data.message || 'حدث خطأ أثناء الرفع'));
+    }
+  } catch (err) {
+    console.error("Upload error:", err);
+    alert("❌ حدث خطأ في الاتصال بالسيرفر");
+  } finally {
+    if (importExcelBtn) {
+      importExcelBtn.disabled = false;
+      importExcelBtn.textContent = "📄 رفع إكسل";
+    }
+  }
 }
 

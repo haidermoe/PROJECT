@@ -47,6 +47,11 @@ const Permissions = {
     return user && user.role === 'kitchen_employee';
   },
 
+  isHR() {
+    const user = getCurrentUser();
+    return user && user.role === 'hr';
+  },
+
   // التحقق من أن المستخدم له صلاحيات كاملة (يرى كل الصفحات)
   hasFullAccess() {
     const user = getCurrentUser();
@@ -74,9 +79,9 @@ const Permissions = {
     return regularEmployeeRoles.includes(user.role);
   },
 
-  // يمكنه إدارة الموظفين (فقط المدير)
+  // إدارة حسابات المستخدمين (مدير عام أو موارد بشرية)
   canManageUsers() {
-    return this.isAdmin();
+    return this.isAdmin() || this.isHR();
   },
 
   // يمكنه إضافة/تعديل/حذف الوصفات
@@ -147,16 +152,14 @@ function applyPermissions() {
     });
   }
 
-  // إخفاء رابط الموظفين إذا لم يكن مدير
-  if (!Permissions.isAdmin()) {
+  if (!Permissions.canManageUsers()) {
     const employeeLinks = document.querySelectorAll('a[href="/employees.html"]');
     employeeLinks.forEach(link => {
       link.style.display = 'none';
     });
   }
 
-  // إخفاء رابط الإشعارات إذا لم يكن مدير عام
-  if (!Permissions.isAdmin()) {
+  if (!Permissions.isAdmin() && !Permissions.isHR()) {
     const notificationLinks = document.querySelectorAll('a[href="/notifications.html"]');
     notificationLinks.forEach(link => {
       link.style.display = 'none';

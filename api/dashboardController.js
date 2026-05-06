@@ -136,6 +136,7 @@ exports.getEmployees = async (req, res) => {
       // أسماء الرتب بالعربية
       const roleNames = {
         'admin': 'مدير عام',
+        'hr': 'موارد بشرية',
         'manager': 'مدير',
         'kitchen_manager': 'مدير مطبخ',
         'employee': 'موظف'

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>الإعدادات</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="settings.css" />
 </head>
 <body>
@@ -41,68 +42,249 @@
       </div>
 
       <div class="settings-container">
-        <!-- قسم موقع تسجيل الدخول -->
-        <div class="settings-section">
-          <h3>📍 موقع تسجيل الدخول</h3>
-          <p class="section-description">
-            حدد موقع المطعم (GPS) والمساحة المسموح بها لتسجيل الدخول
-          </p>
+        <div class="tabs-layout">
+          <nav class="settings-tabs" role="tablist" aria-label="أقسام الإعدادات">
+            <button class="tab-btn active" id="tab-general" role="tab" aria-selected="true" aria-controls="panel-general" data-tab="general">عام</button>
+            <button class="tab-btn" id="tab-attendance" role="tab" aria-selected="false" aria-controls="panel-attendance" data-tab="attendance">البصمة وساعات العمل</button>
+            <button class="tab-btn" id="tab-printing" role="tab" aria-selected="false" aria-controls="panel-printing" data-tab="printing">طباعة POS</button>
+            <button class="tab-btn" id="tab-routing" role="tab" aria-selected="false" aria-controls="panel-routing" data-tab="routing">ربط الأصناف بالمحطات</button>
+            <button class="tab-btn" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" data-tab="security">الأمان والصلاحيات</button>
+          </nav>
 
-          <div class="form-group">
-            <label>خط العرض (Latitude)</label>
-            <input type="number" step="any" id="latitude" placeholder="مثلاً: 33.3152" />
+          <div class="tab-panels">
+            <section class="tab-panel active" id="panel-general" role="tabpanel" aria-labelledby="tab-general">
+              <div class="settings-section">
+                <h3>🏢 إعدادات عامة</h3>
+                <p class="section-description">هذا القسم مخصص لإعدادات المطعم العامة. سيتم توسيعه لاحقاً (مثل اسم الفرع، المنطقة الزمنية، والعملة).</p>
+                <div class="hint-box">
+                  <strong>تلميح:</strong> استخدم تبويب <strong>طباعة POS</strong> لإدارة الطابعات وتبويب <strong>ربط الأصناف بالمحطات</strong> لتوجيه الطلبات.
+                </div>
+              </div>
+            </section>
+
+            <section class="tab-panel" id="panel-attendance" role="tabpanel" aria-labelledby="tab-attendance" hidden>
+              <div class="settings-section">
+                <h3>📍 موقع تسجيل الدخول</h3>
+                <p class="section-description">
+                  حدد موقع المطعم (GPS) والمساحة المسموح بها لتسجيل الدخول
+                </p>
+
+                <div class="form-group">
+                  <label for="latitude">خط العرض (Latitude)</label>
+                  <input type="number" step="any" id="latitude" placeholder="مثلاً: 33.3152" />
+                </div>
+
+                <div class="form-group">
+                  <label for="longitude">خط الطول (Longitude)</label>
+                  <input type="number" step="any" id="longitude" placeholder="مثلاً: 44.3661" />
+                </div>
+
+                <div class="form-group">
+                  <label for="radius">قطر المساحة المسموحة (بالمتر)</label>
+                  <input type="number" id="radius" placeholder="مثلاً: 100" min="1" max="10000" />
+                </div>
+
+                <button class="btn-get-location" onclick="getCurrentLocationForSettings()">📍 الحصول على موقعي الحالي</button>
+                <button class="btn-clear-location" onclick="clearLocation()">🗑️ مسح الموقع</button>
+              </div>
+
+              <div class="settings-section">
+                <h3>⏰ ساعات العمل</h3>
+                <p class="section-description">
+                  حدد ساعات العمل المسموح بها لتسجيل الدخول
+                </p>
+
+                <div class="form-group">
+                  <label for="workHoursStart">بداية ساعات العمل</label>
+                  <input
+                    type="text"
+                    id="workHoursStart"
+                    pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+                    placeholder="HH:MM"
+                    required
+                  />
+                  <small>وقت بداية ساعات العمل بتنسيق 24 ساعة (مثلاً: 08:00 أو 13:00)</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="workHoursEnd">نهاية ساعات العمل</label>
+                  <input
+                    type="text"
+                    id="workHoursEnd"
+                    pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+                    placeholder="HH:MM"
+                    required
+                  />
+                  <small>وقت نهاية ساعات العمل بتنسيق 24 ساعة (مثلاً: 17:00 أو 23:59)</small>
+                </div>
+              </div>
+
+              <div class="settings-actions sticky-actions">
+                <button class="btn-save" onclick="saveSettings()">💾 حفظ إعدادات البصمة</button>
+                <button class="btn-cancel" onclick="loadSettings()">🔄 إعادة تحميل</button>
+              </div>
+            </section>
+
+            <section class="tab-panel" id="panel-printing" role="tabpanel" aria-labelledby="tab-printing" hidden>
+              <div class="settings-section">
+                <h3>⚙️ إعدادات الطباعة العامة</h3>
+                <p class="section-description">
+                  تحكم كامل بالطباعة: حجم الورق، حجم الخط، عدد النسخ، القص التلقائي، ومهلة الاتصال.
+                </p>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="paperWidthMm">حجم الورقة (mm)</label>
+                    <select id="paperWidthMm">
+                      <option value="58">58mm</option>
+                      <option value="80">80mm</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="fontFamily">نوع الخط</label>
+                    <select id="fontFamily">
+                      <option value="A">Font A (قياسي)</option>
+                      <option value="B">Font B (مضغوط)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="fontScale">حجم الخط العام</label>
+                    <input type="number" id="fontScale" min="1" max="3" step="1" value="1" />
+                  </div>
+                  <div class="form-group">
+                    <label for="headerFontScale">حجم خط الترويسة</label>
+                    <input type="number" id="headerFontScale" min="1" max="3" step="1" value="2" />
+                  </div>
+                  <div class="form-group">
+                    <label for="charsPerLine">عدد الأحرف بالسطر</label>
+                    <input type="number" id="charsPerLine" min="20" max="64" step="1" value="48" />
+                  </div>
+                  <div class="form-group">
+                    <label for="printCopies">عدد النسخ</label>
+                    <input type="number" id="printCopies" min="1" max="5" step="1" value="1" />
+                  </div>
+                  <div class="form-group">
+                    <label for="printerTimeoutMs">مهلة الاتصال (ms)</label>
+                    <input type="number" id="printerTimeoutMs" min="1000" max="20000" step="500" value="7000" />
+                  </div>
+                  <div class="form-group checkbox-group">
+                    <label><input type="checkbox" id="cutPaper" checked /> قص الورقة تلقائياً</label>
+                    <label><input type="checkbox" id="openCashDrawer" /> فتح درج الكاشير</label>
+                  </div>
+                </div>
+                <div class="settings-actions compact-actions">
+                  <button class="btn-save" onclick="savePrintConfig()">💾 حفظ إعدادات الطباعة</button>
+                  <button class="btn-cancel" onclick="loadPrintConfig()">🔄 إعادة تحميل</button>
+                  <button class="btn-cancel" onclick="testAllPrinters()">🧪 اختبار كل الطابعات</button>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h3>🖨️ إدارة الطابعات ومحطات التحضير</h3>
+                <p class="section-description">
+                  أضف/حدّث محطات الطباعة (الكاشير، الكنترول، وأقسام المطبخ) من هنا بدون تعديل الكود.
+                </p>
+
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="stationCode">Station Code</label>
+                    <input type="text" id="stationCode" placeholder="مثال: BAR أو SUSHI" />
+                  </div>
+                  <div class="form-group">
+                    <label for="stationName">اسم المحطة</label>
+                    <input type="text" id="stationName" placeholder="مثال: قسم المشروبات" />
+                  </div>
+                  <div class="form-group">
+                    <label for="stationType">نوع المحطة</label>
+                    <select id="stationType">
+                      <option value="kitchen">kitchen</option>
+                      <option value="cashier">cashier</option>
+                      <option value="expo">expo</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="stationPrinterIp">IP الطابعة</label>
+                    <input type="text" id="stationPrinterIp" placeholder="192.168.1.120" />
+                  </div>
+                  <div class="form-group">
+                    <label for="stationPrinterPort">Port</label>
+                    <input type="number" id="stationPrinterPort" placeholder="9100" />
+                  </div>
+                </div>
+                <div class="settings-actions compact-actions">
+                  <button class="btn-save" onclick="addStation()">➕ إضافة محطة</button>
+                  <button class="btn-cancel" onclick="loadPrinterSettings()">🔄 تحديث القائمة</button>
+                </div>
+
+                <div class="table-section">
+                  <table class="table" id="stationsTable">
+                    <thead>
+                      <tr>
+                        <th>الكود</th>
+                        <th>الاسم</th>
+                        <th>النوع</th>
+                        <th>IP</th>
+                        <th>Port</th>
+                        <th>الحالة</th>
+                        <th>اختبار</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <section class="tab-panel" id="panel-routing" role="tabpanel" aria-labelledby="tab-routing" hidden>
+              <div class="settings-section">
+                <h3>🍽️ ربط الأصناف بمحطات التحضير</h3>
+                <p class="section-description">
+                  كل صنف يرتبط بمحطة تحضير، وبناءً عليه يتم توجيه الطباعة.
+                </p>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="posItemName">اسم الصنف</label>
+                    <input type="text" id="posItemName" placeholder="مثال: Orange Juice" />
+                  </div>
+                  <div class="form-group">
+                    <label for="posItemPrice">السعر</label>
+                    <input type="number" id="posItemPrice" placeholder="0.00" step="0.01" />
+                  </div>
+                  <div class="form-group">
+                    <label for="posItemStation">المحطة</label>
+                    <select id="posItemStation"></select>
+                  </div>
+                </div>
+                <div class="settings-actions compact-actions">
+                  <button class="btn-save" onclick="addPosItem()">➕ إضافة صنف</button>
+                </div>
+
+                <div class="table-section">
+                  <table class="table" id="posItemsTable">
+                    <thead>
+                      <tr>
+                        <th>الصنف</th>
+                        <th>السعر</th>
+                        <th>المحطة</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <section class="tab-panel" id="panel-security" role="tabpanel" aria-labelledby="tab-security" hidden>
+              <div class="settings-section">
+                <h3>🔒 الأمان والصلاحيات</h3>
+                <p class="section-description">
+                  هذا التبويب مخصص لإعدادات التحكم بالوصول والسياسات الأمنية. حالياً يتم تطبيق الصلاحيات من الـBackend.
+                </p>
+                <div class="hint-box">
+                  <strong>معلومة:</strong> إدارة صلاحيات الطباعة متاحة حالياً عبر الأدوار في الخادم (`admin`, `manager`, `kitchen_manager`).
+                </div>
+              </div>
+            </section>
           </div>
-
-          <div class="form-group">
-            <label>خط الطول (Longitude)</label>
-            <input type="number" step="any" id="longitude" placeholder="مثلاً: 44.3661" />
-          </div>
-
-          <div class="form-group">
-            <label>قطر المساحة المسموحة (بالمتر)</label>
-            <input type="number" id="radius" placeholder="مثلاً: 100" min="1" max="10000" />
-          </div>
-
-          <button class="btn-get-location" onclick="getCurrentLocationForSettings()">📍 الحصول على موقعي الحالي</button>
-          <button class="btn-clear-location" onclick="clearLocation()">🗑️ مسح الموقع</button>
-        </div>
-
-        <!-- قسم ساعات العمل -->
-        <div class="settings-section">
-          <h3>⏰ ساعات العمل</h3>
-          <p class="section-description">
-            حدد ساعات العمل المسموح بها لتسجيل الدخول
-          </p>
-
-          <div class="form-group">
-            <label>بداية ساعات العمل</label>
-            <input 
-              type="text" 
-              id="workHoursStart" 
-              pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-              placeholder="HH:MM"
-              required
-            />
-            <small>وقت بداية ساعات العمل بتنسيق 24 ساعة (مثلاً: 08:00 للساعة 8 صباحاً أو 13:00 للساعة 1 ظهراً)</small>
-          </div>
-
-          <div class="form-group">
-            <label>نهاية ساعات العمل</label>
-            <input 
-              type="text" 
-              id="workHoursEnd" 
-              pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-              placeholder="HH:MM"
-              required
-            />
-            <small>وقت نهاية ساعات العمل بتنسيق 24 ساعة (مثلاً: 17:00 للساعة 5 مساءً أو 23:59 لآخر دقيقة)</small>
-          </div>
-        </div>
-
-        <!-- أزرار الحفظ -->
-        <div class="settings-actions">
-          <button class="btn-save" onclick="saveSettings()">💾 حفظ الإعدادات</button>
-          <button class="btn-cancel" onclick="loadSettings()">🔄 إعادة تحميل</button>
         </div>
       </div>
     </div>

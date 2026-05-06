@@ -76,6 +76,7 @@ const sessionConfig = {
  */
 const allowedRoles = [
   'admin',
+  'hr',
   'manager',
   'kitchen_manager',
   'kitchen_employee',

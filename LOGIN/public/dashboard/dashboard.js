@@ -40,6 +40,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.location.replace("/attendance.html");
         return;
       }
+
+      if (user.role === 'hr') {
+        window.location.replace("/hr-dashboard.html");
+        return;
+      }
     } catch (e) {
       console.error('❌ خطأ في قراءة بيانات المستخدم:', e);
     }

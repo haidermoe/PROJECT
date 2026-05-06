@@ -2,11 +2,19 @@
    Sidebar Common Script - يعمل في جميع الصفحات
 ====================================================== */
 
+function getVisibleSidebarRoot() {
+  const withAttr = document.querySelector('aside.sidebar:not([hidden])');
+  if (withAttr) return withAttr;
+  return document.querySelector('aside.sidebar');
+}
+
 // تهيئة السايدبار المشترك
 function initSidebar() {
-  // تحديد الصفحة النشطة بناءً على URL
+  const root = getVisibleSidebarRoot();
+  if (!root) return;
+
   const currentPath = window.location.pathname;
-  const menuItems = document.querySelectorAll('.menu-item');
+  const menuItems = root.querySelectorAll('.menu-item');
   
   menuItems.forEach(item => {
     // إزالة active من جميع العناصر
@@ -34,15 +42,14 @@ function initSidebar() {
     }
   });
 
-  // تسجيل الخروج
-  const logoutBtn = document.getElementById('logoutBtn');
+  const logoutBtn = root.querySelector('.menu-item.logout');
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', (e) => {
+    logoutBtn.onclick = (e) => {
       e.preventDefault();
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/index.html';
-    });
+    };
   }
 
       // إظهار/إخفاء رابط الإعدادات وجداول الدوام بناءً على الرتبة
@@ -50,7 +57,7 @@ function initSidebar() {
       if (userData) {
         try {
           const user = JSON.parse(userData);
-          const settingsLink = document.querySelector('.menu-item[href="/settings.html"]');
+          const settingsLink = root.querySelector('.menu-item[href="/settings.html"]');
           if (settingsLink) {
             if (user.role === 'admin') {
               settingsLink.style.display = 'block';
@@ -59,10 +66,9 @@ function initSidebar() {
             }
           }
           
-          // إظهار/إخفاء رابط جداول الدوام للأدوار الإدارية
-          const shiftsLink = document.querySelector('.menu-item[href="/shifts.html"]');
+          const shiftsLink = root.querySelector('.menu-item[href="/shifts.html"]');
           if (shiftsLink) {
-            const adminRoles = ['admin', 'manager', 'kitchen_manager'];
+            const adminRoles = ['admin', 'manager', 'kitchen_manager', 'hr'];
             if (adminRoles.includes(user.role)) {
               shiftsLink.style.display = 'block';
             } else {
@@ -70,11 +76,12 @@ function initSidebar() {
             }
           }
       
-      const usernameElement = document.querySelector('.user-box .username');
+      const usernameElement = root.querySelector('.user-box .username');
       
       // أسماء الرتب بالعربية
       const roleNames = {
         'admin': '👑 مدير عام',
+        'hr': '👥 موارد بشرية',
         'manager': '👔 مدير',
         'kitchen_manager': '👨‍🍳 مدير مطبخ',
         'kitchen_employee': '👨‍🍳 موظف مطبخ',
@@ -98,106 +105,68 @@ function initSidebar() {
         `;
       }
 
-      // إخفاء رابط الموظفين إذا لم يكن مدير
-      if (user.role !== 'admin') {
-        const employeeLinks = document.querySelectorAll('a[href="/employees.html"]');
-        employeeLinks.forEach(link => {
-          link.style.display = 'none';
-        });
-      }
-
-      // kitchen_employee: يمكنه الوصول للمخزن والسحوبات والبصمة والإجازات
-      if (user.role === 'kitchen_employee') {
-        const restrictedPages = [
-          '/dashboard/dashboard.html',
-          '/recipes.html',
-          '/employees.html',
-          '/waste.html',
-          '/work-hours.html',
-          '/add-recipe.html',
-          '/notifications.html'
-        ];
-
-        restrictedPages.forEach(page => {
-          const links = document.querySelectorAll(`a[href="${page}"]`);
-          links.forEach(link => {
-            link.style.display = 'none';
+      // بناء القائمة ديناميكياً بناءً على الرتبة لضمان عدم ظهور صفحات غير مصرح بها
+      const menuContainer = root.querySelector('.menu');
+      
+      if (menuContainer) {
+        if (user.role === 'hr') {
+          menuContainer.innerHTML = `
+            <a class="menu-item" href="/hr-dashboard.html">🏠 الصفحة الرئيسية</a>
+            <a class="menu-item" href="/payroll.html">💰 الرواتب</a>
+            <a class="menu-item" href="/hr-attendance.html">📋 البصمات وساعات العمل</a>
+            <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+            <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+            <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+            <a class="menu-item" href="/employees.html">👥 إدارة الحسابات</a>
+            <a class="menu-item" href="/work-hours.html">⏱️ تقرير ساعات العمل</a>
+            <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+            <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+          `;
+        } else if (user.role === 'kitchen_employee') {
+          menuContainer.innerHTML = `
+            <a class="menu-item" href="/inventory.html">📦 المخزن</a>
+            <a class="menu-item" href="/withdrawals.html">🔄 سحوبات</a>
+            <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+            <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+            <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+          `;
+        } else if (['employee', 'waiter', 'captain', 'cleaner', 'hall_manager', 'hall_captain', 'receptionist', 'garage_employee', 'garage_manager'].includes(user.role)) {
+          menuContainer.innerHTML = `
+            <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+            <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+            <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+            <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+          `;
+        } else if (user.role === 'kitchen_manager') {
+          // Add specific menu adjustments for kitchen_manager if needed
+          // For now, let kitchen managers use the default menu, but hide specific entries
+          const restrictedPages = ['/dashboard/dashboard.html', '/employees.html', '/settings.html', '/payroll.html', '/hr-dashboard.html', '/hr-attendance.html'];
+          restrictedPages.forEach(page => {
+            const links = menuContainer.querySelectorAll(`a[href="${page}"]`);
+            links.forEach(link => link.style.display = 'none');
           });
-        });
-
-        // إخفاء عناصر القائمة الأخرى
-        const menuItems = document.querySelectorAll('.menu-item');
-        menuItems.forEach(item => {
-          const href = item.getAttribute('href');
-          if (href) {
-            // السماح فقط بالمخزن والسحوبات والبصمة والإجازات وتسجيل الخروج
-            if (href !== '/inventory.html' && href !== '/withdrawals.html' && href !== '/attendance.html' && href !== '/leaves.html' && !item.classList.contains('logout')) {
-              item.style.display = 'none';
-            }
-          } else if (!item.classList.contains('logout')) {
-            // إخفاء عناصر القائمة بدون رابط (مثل "المبيعات", "إدارة المنيو", "الإعدادات", "جداول الدوام")
-            item.style.display = 'none';
-          }
-        });
-        
-        // إخفاء رابط جداول الدوام لـ kitchen_employee
-        const shiftsLink = document.querySelector('.menu-item[href="/shifts.html"]');
-        if (shiftsLink) {
-          shiftsLink.style.display = 'none';
         }
-      }
 
-      // الموظفون العاديون: إخفاء كل الصفحات ما عدا البصمة والإجازات
-      const regularEmployeeRoles = [
-        'employee',
-        'waiter',
-        'captain',
-        'cleaner',
-        'hall_manager',
-        'hall_captain',
-        'receptionist',
-        'garage_employee',
-        'garage_manager'
-      ];
-
-      if (regularEmployeeRoles.includes(user.role)) {
-        const restrictedPages = [
-          '/dashboard/dashboard.html',
-          '/inventory.html',
-          '/recipes.html',
-          '/employees.html',
-          '/withdrawals.html',
-          '/waste.html',
-          '/work-hours.html',
-          '/add-recipe.html'
-        ];
-
-        restrictedPages.forEach(page => {
-          const links = document.querySelectorAll(`a[href="${page}"]`);
-          links.forEach(link => {
-            link.style.display = 'none';
+        // Re-attach active class correctly after re-rendering
+        if (user.role === 'hr' || user.role === 'kitchen_employee' || ['employee', 'waiter', 'captain', 'cleaner', 'hall_manager', 'hall_captain', 'receptionist', 'garage_employee', 'garage_manager'].includes(user.role)) {
+          const currentPath = window.location.pathname;
+          menuContainer.querySelectorAll('.menu-item').forEach(item => {
+             const href = item.getAttribute('href');
+             if (href && (currentPath === href || currentPath.endsWith(href))) {
+                 item.classList.add('active');
+             }
           });
-        });
 
-        // إخفاء عناصر القائمة الأخرى
-        const menuItems = document.querySelectorAll('.menu-item');
-        menuItems.forEach(item => {
-          const href = item.getAttribute('href');
-          if (href) {
-            // السماح فقط بالبصمة والإجازات والإشعارات وتسجيل الخروج
-            if (href !== '/attendance.html' && href !== '/leaves.html' && href !== '/notifications.html' && !item.classList.contains('logout')) {
-              item.style.display = 'none';
-            }
-          } else if (!item.classList.contains('logout')) {
-            // إخفاء عناصر القائمة بدون رابط (مثل "المبيعات", "إدارة المنيو", "الإعدادات", "جداول الدوام")
-            item.style.display = 'none';
+          // Re-attach logout handler
+          const logoutBtnRe = menuContainer.querySelector('.logout');
+          if (logoutBtnRe) {
+            logoutBtnRe.onclick = (e) => {
+              e.preventDefault();
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.href = '/index.html';
+            };
           }
-        });
-        
-        // إخفاء رابط جداول الدوام للموظفين العاديين
-        const shiftsLink = document.querySelector('.menu-item[href="/shifts.html"]');
-        if (shiftsLink) {
-          shiftsLink.style.display = 'none';
         }
       }
       
@@ -214,6 +183,8 @@ function initSidebar() {
     }
   }
 }
+
+window.initSidebar = initSidebar;
 
 // تشغيل تهيئة السايدبار عند تحميل الصفحة
 if (document.readyState === 'loading') {
