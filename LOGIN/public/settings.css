@@ -446,3 +446,125 @@ body {
   }
 }
 
+/* Printer Cards Grid */
+.printers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.printer-card {
+  background: linear-gradient(145deg, #182235, #1e293b);
+  border: 1px solid #2d3a50;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.printer-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-color: #3d5879;
+}
+
+.printer-card.inactive {
+  opacity: 0.7;
+  filter: grayscale(0.5);
+  border-color: #ff4b4b50;
+}
+
+.printer-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #2d3a50;
+  padding-bottom: 10px;
+}
+
+.printer-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00ff88;
+  margin: 0;
+}
+
+.printer-card-code {
+  font-size: 12px;
+  color: #8892b0;
+  background: #111a28;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #2d3a50;
+}
+
+.printer-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: #c7d0de;
+}
+
+.printer-card-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.printer-card-info-label {
+  color: #8892b0;
+}
+
+.printer-card-info-value {
+  font-weight: 600;
+  color: #fff;
+}
+
+.printer-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #2d3a50;
+}
+
+.printer-card-actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: opacity 0.2s;
+}
+
+.printer-card-actions button:hover {
+  opacity: 0.85;
+}
+
+.btn-card-edit {
+  background: #2196F3;
+  color: #fff;
+}
+
+.btn-card-toggle.on {
+  background: #f44336;
+  color: #fff;
+}
+
+.btn-card-toggle.off {
+  background: #4CAF50;
+  color: #fff;
+}
+
+.btn-card-test {
+  background: #20354f;
+  color: #d6ecff;
+  border: 1px solid #3d5879 !important;
+}

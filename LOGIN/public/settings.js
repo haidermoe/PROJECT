@@ -6,6 +6,8 @@
 
 let settingsDirty = false;
 let activeTab = 'general';
+let editingStationId = null;
+let allStationsData = [];
 
 // التحقق من التوكن عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', async function() {
@@ -51,29 +53,30 @@ function initializeSettings() {
 }
 
 function initializeTabs() {
-  const tabs = Array.from(document.querySelectorAll('.tab-btn'));
-  const panels = Array.from(document.querySelectorAll('.tab-panel'));
+  const tabs = Array.from(document.querySelectorAll('#settingsMenu .tab-btn'));
+  const panels = Array.from(document.querySelectorAll('#tabPanels > .tab-panel'));
   if (!tabs.length || !panels.length) return;
 
   const openTab = (tabName, skipConfirm = false) => {
-    if (tabName === activeTab) return;
     if (!skipConfirm && settingsDirty && activeTab === 'attendance') {
       const proceed = confirm('لديك تغييرات غير محفوظة في إعدادات البصمة. هل تريد المتابعة بدون حفظ؟');
       if (!proceed) return;
     }
-
-    tabs.forEach((tab) => {
-      const selected = tab.dataset.tab === tabName;
-      tab.classList.toggle('active', selected);
-      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-      tab.tabIndex = selected ? 0 : -1;
-    });
 
     panels.forEach((panel) => {
       const visible = panel.id === `panel-${tabName}`;
       panel.classList.toggle('active', visible);
       panel.hidden = !visible;
     });
+
+    if (tabName === 'printing') {
+      showPrintMenu();
+    }
+
+    document.getElementById('settingsMenu').style.display = 'none';
+    document.getElementById('tabPanels').style.display = 'block';
+    document.getElementById('backToMenu').style.display = 'block';
+    document.getElementById('tabsLayout').classList.add('single-view');
 
     activeTab = tabName;
     const url = new URL(window.location.href);
@@ -98,7 +101,43 @@ function initializeTabs() {
   const urlTab = new URL(window.location.href).searchParams.get('tab');
   if (urlTab && tabs.some(t => t.dataset.tab === urlTab)) {
     openTab(urlTab, true);
+  } else {
+    showSettingsMenu();
   }
+}
+
+function showSettingsMenu() {
+  const tabsLayout = document.getElementById('tabsLayout');
+  const settingsMenu = document.getElementById('settingsMenu');
+  const tabPanels = document.getElementById('tabPanels');
+  const backToMenu = document.getElementById('backToMenu');
+  
+  if (settingsMenu) settingsMenu.style.display = 'grid';
+  if (tabPanels) tabPanels.style.display = 'none';
+  if (backToMenu) backToMenu.style.display = 'none';
+  if (tabsLayout) tabsLayout.classList.remove('single-view');
+  
+  activeTab = null;
+  const url = new URL(window.location.href);
+  url.searchParams.delete('tab');
+  window.history.replaceState({}, '', url.toString());
+}
+
+function showPrintMenu() {
+  document.getElementById('printMenu').style.display = 'grid';
+  document.getElementById('printSubPanels').style.display = 'none';
+  document.getElementById('backToPrintMenu').style.display = 'none';
+}
+
+function openPrintSubTab(subTabName) {
+  document.getElementById('printMenu').style.display = 'none';
+  document.getElementById('printSubPanels').style.display = 'block';
+  document.getElementById('backToPrintMenu').style.display = 'block';
+  
+  const subPanels = Array.from(document.querySelectorAll('.print-sub-panel'));
+  subPanels.forEach(panel => {
+    panel.style.display = panel.id === `panel-${subTabName}` ? 'block' : 'none';
+  });
 }
 
 // ---------------------------------------------
@@ -303,37 +342,78 @@ async function loadPrinterSettings() {
   ]);
 
   if (stationsRes.status === 'success') {
-    renderStations(stationsRes.data || []);
-    fillStationSelect(stationsRes.data || []);
+    allStationsData = stationsRes.data || [];
+    renderStations(allStationsData);
+    fillStationSelect(allStationsData);
+    fillFallbackSelect(allStationsData);
   }
   if (itemsRes.status === 'success') {
     renderPosItems(itemsRes.data || []);
   }
   await loadPrintConfig();
+  await loadPrintQueue();
 }
 
 function renderStations(stations) {
-  const tbody = document.querySelector('#stationsTable tbody');
-  if (!tbody) return;
+  const grid = document.getElementById('printersGrid');
+  if (!grid) return;
   if (!stations.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">لا توجد محطات</td></tr>`;
+    grid.innerHTML = `<div style="text-align:center; color:#8892b0; width:100%; grid-column: 1 / -1; padding: 20px;">لا توجد محطات/طابعات مسجلة حتى الآن.</div>`;
     return;
   }
-  tbody.innerHTML = stations.map((s) => `
-    <tr>
-      <td>${s.station_code}</td>
-      <td>${s.station_name}</td>
-      <td>${s.station_type}</td>
-      <td>${s.printer_ip}</td>
-      <td>${s.printer_port}</td>
-      <td>${s.is_active ? '✅ فعال' : '⛔ غير فعال'}</td>
-      <td>
-        ${s.is_active
-          ? `<button class="btn-test" onclick="testPrinter(${s.id}, '${escapeHtml(s.station_name)}')">اختبار</button>`
-          : '-'}
-      </td>
-    </tr>
-  `).join('');
+  
+  grid.innerHTML = stations.map((s) => {
+    const fallback = s.fallback_station_id ? stations.find(fs => fs.id === s.fallback_station_id)?.station_name : 'بدون';
+    
+    return `
+      <div class="printer-card ${!s.is_active ? 'inactive' : ''}">
+        <div class="printer-card-header">
+          <h4 class="printer-card-title">${s.station_name}</h4>
+          <span class="printer-card-code">${s.station_code}</span>
+        </div>
+        
+        <div class="printer-card-body">
+          <div class="printer-card-info">
+            <span class="printer-card-info-label">النوع:</span>
+            <span class="printer-card-info-value">${s.station_type}</span>
+          </div>
+          <div class="printer-card-info">
+            <span class="printer-card-info-label">الربط:</span>
+            <span class="printer-card-info-value" style="font-family: monospace;">
+              ${s.connection_type === 'usb' ? 'USB' : 'Network'} - ${s.printer_ip}${s.connection_type !== 'usb' && s.printer_port ? ':' + s.printer_port : ''}
+            </span>
+          </div>
+          <div class="printer-card-info">
+            <span class="printer-card-info-label">الطابعة البديلة:</span>
+            <span class="printer-card-info-value">${fallback}</span>
+          </div>
+          <div class="printer-card-info">
+            <span class="printer-card-info-label">الحالة:</span>
+            <span class="printer-card-info-value" style="color: ${s.is_active ? '#00ff88' : '#ff6b6b'};">
+              ${s.is_active ? '✅ تعمل' : '⛔ متوقفة'}
+            </span>
+          </div>
+        </div>
+
+        <div class="printer-card-actions">
+          <button class="btn-card-edit" onclick="editStation(${s.id})">✏️ تعديل</button>
+          <button class="btn-card-toggle ${s.is_active ? 'on' : 'off'}" onclick="toggleStationStatus(${s.id}, ${s.is_active})">
+            ${s.is_active ? '🛑 إيقاف' : '▶️ تشغيل'}
+          </button>
+          ${s.is_active ? `<button class="btn-card-test" onclick="testPrinter(${s.id}, '${escapeHtml(s.station_name)}')">🧪 تيست</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function fillFallbackSelect(stations) {
+  const select = document.getElementById('stationFallbackId');
+  if (!select) return;
+  const activeStations = stations.filter(s => s.is_active);
+  let html = '<option value="">بدون طابعة بديلة</option>';
+  html += activeStations.map(s => `<option value="${s.id}">${s.station_name} (${s.station_code})</option>`).join('');
+  select.innerHTML = html;
 }
 
 function fillStationSelect(stations) {
@@ -365,14 +445,16 @@ function renderPosItems(items) {
   `).join('');
 }
 
-async function addStation() {
+async function saveStation() {
   const payload = {
     stationCode: document.getElementById('stationCode')?.value.trim(),
     stationName: document.getElementById('stationName')?.value.trim(),
     stationType: document.getElementById('stationType')?.value,
+    connectionType: document.getElementById('stationConnectionType')?.value || 'network',
     printerIp: document.getElementById('stationPrinterIp')?.value.trim(),
     printerPort: Number(document.getElementById('stationPrinterPort')?.value || 9100),
-    isActive: true
+    fallbackStationId: document.getElementById('stationFallbackId')?.value || null,
+    isActive: document.getElementById('stationIsActive')?.checked
   };
 
   if (!payload.stationCode || !payload.stationName || !payload.stationType || !payload.printerIp) {
@@ -380,12 +462,63 @@ async function addStation() {
     return;
   }
 
-  const res = await API('POST', '/api/pos/stations', payload);
+  let res;
+  if (editingStationId) {
+    res = await API('PUT', `/api/pos/stations/${editingStationId}`, payload);
+  } else {
+    res = await API('POST', '/api/pos/stations', payload);
+  }
+
   if (res.status === 'success') {
-    alert('✅ تمت إضافة المحطة بنجاح');
+    alert(editingStationId ? '✅ تم تحديث بيانات المحطة' : '✅ تمت إضافة المحطة بنجاح');
+    clearStationForm();
     loadPrinterSettings();
   } else {
-    alert(`❌ ${res.message || 'فشل إضافة المحطة'}`);
+    alert(`❌ ${res.message || 'فشل حفظ المحطة'}`);
+  }
+}
+
+function editStation(id) {
+  const station = allStationsData.find(s => s.id === id);
+  if (!station) return;
+  
+  editingStationId = id;
+  document.getElementById('stationCode').value = station.station_code;
+  document.getElementById('stationName').value = station.station_name;
+  document.getElementById('stationType').value = station.station_type;
+  document.getElementById('stationConnectionType').value = station.connection_type || 'network';
+  document.getElementById('stationPrinterIp').value = station.printer_ip;
+  document.getElementById('stationPrinterPort').value = station.printer_port;
+  document.getElementById('stationFallbackId').value = station.fallback_station_id || '';
+  document.getElementById('stationIsActive').checked = station.is_active;
+
+  document.getElementById('btnSaveStation').innerHTML = '💾 حفظ التعديلات';
+  document.getElementById('btnCancelEditStation').style.display = 'inline-block';
+  document.getElementById('stationCode').focus();
+}
+
+function clearStationForm() {
+  editingStationId = null;
+  document.getElementById('stationCode').value = '';
+  document.getElementById('stationName').value = '';
+  document.getElementById('stationType').value = 'kitchen';
+  document.getElementById('stationConnectionType').value = 'network';
+  document.getElementById('stationPrinterIp').value = '';
+  document.getElementById('stationPrinterPort').value = '9100';
+  document.getElementById('stationFallbackId').value = '';
+  document.getElementById('stationIsActive').checked = true;
+
+  document.getElementById('btnSaveStation').innerHTML = '➕ إضافة محطة';
+  document.getElementById('btnCancelEditStation').style.display = 'none';
+}
+
+async function toggleStationStatus(id, currentStatus) {
+  if (!confirm(`هل أنت متأكد من ${currentStatus ? 'إيقاف' : 'تشغيل'} هذه الطابعة؟`)) return;
+  const res = await API('PUT', `/api/pos/stations/${id}`, { isActive: !currentStatus });
+  if (res.status === 'success') {
+    loadPrinterSettings();
+  } else {
+    alert(`❌ فشل تغيير حالة الطابعة: ${res.message}`);
   }
 }
 
@@ -431,8 +564,79 @@ async function loadPrintConfig() {
   if (document.getElementById('charsPerLine')) document.getElementById('charsPerLine').value = Number(cfg.chars_per_line || 48);
   if (document.getElementById('printCopies')) document.getElementById('printCopies').value = Number(cfg.print_copies || 1);
   if (document.getElementById('printerTimeoutMs')) document.getElementById('printerTimeoutMs').value = Number(cfg.printer_timeout_ms || 7000);
+  if (document.getElementById('receiptHeaderText')) document.getElementById('receiptHeaderText').value = cfg.receipt_header_text || '';
+  if (document.getElementById('receiptFooterText')) document.getElementById('receiptFooterText').value = cfg.receipt_footer_text || '';
+  if (document.getElementById('bottomMarginLines')) document.getElementById('bottomMarginLines').value = Number(cfg.bottom_margin_lines || 3);
+  if (document.getElementById('borderCharacter')) document.getElementById('borderCharacter').value = cfg.border_character || '-';
+  if (document.getElementById('logoPath')) document.getElementById('logoPath').value = cfg.logo_path || '';
+  if (document.getElementById('lineSpacing')) document.getElementById('lineSpacing').value = Number(cfg.line_spacing || 4);
   if (document.getElementById('cutPaper')) document.getElementById('cutPaper').checked = Boolean(cfg.cut_paper);
   if (document.getElementById('openCashDrawer')) document.getElementById('openCashDrawer').checked = Boolean(cfg.open_cash_drawer);
+  if (document.getElementById('boldItems')) document.getElementById('boldItems').checked = Boolean(cfg.bold_items);
+  if (document.getElementById('showLogo')) document.getElementById('showLogo').checked = Boolean(cfg.show_logo);
+  
+  updateLivePreview();
+}
+
+function handleLogoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64Str = e.target.result;
+    document.getElementById('logoPath').value = base64Str;
+    const showLogoCheckbox = document.getElementById('showLogo');
+    if (showLogoCheckbox) showLogoCheckbox.checked = true;
+    updateLivePreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateLivePreview() {
+  const widthMm = document.getElementById('paperWidthMm')?.value || '80';
+  const paper = document.getElementById('liveReceiptPaper');
+  if (paper) paper.style.width = widthMm + 'mm';
+  
+  const fontScale = document.getElementById('fontScale')?.value || '1';
+  if (paper) paper.style.fontSize = fontScale === '1' ? '12px' : fontScale === '2' ? '16px' : '20px';
+  
+  const lineSpacing = document.getElementById('lineSpacing')?.value || '4';
+  if (paper) paper.style.lineHeight = `calc(1em + ${lineSpacing}px)`;
+  
+  const boldItems = document.getElementById('boldItems')?.checked;
+  const itemsContainer = document.getElementById('previewItems');
+  if (itemsContainer) itemsContainer.style.fontWeight = boldItems ? 'bold' : 'normal';
+  
+  const headerText = document.getElementById('receiptHeaderText')?.value;
+  const previewHeader = document.getElementById('previewHeader');
+  if (previewHeader) {
+    previewHeader.innerText = headerText || '';
+    const headerScale = document.getElementById('headerFontScale')?.value || '2';
+    previewHeader.style.fontSize = headerScale === '1' ? '1em' : headerScale === '2' ? '1.5em' : '2em';
+  }
+  
+  const footerText = document.getElementById('receiptFooterText')?.value;
+  const previewFooter = document.getElementById('previewFooter');
+  if (previewFooter) previewFooter.innerText = footerText || '';
+  
+  const borderChar = document.getElementById('borderCharacter')?.value || '-';
+  const borderString = borderChar.repeat(50);
+  for (let i = 1; i <= 4; i++) {
+    const b = document.getElementById('previewBorder' + i);
+    if (b) b.innerText = borderString;
+  }
+  
+  const showLogo = document.getElementById('showLogo')?.checked;
+  const logoBase64 = document.getElementById('logoPath')?.value;
+  const logoImg = document.getElementById('previewLogoImage');
+  if (logoImg) {
+    logoImg.src = logoBase64 || '';
+    logoImg.style.display = (showLogo && logoBase64) ? 'inline-block' : 'none';
+  }
+  
+  const bottomMargin = document.getElementById('bottomMarginLines')?.value || '3';
+  const previewMargin = document.getElementById('previewMargin');
+  if (previewMargin) previewMargin.style.height = `${bottomMargin * 20}px`;
 }
 
 async function savePrintConfig() {
@@ -444,8 +648,16 @@ async function savePrintConfig() {
     chars_per_line: Number(document.getElementById('charsPerLine')?.value || 48),
     print_copies: Number(document.getElementById('printCopies')?.value || 1),
     printer_timeout_ms: Number(document.getElementById('printerTimeoutMs')?.value || 7000),
-    cut_paper: document.getElementById('cutPaper')?.checked ? 'true' : 'false',
-    open_cash_drawer: document.getElementById('openCashDrawer')?.checked ? 'true' : 'false'
+    receipt_header_text: document.getElementById('receiptHeaderText')?.value || '',
+    receipt_footer_text: document.getElementById('receiptFooterText')?.value || '',
+    bottom_margin_lines: Number(document.getElementById('bottomMarginLines')?.value || 3),
+    border_character: document.getElementById('borderCharacter')?.value || '-',
+    logo_path: document.getElementById('logoPath')?.value || '',
+    line_spacing: Number(document.getElementById('lineSpacing')?.value || 4),
+    cut_paper: document.getElementById('cutPaper')?.checked,
+    open_cash_drawer: document.getElementById('openCashDrawer')?.checked,
+    bold_items: document.getElementById('boldItems')?.checked,
+    show_logo: document.getElementById('showLogo')?.checked
   };
 
   const res = await API('PUT', '/api/pos/print-config', payload);
@@ -480,6 +692,73 @@ async function testAllPrinters() {
   } else {
     alert(`❌ ${res.message || 'فشل اختبار الطابعات'}`);
   }
+}
+
+// ---------------------------------------------
+// Print Queue Management
+// ---------------------------------------------
+async function loadPrintQueue() {
+  const tbody = document.querySelector('#queueTable tbody');
+  if (!tbody) return;
+
+  const res = await API('GET', '/api/pos/queue');
+  if (res.status === 'success') {
+    const queue = res.data || [];
+    if (!queue.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">الطابور فارغ. جميع الطلبات تم طباعتها بنجاح.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = queue.map(q => `
+      <tr>
+        <td>#${q.order_id}</td>
+        <td>${q.station_name} (${q.ticket_type})</td>
+        <td>${new Date(q.created_at).toLocaleString('en-GB')}</td>
+        <td>${q.retry_count} / 3</td>
+        <td>
+          <span style="color: ${q.status === 'failed_permanently' ? 'red' : 'orange'}">
+            ${q.status === 'pending' ? 'جاري المعالجة (Pending)' : 'فشل دائم (Permanently Failed)'}
+          </span>
+        </td>
+        <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(q.last_error_message || '')}">
+          ${escapeHtml(q.last_error_message || '')}
+        </td>
+        <td>
+          <button class="btn-save" style="padding: 2px 8px; font-size: 12px;" onclick="retryQueueJob(${q.id})">🔄 إعادة</button>
+          <button class="btn-cancel" style="padding: 2px 8px; font-size: 12px; margin-right: 5px;" onclick="deleteQueueJob(${q.id})">🗑️ حذف</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+}
+
+async function retryAllQueue() {
+  if (!confirm('هل تريد إعادة محاولة طباعة جميع المهام التي فشلت دائمًا؟')) return;
+  const res = await API('POST', '/api/pos/queue', { action: 'retry_all' });
+  if (res.status === 'success') {
+    alert('✅ تم إرسال المهام للطابور مرة أخرى');
+    loadPrintQueue();
+  } else alert('❌ فشل');
+}
+
+async function clearAllQueue() {
+  if (!confirm('هل أنت متأكد من حذف كل طابور الطباعة المعلق والفاشل؟')) return;
+  const res = await API('POST', '/api/pos/queue', { action: 'delete_all' });
+  if (res.status === 'success') {
+    alert('✅ تم تفريغ الطابور');
+    loadPrintQueue();
+  } else alert('❌ فشل');
+}
+
+async function retryQueueJob(id) {
+  const res = await API('POST', '/api/pos/queue', { action: 'retry', id });
+  if (res.status === 'success') loadPrintQueue();
+}
+
+async function deleteQueueJob(id) {
+  if (!confirm('حذف هذه المهمة من الطابور؟')) return;
+  const res = await API('POST', '/api/pos/queue', { action: 'delete', id });
+  if (res.status === 'success') loadPrintQueue();
 }
 
 // ---------------------------------------------

@@ -84,10 +84,17 @@ async function ensurePosTables() {
     CREATE TABLE IF NOT EXISTS pos_print_settings (
       id INT AUTO_INCREMENT PRIMARY KEY,
       setting_key VARCHAR(100) NOT NULL UNIQUE,
-      setting_value VARCHAR(255) NULL,
+      setting_value LONGTEXT NULL,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
+  
+  // Ensure the column is LONGTEXT in case it was created as VARCHAR
+  try {
+    await appPool.query(`ALTER TABLE pos_print_settings MODIFY setting_value LONGTEXT;`);
+  } catch (e) {
+    // Ignore error if already modified or fails
+  }
 
   await appPool.query(`
     INSERT INTO pos_print_settings (setting_key, setting_value)
@@ -100,7 +107,15 @@ async function ensurePosTables() {
       ('print_copies', '1'),
       ('cut_paper', 'true'),
       ('open_cash_drawer', 'false'),
-      ('printer_timeout_ms', '7000')
+      ('printer_timeout_ms', '7000'),
+      ('receipt_header_text', 'Restaurant Name'),
+      ('receipt_footer_text', 'Thank you for your visit!'),
+      ('bottom_margin_lines', '3'),
+      ('show_logo', 'false'),
+      ('logo_path', ''),
+      ('bold_items', 'false'),
+      ('border_character', '-'),
+      ('line_spacing', '4')
     ON DUPLICATE KEY UPDATE setting_key = setting_key;
   `);
 }
@@ -114,7 +129,7 @@ exports.listStations = async (req, res) => {
   try {
     await ensurePosTables();
     const [rows] = await appPool.query(
-      `SELECT id, station_code, station_name, station_type, printer_ip, printer_port, is_active, updated_at
+      `SELECT id, station_code, station_name, station_type, connection_type, printer_ip, printer_port, is_active, fallback_station_id, updated_at
        FROM pos_stations
        ORDER BY station_type, station_name`
     );
@@ -148,7 +163,15 @@ exports.updatePrintConfiguration = async (req, res) => {
       'print_copies',
       'cut_paper',
       'open_cash_drawer',
-      'printer_timeout_ms'
+      'printer_timeout_ms',
+      'receipt_header_text',
+      'receipt_footer_text',
+      'bottom_margin_lines',
+      'border_character',
+      'logo_path',
+      'show_logo',
+      'bold_items',
+      'line_spacing'
     ];
 
     const entries = Object.entries(req.body || {}).filter(([key]) => allowedKeys.includes(key));
@@ -177,7 +200,7 @@ exports.updatePrintConfiguration = async (req, res) => {
 exports.createStation = async (req, res) => {
   try {
     await ensurePosTables();
-    const { stationCode, stationName, stationType, printerIp, printerPort, isActive } = req.body || {};
+    const { stationCode, stationName, stationType, connectionType, printerIp, printerPort, isActive, fallbackStationId } = req.body || {};
     if (!stationCode || !stationName || !stationType || !printerIp) {
       return res.status(400).json({ status: 'error', message: 'جميع الحقول الأساسية مطلوبة' });
     }
@@ -186,9 +209,9 @@ exports.createStation = async (req, res) => {
     }
 
     await appPool.execute(
-      `INSERT INTO pos_stations (station_code, station_name, station_type, printer_ip, printer_port, is_active)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [stationCode.trim().toUpperCase(), stationName.trim(), stationType, printerIp.trim(), Number(printerPort || 9100), Boolean(isActive ?? true)]
+      `INSERT INTO pos_stations (station_code, station_name, station_type, connection_type, printer_ip, printer_port, is_active, fallback_station_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [stationCode.trim().toUpperCase(), stationName.trim(), stationType, connectionType || 'network', printerIp.trim(), Number(printerPort || 9100), Boolean(isActive ?? true), fallbackStationId ? Number(fallbackStationId) : null]
     );
 
     res.json({ status: 'success', message: 'تمت إضافة الطابعة/المحطة بنجاح' });
@@ -202,7 +225,7 @@ exports.updateStation = async (req, res) => {
   try {
     await ensurePosTables();
     const stationId = Number(req.params.id);
-    const { stationName, stationType, printerIp, printerPort, isActive } = req.body || {};
+    const { stationName, stationType, connectionType, printerIp, printerPort, isActive, fallbackStationId } = req.body || {};
     if (!stationId) {
       return res.status(400).json({ status: 'error', message: 'station id غير صالح' });
     }
@@ -214,16 +237,20 @@ exports.updateStation = async (req, res) => {
       `UPDATE pos_stations
        SET station_name = COALESCE(?, station_name),
            station_type = COALESCE(?, station_type),
+           connection_type = COALESCE(?, connection_type),
            printer_ip = COALESCE(?, printer_ip),
            printer_port = COALESCE(?, printer_port),
-           is_active = COALESCE(?, is_active)
+           is_active = COALESCE(?, is_active),
+           fallback_station_id = COALESCE(?, fallback_station_id)
        WHERE id = ?`,
       [
         stationName ?? null,
         stationType ?? null,
+        connectionType ?? null,
         printerIp ?? null,
         printerPort !== undefined ? Number(printerPort) : null,
         isActive !== undefined ? Boolean(isActive) : null,
+        fallbackStationId !== undefined ? (fallbackStationId ? Number(fallbackStationId) : null) : null,
         stationId
       ]
     );
@@ -244,7 +271,7 @@ exports.testSingleStation = async (req, res) => {
     }
 
     const [rows] = await appPool.query(
-      `SELECT id, station_code, station_name, station_type, printer_ip, printer_port, is_active
+      `SELECT id, station_code, station_name, station_type, connection_type, printer_ip, printer_port, is_active
        FROM pos_stations WHERE id = ? LIMIT 1`,
       [stationId]
     );
@@ -268,7 +295,7 @@ exports.testAllActiveStations = async (req, res) => {
   try {
     await ensurePosTables();
     const [stations] = await appPool.query(
-      `SELECT id, station_code, station_name, station_type, printer_ip, printer_port, is_active
+      `SELECT id, station_code, station_name, station_type, connection_type, printer_ip, printer_port, is_active
        FROM pos_stations WHERE is_active = 1`
     );
     if (!stations.length) {
@@ -377,5 +404,41 @@ exports.createOrderAndPrint = async (req, res) => {
       status: 'error',
       message: error.message || 'فشل إنشاء الطلب أو الطباعة'
     });
+  }
+};
+
+exports.listPrintQueue = async (req, res) => {
+  try {
+    const [rows] = await appPool.query(
+      `SELECT q.id, q.order_id, q.status, q.retry_count, q.last_error_message, q.created_at, q.ticket_type,
+              s.station_name, s.station_code
+       FROM pos_print_queue q
+       JOIN pos_stations s ON s.id = q.station_id
+       WHERE q.status != 'success'
+       ORDER BY q.created_at DESC`
+    );
+    res.json({ status: 'success', data: rows });
+  } catch (error) {
+    console.error('❌ listPrintQueue:', error);
+    res.status(500).json({ status: 'error', message: error.message || 'فشل تحميل طابور الطباعة' });
+  }
+};
+
+exports.clearPrintQueue = async (req, res) => {
+  try {
+    const { action, id } = req.body;
+    if (action === 'retry_all') {
+      await appPool.execute(`UPDATE pos_print_queue SET status = 'pending', retry_count = 0 WHERE status = 'failed_permanently'`);
+    } else if (action === 'delete_all') {
+      await appPool.execute(`DELETE FROM pos_print_queue WHERE status != 'success'`);
+    } else if (action === 'retry' && id) {
+      await appPool.execute(`UPDATE pos_print_queue SET status = 'pending', retry_count = 0 WHERE id = ?`, [id]);
+    } else if (action === 'delete' && id) {
+      await appPool.execute(`DELETE FROM pos_print_queue WHERE id = ?`, [id]);
+    }
+    res.json({ status: 'success', message: 'تم تحديث طابور الطباعة' });
+  } catch (error) {
+    console.error('❌ clearPrintQueue:', error);
+    res.status(500).json({ status: 'error', message: error.message || 'فشل تعديل طابور الطباعة' });
   }
 };

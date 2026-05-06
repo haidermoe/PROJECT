@@ -20,4 +20,7 @@ router.put('/items/:id', requireRole('admin'), controller.updateItem);
 
 router.post('/orders/print', requireRole('manager', 'kitchen_manager'), controller.createOrderAndPrint);
 
+router.get('/queue', requireRole('admin'), controller.listPrintQueue);
+router.post('/queue', requireRole('admin'), controller.clearPrintQueue);
+
 module.exports = router;

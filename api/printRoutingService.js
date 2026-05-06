@@ -16,7 +16,14 @@ const DEFAULT_PRINT_CONFIG = {
   print_copies: 1,
   cut_paper: true,
   open_cash_drawer: false,
-  printer_timeout_ms: 7000
+  printer_timeout_ms: 7000,
+  receipt_header_text: 'Restaurant Name',
+  receipt_footer_text: 'Thank you for your visit!',
+  bottom_margin_lines: 3,
+  show_logo: false,
+  logo_path: '',
+  bold_items: false,
+  border_character: '-'
 };
 
 function formatOrderTime(date = new Date()) {
@@ -48,11 +55,11 @@ async function getPrintConfig(connection = null) {
     const key = row.setting_key;
     const value = row.setting_value;
     if (value === null || value === undefined) return;
-    if (['cut_paper', 'open_cash_drawer'].includes(key)) {
+    if (['cut_paper', 'open_cash_drawer', 'show_logo', 'bold_items'].includes(key)) {
       cfg[key] = ['1', 'true', 'yes'].includes(String(value).toLowerCase());
       return;
     }
-    if (['paper_width_mm', 'font_scale', 'header_font_scale', 'chars_per_line', 'print_copies', 'printer_timeout_ms'].includes(key)) {
+    if (['paper_width_mm', 'font_scale', 'header_font_scale', 'chars_per_line', 'print_copies', 'printer_timeout_ms', 'bottom_margin_lines'].includes(key)) {
       cfg[key] = Number(value);
       return;
     }
@@ -62,9 +69,16 @@ async function getPrintConfig(connection = null) {
 }
 
 function createPrinterClient(station, printConfig) {
+  let interfaceStr;
+  if (station.connection_type === 'usb' || (station.printer_ip && station.printer_ip.startsWith('printer:'))) {
+    interfaceStr = station.printer_ip.startsWith('printer:') ? station.printer_ip : `printer:${station.printer_ip}`;
+  } else {
+    interfaceStr = `tcp://${station.printer_ip}:${station.printer_port || 9100}`;
+  }
+
   return new ThermalPrinter({
     type: PrinterTypes.EPSON,
-    interface: `tcp://${station.printer_ip}:${station.printer_port || 9100}`,
+    interface: interfaceStr,
     options: {
       timeout: Number(printConfig?.printer_timeout_ms || DEFAULT_PRINT_CONFIG.printer_timeout_ms)
     }
@@ -99,14 +113,35 @@ function fitText(text, maxChars) {
   return value.length > limit ? `${value.slice(0, limit - 1)}…` : value;
 }
 
-function renderHeader(printer, stationName, header, printConfig) {
+async function renderHeader(printer, stationName, header, printConfig) {
   printer.clear();
+  
+  if (printConfig.show_logo && printConfig.logo_path) {
+    try {
+      printer.alignCenter();
+      await printer.printImage(printConfig.logo_path);
+    } catch (e) {
+      console.error('فشل طباعة الشعار:', e.message);
+    }
+  }
+
   applyFontFamily(printer, printConfig.font_family || 'A');
   printer.alignCenter();
+  
+  if (printConfig.receipt_header_text) {
+    applyFontScale(printer, printConfig.header_font_scale || 2);
+    printer.bold(true);
+    printer.println(printConfig.receipt_header_text);
+    printer.bold(false);
+  }
+
+  applyFontScale(printer, 1);
   printer.bold(true);
-  printer.println(stationName);
+  printer.println(`[ ${stationName} ]`);
   printer.bold(false);
-  printer.drawLine();
+  
+  const borderChar = printConfig.border_character || '-';
+  printer.drawLine(borderChar.charAt(0));
 
   applyFontScale(printer, printConfig.header_font_scale || 2);
   printer.println(`طاولة: ${header.tableNo}`);
@@ -115,12 +150,13 @@ function renderHeader(printer, stationName, header, printConfig) {
   applyFontScale(printer, printConfig.font_scale || 1);
   printer.println(`الأشخاص: ${header.guestCount}`);
   printer.println(`الوقت: ${header.orderTime}`);
-  printer.drawLine();
+  printer.drawLine(borderChar.charAt(0));
   printer.alignLeft();
 }
 
-function renderCashierTicket(printer, order, items, header, printConfig) {
-  renderHeader(printer, 'فاتورة الكاشير', header, printConfig);
+async function renderCashierTicket(printer, order, items, header, printConfig) {
+  await renderHeader(printer, 'فاتورة الكاشير', header, printConfig);
+  printer.bold(printConfig.bold_items);
   items.forEach((item) => {
     const lineTotal = Number(item.quantity) * Number(item.unit_price);
     printer.leftRight(fitText(`${item.quantity}x ${item.item_name}`, printConfig.chars_per_line), `${lineTotal.toFixed(2)}`);
@@ -128,41 +164,73 @@ function renderCashierTicket(printer, order, items, header, printConfig) {
       printer.println(`  ملاحظة: ${item.notes}`);
     }
   });
-  printer.drawLine();
+  printer.bold(false);
+  
+  const borderChar = printConfig.border_character || '-';
+  printer.drawLine(borderChar.charAt(0));
   printer.bold(true);
   printer.leftRight('المجموع', Number(order.total_amount).toFixed(2));
   printer.bold(false);
+  
+  if (printConfig.receipt_footer_text) {
+    printer.drawLine(borderChar.charAt(0));
+    printer.alignCenter();
+    printer.println(printConfig.receipt_footer_text);
+    printer.alignLeft();
+  }
 }
 
-function renderExpoTicket(printer, items, header, printConfig) {
-  renderHeader(printer, 'تيكت التجميع / الكنترول', header, printConfig);
+async function renderExpoTicket(printer, items, header, printConfig) {
+  await renderHeader(printer, 'تيكت التجميع / الكنترول', header, printConfig);
+  printer.bold(printConfig.bold_items);
   items.forEach((item) => {
     printer.println(fitText(`${item.quantity}x ${item.item_name}`, printConfig.chars_per_line));
     if (item.notes) {
       printer.println(`  ملاحظة: ${item.notes}`);
     }
   });
+  printer.bold(false);
 }
 
-function renderKitchenStationTicket(printer, station, items, header, printConfig) {
-  renderHeader(printer, `قسم: ${station.station_name}`, header, printConfig);
+async function renderKitchenStationTicket(printer, station, items, header, printConfig) {
+  await renderHeader(printer, `قسم: ${station.station_name}`, header, printConfig);
+  printer.bold(printConfig.bold_items);
   items.forEach((item) => {
     printer.println(fitText(`${item.quantity}x ${item.item_name}`, printConfig.chars_per_line));
     if (item.notes) {
       printer.println(`  ملاحظة: ${item.notes}`);
     }
   });
+  printer.bold(false);
 }
 
 async function executePrintJob(station, printConfig, renderFn) {
-  const printer = createPrinterClient(station, printConfig);
-  const isConnected = await printer.isPrinterConnected();
-  if (!isConnected) {
-    throw new Error(`تعذر الاتصال بالطابعة ${station.station_name} (${station.printer_ip})`);
+  const isUsb = station.connection_type === 'usb';
+  
+  // Create client. For USB, use a dummy network interface so node-thermal-printer doesn't crash requiring the native driver.
+  const printer = new ThermalPrinter({
+    type: PrinterTypes.EPSON,
+    interface: isUsb ? 'tcp://127.0.0.1:9100' : `tcp://${station.printer_ip}:${station.printer_port || 9100}`,
+    options: {
+      timeout: Number(printConfig?.printer_timeout_ms || DEFAULT_PRINT_CONFIG.printer_timeout_ms)
+    }
+  });
+
+  if (!isUsb) {
+    const isConnected = await printer.isPrinterConnected();
+    if (!isConnected) {
+      throw new Error(`تعذر الاتصال بالطابعة ${station.station_name} (${station.printer_ip})`);
+    }
   }
 
   for (let copyIndex = 0; copyIndex < Number(printConfig.print_copies || 1); copyIndex += 1) {
-    renderFn(printer);
+    await renderFn(printer);
+    
+    // Add bottom margin for tearing paper comfortably
+    for (let i = 0; i < Number(printConfig.bottom_margin_lines || 0); i++) {
+      printer.newLine();
+    }
+    
     printer.newLine();
     if (printConfig.cut_paper) {
       printer.cut();
@@ -170,7 +238,39 @@ async function executePrintJob(station, printConfig, renderFn) {
     if (printConfig.open_cash_drawer && typeof printer.openCashDrawer === 'function') {
       printer.openCashDrawer();
     }
-    await printer.execute();
+    
+    if (isUsb) {
+      const buffer = await printer.getBuffer();
+      const crypto = require('crypto');
+      const fs = require('fs');
+      const path = require('path');
+      const { exec } = require('child_process');
+      
+      const tempFileName = `print_${crypto.randomBytes(4).toString('hex')}.bin`;
+      const tempFilePath = path.join(process.cwd(), tempFileName);
+      fs.writeFileSync(tempFilePath, buffer);
+      
+      let printerName = station.printer_ip.replace(/^printer:/i, '').replace(/^usb:/i, '').trim();
+      if (!printerName.includes('\\\\')) {
+        printerName = `\\\\127.0.0.1\\${printerName}`;
+      }
+      
+      const command = `copy /b "${tempFilePath}" "${printerName}"`;
+      
+      await new Promise((resolve, reject) => {
+        exec(command, (err, stdout, stderr) => {
+          try { fs.unlinkSync(tempFilePath); } catch(e){}
+          if (err) {
+            reject(new Error(`فشل الطباعة عبر USB: ${err.message}`));
+          } else {
+            resolve();
+          }
+        });
+      });
+      printer.clear();
+    } else {
+      await printer.execute();
+    }
   }
 }
 
@@ -280,7 +380,7 @@ async function createOrderAndRoutePrint(orderPayload, userId) {
     }
 
     const [stations] = await connection.query(
-      `SELECT id, station_code, station_name, station_type, printer_ip, printer_port, is_active
+      `SELECT id, station_code, station_name, station_type, printer_ip, printer_port, is_active, fallback_station_id
        FROM pos_stations
        WHERE is_active = 1`
     );
@@ -345,12 +445,21 @@ async function createOrderAndRoutePrint(orderPayload, userId) {
         [orderId, task.station.id, task.ticketType, isSuccess ? 'success' : 'failed', errorMessage]
       );
 
+      if (!isSuccess) {
+        // إضافة المهام الفاشلة إلى طابور المعالجة الخلفية
+        await connection.execute(
+          `INSERT INTO pos_print_queue (order_id, station_id, ticket_type, status, last_error_message)
+           VALUES (?, ?, ?, 'pending', ?)`,
+          [orderId, task.station.id, task.ticketType, errorMessage]
+        );
+      }
+
       mappedResults.push({
         stationId: task.station.id,
         stationName: task.station.station_name,
         stationCode: task.station.station_code,
         ticketType: task.ticketType,
-        status: isSuccess ? 'success' : 'failed',
+        status: isSuccess ? 'success' : 'failed_queued',
         error: errorMessage
       });
     }
@@ -372,9 +481,95 @@ async function createOrderAndRoutePrint(orderPayload, userId) {
   }
 }
 
+async function processPrintQueue() {
+  let connection;
+  try {
+    connection = await appPool.getConnection();
+    const [jobs] = await connection.query(
+      `SELECT q.id AS queue_id, q.order_id, q.station_id, q.ticket_type, q.retry_count,
+              o.table_no, o.guest_count, o.total_amount, o.created_at,
+              s.station_name, s.station_code, s.station_type, s.printer_ip, s.printer_port, s.fallback_station_id
+       FROM pos_print_queue q
+       JOIN pos_orders o ON o.id = q.order_id
+       JOIN pos_stations s ON s.id = q.station_id
+       WHERE q.status = 'pending'
+       ORDER BY q.created_at ASC
+       LIMIT 10`
+    );
+
+    if (jobs.length === 0) return;
+
+    const printConfig = await getPrintConfig(connection);
+
+    for (const job of jobs) {
+      const [items] = await connection.query(
+        `SELECT id, item_id, item_name, quantity, unit_price, notes, station_id
+         FROM pos_order_items
+         WHERE order_id = ?`,
+        [job.order_id]
+      );
+      
+      let itemsToPrint = items;
+      if (job.ticket_type === 'station') {
+        itemsToPrint = items.filter(i => i.station_id === job.station_id);
+      }
+
+      if (itemsToPrint.length === 0) {
+        await connection.execute(`UPDATE pos_print_queue SET status = 'success' WHERE id = ?`, [job.queue_id]);
+        continue;
+      }
+
+      const order = { id: job.order_id, table_no: job.table_no, guest_count: job.guest_count, total_amount: job.total_amount, created_at: job.created_at };
+      const header = getOrderHeader(order);
+      const targetStation = { id: job.station_id, station_name: job.station_name, station_code: job.station_code, station_type: job.station_type, printer_ip: job.printer_ip, printer_port: job.printer_port };
+
+      let isSuccess = false;
+      let errorMessage = '';
+
+      try {
+        const renderAction = (printer) => {
+           if (job.ticket_type === 'cashier') renderCashierTicket(printer, order, itemsToPrint, header, printConfig);
+           else if (job.ticket_type === 'expo') renderExpoTicket(printer, itemsToPrint, header, printConfig);
+           else {
+             // In fallback scenario, targetStation name might have changed. Mark as fallback in header.
+             let fallbackMsg = job.retry_count === 0 && job.last_error_message?.includes('Fallback') ? ` (محولة من طابعة أخرى)` : '';
+             renderKitchenStationTicket(printer, { ...targetStation, station_name: targetStation.station_name + fallbackMsg }, itemsToPrint, header, printConfig);
+           }
+        };
+        await executePrintJob(targetStation, printConfig, renderAction);
+        isSuccess = true;
+      } catch (err) {
+        errorMessage = String(err.message || err);
+      }
+
+      if (isSuccess) {
+        await connection.execute(`UPDATE pos_print_queue SET status = 'success' WHERE id = ?`, [job.queue_id]);
+        await connection.execute(`INSERT INTO pos_print_jobs (order_id, station_id, ticket_type, status, error_message) VALUES (?, ?, ?, 'success', ?)`, [job.order_id, targetStation.id, job.ticket_type, 'Recovered from queue']);
+      } else {
+        const newRetryCount = job.retry_count + 1;
+        if (newRetryCount >= 3) {
+           if (job.fallback_station_id) {
+             console.log(`[Printer Queue] Station ${targetStation.station_name} failed 3 times. Falling back to station ID ${job.fallback_station_id}`);
+             await connection.execute(`UPDATE pos_print_queue SET station_id = ?, retry_count = 0, last_error_message = ? WHERE id = ?`, [job.fallback_station_id, 'Fallback triggered after 3 failures', job.queue_id]);
+           } else {
+             await connection.execute(`UPDATE pos_print_queue SET status = 'failed_permanently', last_error_message = ? WHERE id = ?`, [errorMessage, job.queue_id]);
+           }
+        } else {
+          await connection.execute(`UPDATE pos_print_queue SET retry_count = ?, last_error_message = ? WHERE id = ?`, [newRetryCount, errorMessage, job.queue_id]);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error processing print queue:', err);
+  } finally {
+    if (connection) connection.release();
+  }
+}
+
 module.exports = {
   createOrderAndRoutePrint,
   getPrintConfig,
   sendTestPrint,
+  processPrintQueue,
   STATION_TYPES
 };

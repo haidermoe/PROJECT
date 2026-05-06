@@ -42,16 +42,36 @@
       </div>
 
       <div class="settings-container">
-        <div class="tabs-layout">
-          <nav class="settings-tabs" role="tablist" aria-label="أقسام الإعدادات">
-            <button class="tab-btn active" id="tab-general" role="tab" aria-selected="true" aria-controls="panel-general" data-tab="general">عام</button>
-            <button class="tab-btn" id="tab-attendance" role="tab" aria-selected="false" aria-controls="panel-attendance" data-tab="attendance">البصمة وساعات العمل</button>
-            <button class="tab-btn" id="tab-printing" role="tab" aria-selected="false" aria-controls="panel-printing" data-tab="printing">طباعة POS</button>
-            <button class="tab-btn" id="tab-routing" role="tab" aria-selected="false" aria-controls="panel-routing" data-tab="routing">ربط الأصناف بالمحطات</button>
-            <button class="tab-btn" id="tab-security" role="tab" aria-selected="false" aria-controls="panel-security" data-tab="security">الأمان والصلاحيات</button>
+        <div class="tabs-layout" id="tabsLayout">
+          <!-- Back button -->
+          <div class="back-to-menu" id="backToMenu" style="display: none; margin-bottom: 20px;">
+            <button class="btn-cancel" onclick="showSettingsMenu()" style="background:#2d2d44; color:#00ff88; border-color:#00ff88;">⬅️ العودة لقائمة الإعدادات</button>
+          </div>
+
+          <nav class="settings-tabs grid-mode" id="settingsMenu" role="tablist" aria-label="أقسام الإعدادات">
+            <button class="tab-btn grid-card" id="tab-general" role="tab" data-tab="general">
+              <span class="icon" style="font-size: 40px; margin-bottom: 15px; display: block;">🏢</span>
+              <span>عام</span>
+            </button>
+            <button class="tab-btn grid-card" id="tab-attendance" role="tab" data-tab="attendance">
+              <span class="icon" style="font-size: 40px; margin-bottom: 15px; display: block;">⏰</span>
+              <span>البصمة وساعات العمل</span>
+            </button>
+            <button class="tab-btn grid-card" id="tab-printing" role="tab" data-tab="printing">
+              <span class="icon" style="font-size: 40px; margin-bottom: 15px; display: block;">🖨️</span>
+              <span>طباعة POS وصيانتها</span>
+            </button>
+            <button class="tab-btn grid-card" id="tab-routing" role="tab" data-tab="routing">
+              <span class="icon" style="font-size: 40px; margin-bottom: 15px; display: block;">🍽️</span>
+              <span>ربط الأصناف بالمحطات</span>
+            </button>
+            <button class="tab-btn grid-card" id="tab-security" role="tab" data-tab="security">
+              <span class="icon" style="font-size: 40px; margin-bottom: 15px; display: block;">🔒</span>
+              <span>الأمان والصلاحيات</span>
+            </button>
           </nav>
 
-          <div class="tab-panels">
+          <div class="tab-panels" id="tabPanels" style="display: none;">
             <section class="tab-panel active" id="panel-general" role="tabpanel" aria-labelledby="tab-general">
               <div class="settings-section">
                 <h3>🏢 إعدادات عامة</h3>
@@ -126,60 +146,134 @@
             </section>
 
             <section class="tab-panel" id="panel-printing" role="tabpanel" aria-labelledby="tab-printing" hidden>
-              <div class="settings-section">
-                <h3>⚙️ إعدادات الطباعة العامة</h3>
-                <p class="section-description">
-                  تحكم كامل بالطباعة: حجم الورق، حجم الخط، عدد النسخ، القص التلقائي، ومهلة الاتصال.
-                </p>
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="paperWidthMm">حجم الورقة (mm)</label>
-                    <select id="paperWidthMm">
-                      <option value="58">58mm</option>
-                      <option value="80">80mm</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="fontFamily">نوع الخط</label>
-                    <select id="fontFamily">
-                      <option value="A">Font A (قياسي)</option>
-                      <option value="B">Font B (مضغوط)</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="fontScale">حجم الخط العام</label>
-                    <input type="number" id="fontScale" min="1" max="3" step="1" value="1" />
-                  </div>
-                  <div class="form-group">
-                    <label for="headerFontScale">حجم خط الترويسة</label>
-                    <input type="number" id="headerFontScale" min="1" max="3" step="1" value="2" />
-                  </div>
-                  <div class="form-group">
-                    <label for="charsPerLine">عدد الأحرف بالسطر</label>
-                    <input type="number" id="charsPerLine" min="20" max="64" step="1" value="48" />
-                  </div>
-                  <div class="form-group">
-                    <label for="printCopies">عدد النسخ</label>
-                    <input type="number" id="printCopies" min="1" max="5" step="1" value="1" />
-                  </div>
-                  <div class="form-group">
-                    <label for="printerTimeoutMs">مهلة الاتصال (ms)</label>
-                    <input type="number" id="printerTimeoutMs" min="1000" max="20000" step="500" value="7000" />
-                  </div>
-                  <div class="form-group checkbox-group">
-                    <label><input type="checkbox" id="cutPaper" checked /> قص الورقة تلقائياً</label>
-                    <label><input type="checkbox" id="openCashDrawer" /> فتح درج الكاشير</label>
-                  </div>
-                </div>
-                <div class="settings-actions compact-actions">
-                  <button class="btn-save" onclick="savePrintConfig()">💾 حفظ إعدادات الطباعة</button>
-                  <button class="btn-cancel" onclick="loadPrintConfig()">🔄 إعادة تحميل</button>
-                  <button class="btn-cancel" onclick="testAllPrinters()">🧪 اختبار كل الطابعات</button>
-                </div>
+              <!-- Print Sub-Menu Back Button -->
+              <div class="back-to-menu" id="backToPrintMenu" style="display: none; margin-bottom: 20px;">
+                <button class="btn-cancel" onclick="showPrintMenu()" style="background:#2d2d44; color:#00ff88; border-color:#00ff88;">⬅️ العودة لقائمة الطباعة</button>
               </div>
 
-              <div class="settings-section">
-                <h3>🖨️ إدارة الطابعات ومحطات التحضير</h3>
+              <nav class="settings-tabs grid-mode" id="printMenu">
+                <button class="tab-btn grid-card" onclick="openPrintSubTab('print-general')">
+                  <span class="icon" style="font-size: 40px; margin-bottom: 15px; display: block;">⚙️</span>
+                  <span>إعدادات الطباعة العامة</span>
+                </button>
+                <button class="tab-btn grid-card" onclick="openPrintSubTab('print-stations')">
+                  <span class="icon" style="font-size: 40px; margin-bottom: 15px; display: block;">🖨️</span>
+                  <span>إدارة الطابعات والمحطات</span>
+                </button>
+                <button class="tab-btn grid-card" onclick="openPrintSubTab('print-queue')">
+                  <span class="icon" style="font-size: 40px; margin-bottom: 15px; display: block;">🛠️</span>
+                  <span>صيانة الأعطال والطابور</span>
+                </button>
+              </nav>
+
+              <div id="printSubPanels">
+                <div class="print-sub-panel" id="panel-print-general" style="display: none;">
+                  <div class="settings-section" style="border: none; padding: 0;">
+                    <h3>⚙️ تصميم الفاتورة وإعدادات الطباعة</h3>
+                    <p class="section-description">صمم شكل الفاتورة وشاهد التعديلات مباشرة قبل الحفظ.</p>
+                    
+                    <div class="receipt-designer-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                      <!-- Left Column: Settings -->
+                      <div class="receipt-editor-pane">
+                        <div class="form-grid" style="grid-template-columns: 1fr;">
+                          <div class="form-group">
+                            <label for="paperWidthMm">عرض الورقة (mm) - مثلاً 58 أو 80</label>
+                            <input type="number" id="paperWidthMm" value="80" oninput="updateLivePreview()" />
+                          </div>
+                          <div class="form-group">
+                            <label for="fontFamily">نوع الخط</label>
+                            <select id="fontFamily" onchange="updateLivePreview()">
+                              <option value="A">Font A (قياسي)</option>
+                              <option value="B">Font B (مضغوط)</option>
+                            </select>
+                          </div>
+                          <div class="form-group">
+                            <label for="fontScale">حجم الخط العام</label>
+                            <input type="number" id="fontScale" min="1" max="3" step="1" value="1" oninput="updateLivePreview()" />
+                          </div>
+                          <div class="form-group">
+                            <label for="headerFontScale">حجم خط الترويسة</label>
+                            <input type="number" id="headerFontScale" min="1" max="3" step="1" value="2" oninput="updateLivePreview()" />
+                          </div>
+                          <div class="form-group">
+                            <label for="lineSpacing">مسافة تباعد الأسطر (px)</label>
+                            <input type="number" id="lineSpacing" min="0" max="20" step="1" value="4" oninput="updateLivePreview()" />
+                          </div>
+                          <div class="form-group">
+                            <label for="receiptHeaderText">نص الترويسة (Header)</label>
+                            <input type="text" id="receiptHeaderText" placeholder="اسم المطعم" oninput="updateLivePreview()" />
+                          </div>
+                          <div class="form-group">
+                            <label for="receiptFooterText">نص التذييل (Footer)</label>
+                            <input type="text" id="receiptFooterText" placeholder="شكراً لزيارتكم!" oninput="updateLivePreview()" />
+                          </div>
+                          <div class="form-group">
+                            <label for="bottomMarginLines">الهامش السفلي (لإطالة الورقة)</label>
+                            <input type="number" id="bottomMarginLines" min="0" max="10" step="1" value="3" oninput="updateLivePreview()" />
+                          </div>
+                          <div class="form-group">
+                            <label for="borderCharacter">شكل التسطير</label>
+                            <input type="text" id="borderCharacter" maxlength="1" value="-" oninput="updateLivePreview()" />
+                          </div>
+                          <div class="form-group">
+                            <label for="logoUploadInput">الشعار (رفع صورة)</label>
+                            <input type="file" id="logoUploadInput" accept="image/png, image/jpeg" onchange="handleLogoUpload(event)" />
+                            <input type="hidden" id="logoPath" value="" />
+                          </div>
+                          <div class="form-group checkbox-group" style="display:flex; flex-direction:column; gap:10px;">
+                            <label><input type="checkbox" id="showLogo" onchange="updateLivePreview()" /> عرض الشعار في الفاتورة</label>
+                            <label><input type="checkbox" id="boldItems" onchange="updateLivePreview()" /> الأصناف بخط عريض (Bold)</label>
+                            <label><input type="checkbox" id="cutPaper" checked /> قص الورقة تلقائياً</label>
+                            <label><input type="checkbox" id="openCashDrawer" /> فتح درج الكاشير</label>
+                          </div>
+                          <div class="form-group">
+                            <label for="printCopies">عدد النسخ</label>
+                            <input type="number" id="printCopies" min="1" max="5" step="1" value="1" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Right Column: Live Preview -->
+                      <div class="receipt-preview-pane" style="background:#1e1e2d; color:#fff; padding:30px; border-radius:10px; box-shadow:inset 0 5px 15px rgba(0,0,0,0.5); display:flex; flex-direction:column; align-items:center; max-width:100%; overflow:hidden;">
+                        <h4 style="margin-bottom: 20px; color:#aaa;">المعاينة الحية للطباعة</h4>
+                        <div id="liveReceiptPaper" style="width: 80mm; min-height: 100mm; background:#fff; color:#000; font-family: 'Courier New', Courier, monospace; display:flex; flex-direction:column; padding:15px; box-sizing:border-box; box-shadow:0 10px 25px rgba(0,0,0,0.8); position:relative;">
+                          <!-- Serrated edge effect at the bottom -->
+                          <div style="position:absolute; bottom:-5px; left:0; width:100%; height:5px; background: repeating-linear-gradient(45deg, transparent, transparent 5px, #fff 5px, #fff 10px);"></div>
+                          
+                          <div style="text-align:center;">
+                            <img id="previewLogoImage" src="" style="display:none; max-width:60%; margin-bottom:10px; filter: grayscale(100%) contrast(200%);" />
+                          </div>
+                          <div id="previewHeader" style="text-align:center; font-weight:bold; font-size:1.5em; margin-bottom:5px;">اسم المطعم</div>
+                          <div style="text-align:center; font-weight:bold;">[ فاتورة الكاشير ]</div>
+                          <div id="previewBorder1" style="overflow:hidden; white-space:nowrap;">----------------------------------------</div>
+                          <div>طاولة: 5</div>
+                          <div>الأشخاص: 2</div>
+                          <div>الوقت: 12/05/2026 14:30</div>
+                          <div id="previewBorder2" style="overflow:hidden; white-space:nowrap;">----------------------------------------</div>
+                          <div id="previewItems" style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; justify-content:space-between;"><span>1x بيتزا مارغريتا</span><span>15.00</span></div>
+                            <div style="display:flex; justify-content:space-between;"><span>2x بيبسي</span><span>4.00</span></div>
+                          </div>
+                          <div id="previewBorder3" style="overflow:hidden; white-space:nowrap;">----------------------------------------</div>
+                          <div style="display:flex; justify-content:space-between; font-weight:bold;"><span>المجموع</span><span>19.00</span></div>
+                          <div id="previewBorder4" style="overflow:hidden; white-space:nowrap;">----------------------------------------</div>
+                          <div id="previewFooter" style="text-align:center; margin-top:5px;">شكراً لزيارتكم!</div>
+                          <div id="previewMargin" style="height:30px;"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="settings-actions compact-actions" style="margin-top: 20px;">
+                      <button class="btn-save" onclick="savePrintConfig()">💾 حفظ التصميم</button>
+                      <button class="btn-cancel" onclick="loadPrintConfig()">🔄 إعادة تحميل</button>
+                      <button class="btn-cancel" onclick="testAllPrinters()">🧪 اختبار كل الطابعات</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="print-sub-panel" id="panel-print-stations" style="display: none;">
+                  <div class="settings-section" style="border: none; padding: 0;">
+                    <h3>🖨️ إدارة الطابعات ومحطات التحضير</h3>
                 <p class="section-description">
                   أضف/حدّث محطات الطباعة (الكاشير، الكنترول، وأقسام المطبخ) من هنا بدون تعديل الكود.
                 </p>
@@ -202,39 +296,76 @@
                     </select>
                   </div>
                   <div class="form-group">
-                    <label for="stationPrinterIp">IP الطابعة</label>
-                    <input type="text" id="stationPrinterIp" placeholder="192.168.1.120" />
+                    <label for="stationConnectionType">طريقة التوصيل</label>
+                    <select id="stationConnectionType">
+                      <option value="network">الشبكة (IP/Ethernet/WiFi)</option>
+                      <option value="usb">USB (Windows Printer)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="stationPrinterIp">IP أو اسم الطابعة (USB)</label>
+                    <input type="text" id="stationPrinterIp" placeholder="مثال: 192.168.1.120 أو POS-80" />
                   </div>
                   <div class="form-group">
                     <label for="stationPrinterPort">Port</label>
                     <input type="number" id="stationPrinterPort" placeholder="9100" />
                   </div>
+                  <div class="form-group">
+                    <label for="stationFallbackId">الطابعة البديلة (عند التعطل)</label>
+                    <select id="stationFallbackId">
+                      <option value="">بدون طابعة بديلة</option>
+                    </select>
+                  </div>
+                  <div class="form-group checkbox-group">
+                    <label style="margin-top:25px;"><input type="checkbox" id="stationIsActive" checked /> المحطة فعالة (تعمل)</label>
+                  </div>
                 </div>
                 <div class="settings-actions compact-actions">
-                  <button class="btn-save" onclick="addStation()">➕ إضافة محطة</button>
+                  <button class="btn-save" id="btnSaveStation" onclick="saveStation()">➕ إضافة محطة</button>
+                  <button class="btn-cancel" id="btnCancelEditStation" onclick="clearStationForm()" style="display:none;">✖️ إلغاء التعديل</button>
                   <button class="btn-cancel" onclick="loadPrinterSettings()">🔄 تحديث القائمة</button>
                 </div>
 
+                <div id="printersGrid" class="printers-grid">
+                  <!-- Cards will be rendered here -->
+                    </div>
+                  </div>
+                </div>
+
+                <div class="print-sub-panel" id="panel-print-queue" style="display: none;">
+                  <div class="settings-section" style="border: none; padding: 0;">
+                    <h3>🛠️ طابور الطباعة وصيانة الأعطال</h3>
+                <p class="section-description">
+                  هنا تظهر مهام الطباعة التي فشلت أو التي تنتظر المعالجة. يمكنك إعادة المحاولة يدوياً أو تفريغ الطابور.
+                </p>
+                <div class="settings-actions compact-actions">
+                  <button class="btn-save" onclick="retryAllQueue()">🔄 إعادة محاولة الطباعة لكل الفاشلة</button>
+                  <button class="btn-cancel" onclick="clearAllQueue()">🗑️ تفريغ كل الطابور</button>
+                  <button class="btn-cancel" onclick="loadPrintQueue()">🔄 تحديث الطابور</button>
+                </div>
+
                 <div class="table-section">
-                  <table class="table" id="stationsTable">
+                  <table class="table" id="queueTable">
                     <thead>
                       <tr>
-                        <th>الكود</th>
-                        <th>الاسم</th>
-                        <th>النوع</th>
-                        <th>IP</th>
-                        <th>Port</th>
+                        <th>رقم الطلب</th>
+                        <th>المحطة</th>
+                        <th>تاريخ الإضافة</th>
+                        <th>المحاولات</th>
                         <th>الحالة</th>
-                        <th>اختبار</th>
+                        <th>آخر خطأ</th>
+                        <th>إجراء</th>
                       </tr>
                     </thead>
                     <tbody></tbody>
                   </table>
                 </div>
               </div>
-            </section>
+            </div>
+          </div>
+        </section>
 
-            <section class="tab-panel" id="panel-routing" role="tabpanel" aria-labelledby="tab-routing" hidden>
+        <section class="tab-panel" id="panel-routing" role="tabpanel" aria-labelledby="tab-routing" hidden>
               <div class="settings-section">
                 <h3>🍽️ ربط الأصناف بمحطات التحضير</h3>
                 <p class="section-description">

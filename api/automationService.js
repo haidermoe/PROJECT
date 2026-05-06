@@ -1,6 +1,7 @@
 // api/automationService.js
 const { hrPool } = require('../database/hrConnection');
 const { appPool } = require('../database/appConnection');
+const { processPrintQueue } = require('./printRoutingService');
 
 // This service handles automated background tasks for HR and Payroll
 
@@ -156,6 +157,16 @@ function startAutomations() {
         autoCheckOut();
         processDailyPenalties();
     }, ONE_HOUR);
+
+    // معالجة طابور الطباعة الفاشلة كل 10 ثواني
+    console.log('🚀 [Automation Service] Started Printer Queue Processor');
+    setInterval(async () => {
+        try {
+            await processPrintQueue();
+        } catch (err) {
+            console.error('❌ [Printer Queue Error]:', err);
+        }
+    }, 10000);
 }
 
 module.exports = { startAutomations };
