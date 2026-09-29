@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>تسجيل الدخول</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- فيديو الخلفية -->
+  <video autoplay muted loop id="bgVideo">
+    <source src="chef_bg.mp4" type="video/mp4">
+  </video>
+
+  <div class="login-wrap">
+    <div class="brand">
+      <div class="logo"><img src="logo.png" alt="Chef Logo"></div>
+      <div class="brand-text">
+        <h1>لوحة الدخول</h1>
+        <p class="subtitle">ادخل ببياناتك للوصول للنظام</p>
+      </div>
+    </div>
+
+    <div class="card pro">
+      <form id="loginForm" class="form">
+
+        <div class="input-row">
+          <input id="username" placeholder="اسم المستخدم" autocomplete="username" />
+        </div>
+
+        <div class="input-row">
+          <input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password" />
+          <button type="button" class="peek" id="togglePwd" aria-label="إظهار/إخفاء"></button>
+        </div>
+
+        <div class="options">
+          <label class="remember">
+            <input type="checkbox" id="remember" />
+            تذكرني
+          </label>
+          <a class="hint" href="#" onclick="return false;">نسيت كلمة المرور؟</a>
+        </div>
+
+        <button id="loginBtn" class="btn-primary" type="submit">دخول</button>
+
+        <p id="msg" class="msg"></p>
+
+      </form>
+    </div>
+
+    <footer class="foot">
+      <span>© <span id="year"></span> — westig management system</span>
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ========== التحقق من وجود error في URL (لتفادي حلقة إعادة التوجيه) ==========
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    
+    // إذا كان هناك error، لا نعيد التوجيه ونعرض رسالة الخطأ
+    if (error) {
+      const msgEl = document.getElementById('msg');
+      if (error === 'login_required') {
+        msgEl.classList.add('error');
+        msgEl.textContent = '⚠️ يرجى تسجيل الدخول للوصول إلى الصفحة';
+        // تنظيف localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // إظهار الحقول بشكل واضح
+        setTimeout(() => {
+          const usernameInput = document.getElementById('username');
+          if (usernameInput) {
+            usernameInput.focus();
+          }
+        }, 100);
+      } else if (error === 'session_expired') {
+        msgEl.classList.add('error');
+        msgEl.textContent = '⚠️ انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى';
+        // تنظيف localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // إظهار الحقول بشكل واضح
+        setTimeout(() => {
+          const usernameInput = document.getElementById('username');
+          if (usernameInput) {
+            usernameInput.focus();
+          }
+        }, 100);
+      } else if (error === 'connection_error') {
+        msgEl.classList.add('error');
+        msgEl.textContent = '⚠️ خطأ في الاتصال بالسيرفر، يرجى المحاولة مرة أخرى';
+      }
+    } else {
+      // ========== التحقق من صحة التوكن قبل إعادة التوجيه ==========
+      // فقط إذا لم يكن هناك error في URL
+      const existingToken = localStorage.getItem('token');
+      if (existingToken) {
+        // التحقق من صحة التوكن قبل إعادة التوجيه
+        fetch('/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${existingToken}`
+          }
+        })
+        .then(async (response) => {
+          if (response.ok) {
+            try {
+              const me = await response.json();
+              const role = me?.user?.role;
+              window.location.href =
+                role === 'hr' ? '/hr-dashboard.html' : '/dashboard/dashboard.html';
+            } catch {
+              window.location.href = '/dashboard/dashboard.html';
+            }
+          } else {
+            // التوكن غير صالح - تنظيف localStorage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        })
+        .catch(error => {
+          // خطأ في الاتصال - تنظيف localStorage
+          console.error('خطأ في التحقق من التوكن:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        });
+      }
+    }
+
+
+    // ========== زر إظهار/إخفاء كلمة المرور ==========
+    const toggle = document.getElementById('togglePwd');
+    const pwd = document.getElementById('password');
+    toggle.addEventListener('click', () => {
+      pwd.type = pwd.type === 'password' ? 'text' : 'password';
+    });
+
+    // ========== تسجيل الدخول ==========
+    const form = document.getElementById('loginForm');
+    const msgEl = document.getElementById('msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msgEl.className = 'msg';
+      msgEl.textContent = '... جاري التحقق';
+
+      const username = document.getElementById('username').value.trim();
+      const password = pwd.value;
+
+      if (!username || !password) {
+        msgEl.classList.add('error');
+        msgEl.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور';
+        return;
+      }
+
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        // التحقق من حالة الاستجابة
+        if (!res.ok) {
+          // محاولة قراءة رسالة الخطأ من السيرفر
+          try {
+            const errorData = await res.json();
+            msgEl.classList.add('error');
+            msgEl.textContent = errorData.message || `خطأ: ${res.status} ${res.statusText}`;
+          } catch {
+            msgEl.classList.add('error');
+            msgEl.textContent = `خطأ في السيرفر: ${res.status} ${res.statusText}`;
+          }
+          return;
+        }
+        
+        const data = await res.json();
+
+        if (data.status === 'success' && data.token) {
+          // حفظ التوكن وبيانات المستخدم
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+
+          // التحقق من أن التوكن تم حفظه بشكل صحيح
+          const savedToken = localStorage.getItem('token');
+          if (!savedToken || savedToken !== data.token) {
+            console.error('❌ فشل حفظ التوكن في localStorage');
+            msgEl.classList.add('error');
+            msgEl.textContent = 'خطأ في حفظ بيانات الجلسة، يرجى المحاولة مرة أخرى';
+            return;
+          }
+
+          console.log('✅ تم حفظ التوكن بنجاح في localStorage');
+
+          msgEl.classList.add('success');
+          msgEl.textContent = 'تم تسجيل الدخول، جارٍ التحويل...';
+
+          // التحويل للداشبورد الصحيح - استخدام replace لتجنب مشاكل history
+          // إضافة تأخير أطول للتأكد من حفظ التوكن
+          setTimeout(() => {
+            const dest =
+              data.user?.role === 'hr'
+                ? '/hr-dashboard.html'
+                : '/dashboard/dashboard.html';
+            console.log('🔄 إعادة التوجيه إلى', dest);
+            window.location.replace(dest);
+          }, 500);
+
+        } else {
+          msgEl.classList.add('error');
+          msgEl.textContent = data.message || 'فشل تسجيل الدخول';
+        }
+      } catch (error) {
+        console.error('خطأ في تسجيل الدخول:', error);
+        msgEl.classList.add('error');
+        msgEl.textContent = 'خطأ بالاتصال بالسيرفر: ' + error.message;
+      }
+    });
+  </script>
+
+</body>
+</html>

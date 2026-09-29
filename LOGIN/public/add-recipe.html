@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>إضافة وصفة جديدة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="recipes.css" />
+  <style>
+    /* تنسيقات خاصة لصفحة الإضافة */
+    .add-recipe-page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid rgba(0, 255, 136, 0.3);
+    }
+
+    .page-header h2 {
+      color: #00ff88;
+      font-size: 1.5rem;
+      margin: 0;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.1);
+      color: #c6cad3;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .recipe-form {
+      background: linear-gradient(145deg, #050910, #070d17);
+      border-radius: 16px;
+      padding: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.55);
+    }
+
+    .form-section {
+      margin-bottom: 30px;
+    }
+
+    .form-section h3 {
+      color: #00ff88;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 15px;
+      justify-content: flex-end;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-save-page {
+      background: linear-gradient(90deg, #00ff88, #39ffb8);
+      color: #020308;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .btn-save-page:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+    }
+
+    .btn-save-page:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-cancel-page {
+      background: rgba(255, 255, 255, 0.1);
+      color: #c6cad3;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 12px 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.2s;
+    }
+
+    .btn-cancel-page:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* تنسيق موحد لجميع الحقول */
+    .recipe-form input[type="text"],
+    .recipe-form input[type="number"],
+    .recipe-form textarea,
+    .recipe-form select {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #f5f5f5;
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .recipe-form input[type="text"]:focus,
+    .recipe-form input[type="number"]:focus,
+    .recipe-form textarea:focus,
+    .recipe-form select:focus {
+      outline: none;
+      border-color: #00ff88;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+    }
+
+    .recipe-form input[type="text"]::placeholder,
+    .recipe-form input[type="number"]::placeholder,
+    .recipe-form textarea::placeholder {
+      color: #6b7280;
+    }
+
+    .recipe-form textarea {
+      resize: vertical;
+      min-height: 150px;
+      line-height: 1.6;
+      font-family: 'Courier New', monospace;
+    }
+
+    .recipe-form select {
+      cursor: pointer;
+    }
+
+    .recipe-form select option {
+      background: #081017;
+      color: #f5f5f5;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #b0b0b0;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item active" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item" href="/settings.html">⚙️ الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+      <div class="add-recipe-page">
+        <!-- Header -->
+        <div class="page-header">
+          <h2>➕ إضافة وصفة جديدة - Standard Recipe Template</h2>
+          <a href="/recipes.html" class="btn-back">← رجوع للوصفات</a>
+        </div>
+
+        <!-- Form -->
+        <div class="recipe-form">
+          <!-- المعلومات الأساسية -->
+          <div class="form-section">
+            <h3>المعلومات الأساسية</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>اسم الوصفة (ITEM NAME) *</label>
+                <input id="recipeItemName" type="text" placeholder="أدخل اسم الوصفة" required autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label>Reference</label>
+                <input id="recipeReference" type="text" placeholder="أدخل المرجع" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Yield *</label>
+                <input id="recipeYield" type="text" placeholder="أدخل الكمية المنتجة" required autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label>Portions</label>
+                <input id="recipePortions" type="number" placeholder="عدد الحصص" autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label>Shelf Life</label>
+                <input id="recipeShelfLife" type="text" placeholder="مدة الصلاحية" autocomplete="off" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Version</label>
+                <input id="recipeVersion" type="text" placeholder="001" value="001" autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label>Edition</label>
+                <input id="recipeEdition" type="number" placeholder="1" value="1" autocomplete="off" />
+              </div>
+            </div>
+
+            <!-- تصنيف الوصفة: هل هي منتج نصف مصنع / تحضير مسبق -->
+            <div class="form-row" style="margin-top:15px; background:rgba(124, 58, 237, 0.15); padding:12px; border-radius:8px; border:1px solid rgba(124, 58, 237, 0.4);">
+              <div style="display:flex; align-items:center; gap:12px; width:100%;">
+                <input type="checkbox" id="recipeIsSubRecipe" style="width:20px; height:20px; cursor:pointer;" />
+                <label for="recipeIsSubRecipe" style="margin:0; cursor:pointer; color:#d8b4fe; font-weight:600; font-size:0.95rem;">
+                  🥫 هذه وصفة تحضير مسبق لمادة مخزنية مصنعة (Sub-Recipe) — مثل: صوص خاص، خلطة مفروم، عجين
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- المكونات -->
+          <div class="form-section">
+            <h3>المكونات (Ingredients in Order of Mixing & Quantity)</h3>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+              <button type="button" class="btn-add-ingredient" id="addIngredientBtn">➕ إضافة مكون</button>
+            </div>
+            
+            <table class="ingredients-table" id="ingredientsTable">
+              <thead>
+                <tr>
+                  <th style="width: 5%;">#</th>
+                  <th style="width: 40%;">اسم المكون</th>
+                  <th style="width: 25%;">الكمية</th>
+                  <th style="width: 25%;">الوحدة</th>
+                  <th style="width: 5%;">حذف</th>
+                </tr>
+              </thead>
+              <tbody id="ingredientsTableBody">
+                <!-- سيتم إضافة الصفوف ديناميكياً -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- خطوات التحضير -->
+          <div class="form-section">
+            <h3>خطوات التحضير (Procedures for Preparation) *</h3>
+            <textarea id="recipeProcedure" rows="10" placeholder="اكتب خطوات التحضير بالترتيب..." required></textarea>
+          </div>
+
+          <!-- Actions -->
+          <div class="form-actions">
+            <button class="btn-cancel-page" id="cancelBtn" type="button">إلغاء</button>
+            <button class="btn-save-page" id="saveBtn" type="button">💾 حفظ الوصفة</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="add-recipe.js"></script>
+</body>
+
+</html>
+

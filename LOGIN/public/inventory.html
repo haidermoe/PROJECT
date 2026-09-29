@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>لوحة المخزن</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="inventory.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item active" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/waiter.html">📱 شاشة طلبات الويترية</a>
+        <a class="menu-item" href="/accounting.html">💰 شجرة الحسابات والمالية</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item" href="/settings.html">⚙️ الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <button class="btn-add" id="addItemBtn">➕ إضافة مادة</button>
+        <h2 class="page-title">لوحة مراقبة المخزن</h2>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+
+        <div class="kpi-card">
+          <div class="label">عدد المواد</div>
+          <h2 id="kpiTotalItems">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">مواد قليلة</div>
+          <h2 id="kpiLowStock">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">عمليات اليوم</div>
+          <h2 id="kpiTodayOps">0</h2>
+        </div>
+
+        <div class="kpi-card">
+          <div class="label">مجموع السحوبات</div>
+          <h2 id="kpiWithdraw">0</h2>
+        </div>
+
+      </div>
+
+      <!-- CHART -->
+      <div class="charts-row">
+        <div class="chart-box">
+          <h3>حركة السحب والإيداع - ٧ أيام</h3>
+          <canvas id="inventoryChart"></canvas>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <h3>المواد في المخزن</h3>
+
+        <table class="table" id="itemsTable">
+          <thead>
+            <tr>
+              <th>المادة</th>
+              <th>التصنيف / النوع</th>
+              <th>الوحدة</th>
+              <th>الكمية</th>
+              <th>الحالة</th>
+              <th style="text-align:center;">عمليات</th>
+            </tr>
+          </thead>
+
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <!-- STATION INVENTORY TABLE -->
+      <div class="table-section" style="margin-top: 25px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3>🍳 أرصدة ومخزون السكاشن (العهد التشغيلية)</h3>
+          <button class="btn-save" onclick="openStationTransferModal()" style="font-size:0.85rem; padding: 6px 14px; background:#10b981; border:none; border-radius:6px; cursor:pointer; color:white; font-weight:bold;">➕ تحويل مواد للسكشن</button>
+        </div>
+
+        <table class="table" id="stationStockTable">
+          <thead>
+            <tr>
+              <th>السكشن / المحطة</th>
+              <th>المادة</th>
+              <th>رصيد السكشن الحالي</th>
+              <th>الوحدة</th>
+              <th>المخزن الرئيسي</th>
+              <th>آخر تحويل</th>
+            </tr>
+          </thead>
+          <tbody id="stationStockBody">
+            <tr><td colspan="6" style="text-align:center; color:#94a3b8;">جاري تحميل أرصدة السكاشن...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- KITCHEN MANAGER REQUISITIONS APPROVAL SECTION -->
+      <div class="table-section" id="stationRequisitionsSection" style="margin-top: 25px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3>📋 طلبات صرف العهد المعلقة (موافقة مدير المطبخ والإنتاجية)</h3>
+          <span style="font-size:0.85rem; color:#94a3b8;">تخضع لرقابة وحسابات تغطية الوصفات</span>
+        </div>
+
+        <table class="table" id="stationRequestsTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>السكشن</th>
+              <th>المادة</th>
+              <th>النوع</th>
+              <th>الكمية</th>
+              <th>التغطية المتوقعة (الوصفات)</th>
+              <th>مقدم الطلب</th>
+              <th>الحالة</th>
+              <th style="text-align:center;">إجراء مدير المطبخ</th>
+            </tr>
+          </thead>
+          <tbody id="stationRequestsBody">
+            <tr><td colspan="9" style="text-align:center; color:#94a3b8;">جاري فحص طلبات الصرف...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>تنبيهات المخزون</h3>
+      <ul class="notif-list" id="notifList"></ul>
+    </div>
+
+  </div>
+
+  <!-- ======================================================
+       MODAL — إضافة مادة جديدة مع التحديد الصريح لنوعها
+  ======================================================= -->
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <h3>إضافة مادة جديدة للمخزن</h3>
+
+      <label>اسم المادة</label>
+      <input id="itemName" type="text" placeholder="مثال: لحم مفروم أو صوص ثومية أو رز" />
+
+      <label>تحديد تصنيف المادة (صريح)</label>
+      <select id="itemMaterialType" onchange="onAddMaterialTypeChange()" style="width:100%; margin-bottom:10px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;">
+        <option value="raw">🌾 مادة أولية خام (مشتريات موردين - لا تُصنع بالمطبخ)</option>
+        <option value="manufactured">🥫 مادة مصنعة / تحضير مسبق (تُحضر بالمطبخ بوصفة فرعية Sub-recipe)</option>
+      </select>
+
+      <div id="recipeSelectGroup" style="display:none; margin-bottom:10px;">
+        <label>وصفة التحضير المسؤولة (Recipe Card)</label>
+        <select id="itemRecipeId" style="width:100%; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;">
+          <option value="">-- اختر وصفة التحضير --</option>
+        </select>
+      </div>
+
+      <label>الوحدة</label>
+      <input id="itemUnit" type="text" placeholder="كغم / لتر / قطعة" />
+
+      <label>الكمية الابتدائية</label>
+      <input id="itemQty" type="number" step="0.01" placeholder="مثال: 50" />
+
+      <label>الحد الأدنى للتحذير</label>
+      <input id="itemMin" type="number" step="0.01" placeholder="مثال: 5" />
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelAdd">إلغاء</button>
+        <button class="btn-save" id="saveAdd">إضافة المادة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — تعديل مادة وتصنيفها الصريح -->
+  <div class="modal" id="editModal" style="display:none;">
+    <div class="modal-content">
+      <h3>✏️ تعديل بيانات المادة وتصنيفها</h3>
+      <input type="hidden" id="editItemId" />
+
+      <label>اسم المادة</label>
+      <input id="editItemName" type="text" style="width:100%; margin-bottom:10px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;" />
+
+      <label>تحديد تصنيف المادة (صريح)</label>
+      <select id="editItemMaterialType" onchange="onEditMaterialTypeChange()" style="width:100%; margin-bottom:10px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;">
+        <option value="raw">🌾 مادة أولية خام (مشتريات موردين)</option>
+        <option value="manufactured">🥫 مادة مصنعة / تحضير مسبق (تحضير داخلي)</option>
+      </select>
+
+      <div id="editRecipeSelectGroup" style="display:none; margin-bottom:10px;">
+        <label>وصفة التحضير والتصنيع (Recipe Card)</label>
+        <select id="editItemRecipeId" style="width:100%; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;">
+          <option value="">-- اختر وصفة التحضير --</option>
+        </select>
+      </div>
+
+      <label>الوحدة</label>
+      <input id="editItemUnit" type="text" style="width:100%; margin-bottom:10px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;" />
+
+      <label>الكمية في المخزن</label>
+      <input id="editItemQty" type="number" step="0.01" style="width:100%; margin-bottom:15px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;" />
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeEditModal()">إلغاء</button>
+        <button class="btn-save" onclick="submitEditModal()">حفظ التعديلات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — تحضير دفعة إنتاجية لمادة مصنعة -->
+  <div class="modal" id="produceModal" style="display:none;">
+    <div class="modal-content">
+      <h3>⚙️ تحضير دفعة إنتاجية لمادة مصنعة</h3>
+      <p style="color:#94a3b8; font-size:0.85rem; margin-top:-5px; margin-bottom:15px;">
+        يقوم النظام بخصم المواد الأولية الخام تلقائياً وفق الوصفة وزيادة رصيد المادة المصنعة
+      </p>
+      <input type="hidden" id="produceItemId" />
+      
+      <div style="background:#0f172a; padding:12px; border-radius:6px; margin-bottom:12px; font-size:0.9rem; border:1px solid #334155;">
+        <div>المادة: <strong id="produceItemName" style="color:#38bdf8;"></strong></div>
+        <div style="margin-top:6px;">وصفة التحضير: <strong id="produceRecipeName" style="color:#c084fc;"></strong></div>
+      </div>
+
+      <label>الكمية المراد تحضيرها / إنتاجها</label>
+      <input id="produceQty" type="number" step="0.1" min="0.1" placeholder="مثال: 5" style="width:100%; margin-bottom:15px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;" />
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeProduceModal()">إلغاء</button>
+        <button class="btn-save" onclick="submitProduceBatch()" style="background:#8b5cf6;">⚡ بدء الإنتاج وخصم الخام</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL — صرف عهدة للسكشن مع حاسبة التغطية والإنتاجية -->
+  <div class="modal" id="transferModal" style="display:none;">
+    <div class="modal-content" style="max-width: 580px; width: 95%;">
+      <h3>🍳 صرف عهدة تشغيلية للسكشن</h3>
+      <p style="color:#94a3b8; font-size:0.85rem; margin-top:-5px; margin-bottom:15px;">
+        نظام ذكي يربط الكمية المسحوبة بوصفات السكشن ويحسب عدد الوجبات المتوقع إنتاجها
+      </p>
+
+      <label>السكشن / المحطة المستلمة</label>
+      <select id="transferStation" onchange="onTransferInputsChanged()" style="width:100%; margin-bottom:10px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;"></select>
+
+      <label>المادة المطلوبة من المخزن الرئيسي</label>
+      <select id="transferIngredient" onchange="onTransferInputsChanged()" style="width:100%; margin-bottom:10px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;"></select>
+
+      <label>الكمية المطلوبة</label>
+      <input id="transferQty" type="number" step="0.01" min="0.01" placeholder="مثال: 5" oninput="onTransferInputsChanged()" style="width:100%; margin-bottom:12px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;" />
+
+      <!-- LIVE COVERAGE / YIELD INTELLIGENCE BOX -->
+      <div id="coveragePreviewBox" style="background:#0f172a; border:1px solid #3b82f6; border-radius:8px; padding:12px; margin-bottom:14px; font-size:0.88rem; display:none;">
+        <!-- Filled dynamically -->
+      </div>
+
+      <label>ملاحظات الطلب (اختياري)</label>
+      <input id="transferNotes" type="text" placeholder="مثال: عهدة وردية المساء أو استهلاك متوقع..." style="width:100%; margin-bottom:15px; padding:10px; background:#1e293b; color:white; border:1px solid #334155; border-radius:6px;" />
+
+      <div class="modal-actions" style="display:flex; justify-content:space-between; gap:10px;">
+        <button class="btn-cancel" onclick="closeStationTransferModal()">إلغاء</button>
+        <div style="display:flex; gap:8px;">
+          <button id="btnRequestTransfer" class="btn-save" onclick="submitStationTransferRequest()" style="background:#3b82f6;">📝 رفع طلب لمدير المطبخ</button>
+          <button id="btnDirectTransfer" class="btn-save" onclick="submitStationTransferDirect()" style="background:#10b981;">⚡ صرف فوري مباشر</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="inventory.js"></script>
+
+</body>
+
+</html>
+ِ

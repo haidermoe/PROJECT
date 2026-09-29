@@ -1,0 +1,60 @@
+/* ======================================================
+   HR Dashboard — تفاصيل إضافية (الثيم الأساسي: common-layout + hr-pages-shared)
+====================================================== */
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.search-input {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  width: 250px;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+}
+
+.quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.quick-link {
+  padding: 0.75rem 1rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.quick-link:hover {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  transform: translateX(-5px);
+}
+
+.loading-row {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+
+

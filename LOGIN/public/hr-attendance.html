@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>البصمات وساعات العمل - HR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="css/common-layout.css" />
+  <link rel="stylesheet" href="css/hr-pages-shared.css" />
+  <link rel="stylesheet" href="hr-attendance.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/hr-dashboard.html">🏠 الصفحة الرئيسية</a>
+        <a class="menu-item" href="/payroll.html">💰 الرواتب</a>
+        <a class="menu-item active" href="/hr-attendance.html">📋 البصمات وساعات العمل</a>
+        <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+        <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/employees.html">👥 إدارة الحسابات</a>
+        <a class="menu-item" href="/work-hours.html">⏱️ تقرير ساعات العمل</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <h2 class="page-title">البصمات وساعات العمل - جميع الموظفين</h2>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-group">
+          <label>الموظف:</label>
+          <select id="employeeFilter" class="filter-input">
+            <option value="">جميع الموظفين</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>من تاريخ:</label>
+          <input type="date" id="startDate" class="filter-input" />
+        </div>
+        <div class="filter-group">
+          <label>إلى تاريخ:</label>
+          <input type="date" id="endDate" class="filter-input" />
+        </div>
+        <button class="btn-primary" onclick="loadAttendance()">🔍 بحث</button>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-label">إجمالي الساعات هذا الشهر</div>
+          <div class="summary-value" id="totalHoursMonth">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">متوسط الساعات اليومية</div>
+          <div class="summary-value" id="avgHoursDay">0</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">أيام العمل</div>
+          <div class="summary-value" id="workDays">0</div>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <h3>سجلات البصمة</h3>
+
+        <table class="table" id="attendanceTable">
+          <thead>
+            <tr>
+              <th>الموظف</th>
+              <th>تاريخ</th>
+              <th>وقت الدخول</th>
+              <th>وقت الخروج</th>
+              <th>ساعات العمل</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceTableBody">
+            <tr>
+              <td colspan="6" class="loading-row">جاري التحميل...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>ساعات العمل حسب الموظف</h3>
+      <div id="employeeHoursList" class="employee-hours-list">
+        <div class="loading-row">جاري التحميل...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="/common/auth-check.js"></script>
+  <script src="/common/sidebar.js"></script>
+  <script src="/common/permissions.js"></script>
+  <script src="hr-attendance.js"></script>
+</body>
+
+</html>
+
+
+

@@ -1,0 +1,83 @@
+# Render Blueprint for Kitchen Inventory Management System
+# This file allows you to deploy the entire stack with one click
+
+services:
+  # Main Web Service
+  - type: web
+    name: kitchen-inventory
+    env: node
+    plan: free
+    region: oregon # Change to your preferred region: oregon, frankfurt, singapore
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      # Server Configuration
+      - key: PORT
+        sync: false # Render will automatically set this
+      - key: BASE_URL
+        sync: false # Set this manually to your app URL: https://your-app-name.onrender.com
+      - key: CORS_ORIGIN
+        value: "*"
+      
+      # Authentication Database
+      - key: AUTH_DB_HOST
+        sync: false # Set from your MySQL service
+      - key: AUTH_DB_PORT
+        value: "3306"
+      - key: AUTH_DB_USER
+        sync: false # Set from your MySQL service
+      - key: AUTH_DB_PASSWORD
+        sync: false # Set from your MySQL service (use secret)
+      - key: AUTH_DB_NAME
+        value: "auth_db"
+      - key: AUTH_DB_CONNECTION_LIMIT
+        value: "10"
+      
+      # Application Database
+      - key: DB_HOST
+        sync: false # Set from your MySQL service
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_USER
+        sync: false # Set from your MySQL service
+      - key: DB_PASSWORD
+        sync: false # Set from your MySQL service (use secret)
+      - key: DB_NAME
+        value: "kitchen_inventory"
+      - key: DB_CONNECTION_LIMIT
+        value: "20"
+      
+      # JWT Configuration
+      - key: JWT_SECRET
+        sync: false # Generate a strong secret: openssl rand -base64 32
+      - key: JWT_EXPIRES_IN
+        value: "30d"
+
+  # Uncomment and configure if you want to use Render's PostgreSQL
+  # Note: This app uses MySQL, so you'd need to migrate or use an external MySQL service
+  # - type: pg
+  #   name: kitchen-inventory-db
+  #   plan: free
+  #   region: oregon
+  #   databaseName: kitchen_inventory
+  #   user: kitchen_user
+
+# IMPORTANT NOTES:
+# 1. This app requires TWO separate MySQL databases:
+#    - auth_db (for authentication)
+#    - kitchen_inventory (for main application data)
+#
+# 2. Render's free tier only provides PostgreSQL, not MySQL.
+#    You have two options:
+#    a) Use an external MySQL service (PlanetScale, Aiven, etc.)
+#    b) Migrate the app to use PostgreSQL (requires code changes)
+#
+# 3. After deployment, you'll need to:
+#    - Set all environment variables manually in the Render dashboard
+#    - Run SQL scripts to initialize databases
+#    - Create the first admin user
+#
+# 4. For easier deployment, consider using Render's manual service creation
+#    and setting environment variables through the dashboard instead.
+

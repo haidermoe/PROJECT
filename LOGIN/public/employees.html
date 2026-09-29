@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>إدارة الموظفين</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="employees.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item active" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item" href="/settings.html">⚙️ الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-add" id="addUserBtn">➕ إضافة موظف</button>
+          <button class="btn-add" id="importExcelBtn" style="background-color: #28a745;">📄 رفع إكسل</button>
+          <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;" />
+        </div>
+        <h2 class="page-title">إدارة الموظفين</h2>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="label">إجمالي الموظفين</div>
+          <h2 id="kpiTotalUsers">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">موظفين نشطين</div>
+          <h2 id="kpiActiveUsers">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">مديرين</div>
+          <h2 id="kpiAdmins">0</h2>
+        </div>
+        <div class="kpi-card">
+          <div class="label">موظفين عاديين</div>
+          <h2 id="kpiEmployees">0</h2>
+        </div>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-section">
+        <h3>قائمة الموظفين</h3>
+
+        <table class="table" id="usersTable">
+          <thead>
+            <tr>
+              <th>اسم المستخدم</th>
+              <th>الاسم الكامل</th>
+              <th>الرتبة</th>
+              <th>الحالة</th>
+              <th>تاريخ الإنشاء</th>
+              <th style="text-align:center;">عمليات</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>إحصائيات سريعة</h3>
+      <ul class="notif-list" id="statsList"></ul>
+    </div>
+
+  </div>
+
+  <!-- ======================================================
+       MODAL — إضافة موظف جديد
+  ======================================================= -->
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <h3>إضافة موظف جديد</h3>
+
+      <label>اسم المستخدم</label>
+      <input id="userUsername" type="text" placeholder="مثال: ahmed123" />
+
+      <label>كلمة المرور</label>
+      <input id="userPassword" type="password" placeholder="كلمة المرور" />
+
+      <label>الاسم الكامل</label>
+      <input id="userFullName" type="text" placeholder="مثال: أحمد محمد" />
+
+      <label>الرتبة</label>
+      <select id="userRole">
+        <option value="employee">👤 موظف</option>
+        <option value="kitchen_employee">👨‍🍳 موظف مطبخ</option>
+        <option value="waiter">🍽️ ويتر</option>
+        <option value="captain">👔 كابتن</option>
+        <option value="cleaner">🧹 عامل نظافة</option>
+        <option value="hall_manager">🏢 مسؤول صالة</option>
+        <option value="hall_captain">👔 كابتن صالة</option>
+        <option value="receptionist">📞 موظف استقبال</option>
+        <option value="garage_employee">🚗 موظف كراج</option>
+        <option value="garage_manager">🚗 مسؤول كراج</option>
+        <option value="kitchen_manager">👨‍🍳 مدير مطبخ</option>
+        <option value="manager">👔 مدير</option>
+        <option value="hr">👥 موارد بشرية</option>
+        <option value="admin">👑 مدير عام</option>
+      </select>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelAdd">إلغاء</button>
+        <button class="btn-save" id="saveAdd">إضافة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       MODAL — تعديل موظف
+  ======================================================= -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h3>تعديل بيانات الموظف</h3>
+
+      <label>اسم المستخدم</label>
+      <input id="editUsername" type="text" />
+
+      <label>كلمة المرور الجديدة (اتركها فارغة إذا لم تريد التغيير)</label>
+      <input id="editPassword" type="password" placeholder="كلمة المرور الجديدة" />
+
+      <label>الاسم الكامل</label>
+      <input id="editFullName" type="text" />
+
+      <label>الرتبة</label>
+      <select id="editRole">
+        <option value="employee">👤 موظف</option>
+        <option value="kitchen_employee">👨‍🍳 موظف مطبخ</option>
+        <option value="waiter">🍽️ ويتر</option>
+        <option value="captain">👔 كابتن</option>
+        <option value="cleaner">🧹 عامل نظافة</option>
+        <option value="hall_manager">🏢 مسؤول صالة</option>
+        <option value="hall_captain">👔 كابتن صالة</option>
+        <option value="receptionist">📞 موظف استقبال</option>
+        <option value="garage_employee">🚗 موظف كراج</option>
+        <option value="garage_manager">🚗 مسؤول كراج</option>
+        <option value="kitchen_manager">👨‍🍳 مدير مطبخ</option>
+        <option value="manager">👔 مدير</option>
+        <option value="hr">👥 موارد بشرية</option>
+        <option value="admin">👑 مدير عام</option>
+      </select>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" id="cancelEdit">إلغاء</button>
+        <button class="btn-save" id="saveEdit">حفظ التغييرات</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="employees.js"></script>
+
+</body>
+
+</html>
+

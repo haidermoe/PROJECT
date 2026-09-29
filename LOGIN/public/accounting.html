@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>نظام الحسابات والتحليلات المالية | Odoo Accounting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="accounting.css" />
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي -->
+    <aside class="sidebar">
+      <div class="brand-box">
+        <span style="font-size: 1.5rem;">📊</span>
+        <div>
+          <div class="brand-title">نظام الحسابات والمالية</div>
+          <small style="color: #94a3b8;">معايير Odoo Accounting</small>
+        </div>
+      </div>
+
+      <nav class="menu">
+        <a href="/dashboard/dashboard.html" class="menu-item">
+          <span>🏠</span> الصفحة الرئيسية
+        </a>
+        <a href="/waiter.html" class="menu-item">
+          <span>📱</span> شاشة طلبات الويترية (POS)
+        </a>
+        <a href="/accounting.html" class="menu-item active">
+          <span>💰</span> شجرة الحسابات والمالية
+        </a>
+        <a href="/inventory.html" class="menu-item">
+          <span>📦</span> إدارة المخزن
+        </a>
+        <a href="/recipes.html" class="menu-item">
+          <span>🍳</span> الوصفات والإنتاج
+        </a>
+        <a href="/settings.html" class="menu-item">
+          <span>⚙️</span> إعدادات النظام وطابعات POS
+        </a>
+        <a href="#" class="menu-item logout" id="logoutBtn">
+          <span>🚪</span> تسجيل الخروج
+        </a>
+      </nav>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+      <header class="topbar">
+        <h1 class="page-title">📈 الحسابات والتحليلات المالية</h1>
+        <div style="display:flex; gap: 10px;">
+          <a href="/waiter.html" class="btn-primary" style="background:#10b981; text-decoration:none;">
+            <span>📱 شاشة الويتر</span>
+          </a>
+          <button class="btn-primary" onclick="openNewMoveModal()">
+            <span>➕ إنشاء قيد محاسبي جديد</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- شريط التبويبات -->
+      <nav class="tabs-nav">
+        <button class="tab-btn active" id="tab-btn-chart" onclick="switchTab('chart')">
+          🌳 شجرة الحسابات (Chart of Accounts)
+        </button>
+        <button class="tab-btn" id="tab-btn-moves" onclick="switchTab('moves')">
+          📝 دفتر القيود اليومية (Journal Entries)
+        </button>
+        <button class="tab-btn" id="tab-btn-pl" onclick="switchTab('pl')">
+          📊 قائمة الأرباح والخسائر (P&L)
+        </button>
+        <button class="tab-btn" id="tab-btn-bs" onclick="switchTab('bs')">
+          🏛️ الميزانية العمومية (Balance Sheet)
+        </button>
+        <button class="tab-btn" id="tab-btn-tb" onclick="switchTab('tb')">
+          ⚖️ ميزان المراجعة (Trial Balance)
+        </button>
+      </nav>
+
+      <!-- مؤشرات سريعة في كل التبويبات -->
+      <div style="padding: 24px 24px 0;">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">💵 السيولة النقدية المتوفرة (كاش + بنك)</span>
+            <div class="kpi-value" id="kpiCashVal">0 د.ع</div>
+            <span class="kpi-sub">أرصدة الصناديق والحسابات البنكية</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">📈 إجمالي مبيعات الشهر</span>
+            <div class="kpi-value" id="kpiRevVal" style="color:#10b981;">0 د.ع</div>
+            <span class="kpi-sub">الإيرادات المحققة</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">📉 مصاريف وتكاليف الشهر</span>
+            <div class="kpi-value" id="kpiExpVal" style="color:#f87171;">0 د.ع</div>
+            <span class="kpi-sub">المشتريات والمصروفات والرواتب</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">🏆 صافي ربح الشهر الحالي</span>
+            <div class="kpi-value" id="kpiNetVal" style="color:#38bdf8;">0 د.ع</div>
+            <span class="kpi-sub" id="kpiMarginVal">هامش الربح: 0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- تبويب 1: شجرة الحسابات -->
+      <section class="tab-panel active" id="panel-chart">
+        <div class="toolbar">
+          <input type="text" id="searchAccountInput" class="search-input" placeholder="🔍 بحث بكود أو اسم الحساب..." oninput="filterAccounts()" />
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>كود الحساب (Code)</th>
+                <th>اسم الحساب (Account Name)</th>
+                <th>النوع (Odoo Type)</th>
+                <th>مطابقة (Reconcile)</th>
+                <th>إجمالي المدين</th>
+                <th>إجمالي الدائن</th>
+                <th>الرصيد الحالي</th>
+              </tr>
+            </thead>
+            <tbody id="accountsTableBody">
+              <!-- حسابات شجرة الحسابات -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- تبويب 2: دفتر القيود اليومية -->
+      <section class="tab-panel" id="panel-moves">
+        <div class="toolbar">
+          <h3>سجل القيود المكتملة والمرحّلة</h3>
+          <button class="btn-primary" onclick="openNewMoveModal()">➕ قيد جديد</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>رقم القيد</th>
+                <th>التاريخ</th>
+                <th>المرجع / البيان</th>
+                <th>دفتر اليومية</th>
+                <th>المبلغ الإجمالي</th>
+                <th>أطراف القيد والأسطر</th>
+              </tr>
+            </thead>
+            <tbody id="movesTableBody">
+              <!-- القيود اليومية -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- تبويب 3: قائمة الأرباح والخسائر -->
+      <section class="tab-panel" id="panel-pl">
+        <div class="statement-card">
+          <div class="statement-title">
+            <span>🟢 1) الإيرادات والمبيعات (Revenues)</span>
+            <span id="plTotalRevenue" style="color:#10b981;">0 د.ع</span>
+          </div>
+          <div id="plRevenues"></div>
+        </div>
+
+        <div class="statement-card">
+          <div class="statement-title">
+            <span>🟠 2) تكلفة البضاعة والمواد المستهلكة (COGS & Food Waste)</span>
+            <span id="plTotalCOGS" style="color:#f59e0b;">0 د.ع</span>
+          </div>
+          <div id="plDirectCosts"></div>
+          <div class="statement-row total">
+            <span>إجمالي الربح (Gross Profit):</span>
+            <span id="plGrossProfit" style="color:#38bdf8;">0 د.ع</span>
+          </div>
+        </div>
+
+        <div class="statement-card">
+          <div class="statement-title">
+            <span>🔴 3) المصاريف التشغيلية والرواتب (Operating Expenses)</span>
+            <span id="plTotalExpenses" style="color:#f87171;">0 د.ع</span>
+          </div>
+          <div id="plExpenses"></div>
+          <div class="statement-row total" style="font-size: 1.3rem;">
+            <span>صافي الربح التشغيلي (Net Profit):</span>
+            <span id="plNetProfit" style="color:#10b981;">0 د.ع</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- تبويب 4: الميزانية العمومية -->
+      <section class="tab-panel" id="panel-bs">
+        <div style="margin-bottom: 16px;" id="bsBalanceCheck"></div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="statement-card">
+            <div class="statement-title">
+              <span>🏛️ الأصول (Assets)</span>
+              <span id="bsTotalAssets" style="color:#38bdf8;">0 د.ع</span>
+            </div>
+            <div id="bsAssets"></div>
+          </div>
+
+          <div>
+            <div class="statement-card">
+              <div class="statement-title">
+                <span>⚖️ الخصوم والالتزامات (Liabilities)</span>
+                <span id="bsTotalLiabilities" style="color:#f87171;">0 د.ع</span>
+              </div>
+              <div id="bsLiabilities"></div>
+            </div>
+
+            <div class="statement-card">
+              <div class="statement-title">
+                <span>💎 حقوق الملكية ورأس المال (Equity)</span>
+                <span id="bsTotalEquity" style="color:#c084fc;">0 د.ع</span>
+              </div>
+              <div id="bsEquity"></div>
+              <div class="statement-row total">
+                <span>مجموع الخصوم وحقوق الملكية:</span>
+                <span id="bsTotalLiabEquity" style="color:#38bdf8;">0 د.ع</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- تبويب 5: ميزان المراجعة -->
+      <section class="tab-panel" id="panel-tb">
+        <div style="margin-bottom: 16px;" id="tbBalanceCheck"></div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>كود الحساب</th>
+                <th>اسم الحساب</th>
+                <th>إجمالي المدين</th>
+                <th>إجمالي الدائن</th>
+                <th>صافي رصيد مدين</th>
+                <th>صافي رصيد دائن</th>
+              </tr>
+            </thead>
+            <tbody id="tbTableBody"></tbody>
+            <tfoot>
+              <tr style="font-weight: bold; background: #172033; border-top: 2px solid #3b82f6;">
+                <td colspan="2">المجموع العام:</td>
+                <td id="tbTotalDebit" style="color:#10b981;">0 د.ع</td>
+                <td id="tbTotalCredit" style="color:#10b981;">0 د.ع</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- نافذة إنشاء قيد محاسبي متوازن جديدة -->
+  <div class="modal-overlay" id="moveModal">
+    <div class="modal-box">
+      <h2 style="font-size:1.2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        ➕ إنشاء قيد محاسبي يدوي جديد (معادلة توازن أودو)
+      </h2>
+
+      <div style="display:flex; gap: 12px;">
+        <div class="form-group" style="flex:1;">
+          <label>تاريخ القيد:</label>
+          <input type="date" id="newMoveDate" class="form-control" />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>دفتر اليومية:</label>
+          <select id="newMoveJournal" class="form-control"></select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>المرجع / شرح القيد (Reference):</label>
+        <input type="text" id="newMoveRef" class="form-control" placeholder="مثال: شراء مواد طازجة، تسوية نقدية، دفع إيجار..." />
+      </div>
+
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+          <label style="font-weight:bold; font-size:0.9rem;">بنود وأطراف القيد (الحساب، البيان، المدين، الدائن):</label>
+          <button type="button" class="btn-primary" style="padding: 4px 10px; font-size:0.8rem;" onclick="addMoveLine()">➕ إضافة سطر</button>
+        </div>
+        <div id="moveLinesContainer">
+          <!-- أسطر القيد -->
+        </div>
+      </div>
+
+      <div id="moveBalanceStatus" style="padding: 10px; background: #0f172a; border-radius: var(--radius-sm); font-size: 0.9rem;">
+        <!-- حالة توازن القيد -->
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap: 10px; margin-top: 10px;">
+        <button type="button" class="btn-primary" style="background:#475569;" onclick="closeNewMoveModal()">إلغاء</button>
+        <button type="button" class="btn-primary" style="background:#10b981;" onclick="submitNewMove()">حفظ وترحيل القيد</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="accounting.js"></script>
+</body>
+</html>

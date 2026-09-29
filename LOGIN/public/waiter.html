@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>شاشة طلبات الويترية | Odoo POS Restaurant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="waiter.css" />
+</head>
+<body>
+
+  <!-- شريط الرأس للويتر -->
+  <header class="waiter-header">
+    <div class="header-left">
+      <span class="logo-badge">🍽️ POS الويتر</span>
+      <div class="user-info">
+        <span>مرحباً، </span><strong id="waiterName">الويتر</strong>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="/dashboard/dashboard.html" class="btn-header">📊 الداشبورد</a>
+      <a href="/accounting.html" class="btn-header">💰 الحسابات</a>
+      <button class="btn-header" id="logoutBtn" style="color:#f87171;">خروج</button>
+    </div>
+  </header>
+
+  <!-- شاشة 1: خريطة الصالات والطاولات -->
+  <div id="tablesSection">
+    <div class="floors-bar" id="floorsBar">
+      <!-- أزرار الصالات ستولد برمجياً -->
+    </div>
+
+    <div class="tables-container">
+      <div class="tables-grid" id="tablesGrid">
+        <!-- كروت الطاولات ستولد برمجياً -->
+      </div>
+    </div>
+  </div>
+
+  <!-- شاشة 2: تسجيل طلب طاولة (Order Pad) -->
+  <div class="order-view" id="orderView">
+    <!-- قائمة الطعام والأصناف -->
+    <section class="menu-section">
+      <div class="categories-bar" id="categoriesBar">
+        <!-- أقسام المنيو -->
+      </div>
+      <div class="menu-grid" id="menuGrid">
+        <!-- كروت المنيو -->
+      </div>
+    </section>
+
+    <!-- سلة الطلب الحالية -->
+    <aside class="cart-section">
+      <div class="cart-header">
+        <span class="table-title" id="cartTableTitle">🍽️ طاولة</span>
+        <button class="btn-back-tables" onclick="backToTables()">⬅️ الطاولات</button>
+      </div>
+
+      <div class="cart-items" id="cartItems">
+        <!-- عناصر السلة -->
+      </div>
+
+      <div class="cart-footer">
+        <div class="cart-total-row">
+          <span>المجموع الكلي:</span>
+          <span class="cart-total-val" id="cartTotalVal">0 د.ع</span>
+        </div>
+        <div class="cart-buttons">
+          <button class="btn-send" id="btnSendOrder" onclick="sendOrderToKitchen()">
+            🚀 إرسال إلى المطبخ وطباعة الكبونات
+          </button>
+          <button class="btn-pay" onclick="payAndReleaseTable()">
+            💵 دفع وإخلاء الطاولة
+          </button>
+          <button class="btn-back-tables" onclick="backToTables()">
+            ❌ إلغاء
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- نافذة منبثقة لإضافة ملاحظات المطبخ -->
+  <div class="modal-overlay" id="noteModal">
+    <div class="modal-content">
+      <h3 class="modal-title">📝 ملاحظات المطبخ والتحضير</h3>
+      <input type="text" id="noteInput" class="modal-input" placeholder="مثال: بدون بصل، شطة زيادة، مستوي جيداً..." />
+      <div class="modal-actions">
+        <button class="btn-back-tables" onclick="closeNoteModal()">إلغاء</button>
+        <button class="btn-pay" onclick="saveItemNote()">حفظ الملاحظة</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="waiter.js"></script>
+</body>
+</html>

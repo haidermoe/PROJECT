@@ -1,0 +1,453 @@
+/* ===========================
+   RESET + GLOBAL
+=========================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* ✨ الخلفية الجديدة: أسود نيون مائل للأخضر */
+  background: radial-gradient(
+      circle at 20% 20%, 
+      rgba(0, 255, 140, 0.12) 0%, 
+      #040607 35%, 
+      #020304 100%
+  );
+
+  color: #f5f5f5;
+  direction: rtl;
+  overflow-x: hidden;
+}
+
+/* ===========================
+   LAYOUT
+=========================== */
+.layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 280px;
+  height: 100vh;
+  gap: 16px;
+  padding: 16px;
+}
+
+/* ===========================
+   SIDEBAR
+=========================== */
+.sidebar {
+  background: linear-gradient(145deg, #050810, #070b14);
+  border-radius: 18px;
+  padding: 16px 14px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: radial-gradient(circle at left, rgba(0, 255, 136, 0.12), transparent 60%);
+}
+
+.user-box .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid #00ff88;
+}
+
+.user-box .username {
+  font-size: 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.menu-item {
+  font-size: 0.9rem;
+  padding: 9px 10px;
+  border-radius: 10px;
+  color: #c6cad3;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: block;
+}
+
+.menu-item::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #00ff88;
+  transform: scaleY(0);
+  transition: transform 0.2s ease;
+}
+
+.menu-item:hover {
+  background: rgba(0, 255, 136, 0.08);
+  color: #00ff88;
+}
+
+.menu-item.active {
+  background: rgba(0, 255, 136, 0.12);
+  color: #00ff88;
+}
+
+.menu-item.active::before {
+  transform: scaleY(1);
+}
+
+.menu-item.logout {
+  margin-top: auto;
+  color: #ff6b7a;
+}
+
+.menu-item.logout:hover {
+  background: rgba(255, 107, 122, 0.1);
+}
+
+/* ===========================
+   CONTENT
+=========================== */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(145deg, #050910, #070d17);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.55);
+}
+
+.page-title {
+  font-size: 1.2rem;
+  color: #00ff88;
+  font-weight: 600;
+}
+
+.current-time {
+  font-size: 1rem;
+  color: #9ba3b5;
+  font-family: 'Courier New', monospace;
+}
+
+/* ===========================
+   STATUS CARD
+=========================== */
+.status-card {
+  background: linear-gradient(145deg, #050910, #070d17);
+  border-radius: 16px;
+  padding: 40px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.55);
+}
+
+.status-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.status-text {
+  font-size: 1.5rem;
+  color: #00ff88;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.status-time {
+  font-size: 1.2rem;
+  color: #9ba3b5;
+  font-family: 'Courier New', monospace;
+}
+
+/* ===========================
+   ACTION BUTTONS
+=========================== */
+.action-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+}
+
+.btn-checkin,
+.btn-checkout {
+  flex: 1;
+  max-width: 300px;
+  padding: 25px;
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-checkin {
+  background: linear-gradient(135deg, #00ff88, #39ffb8);
+  color: #020308;
+}
+
+.btn-checkin:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 255, 136, 0.5);
+}
+
+.btn-checkout {
+  background: linear-gradient(135deg, #ff6b7a, #ff8a95);
+  color: #fff;
+}
+
+.btn-checkout:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(255, 107, 122, 0.5);
+}
+
+.btn-icon {
+  font-size: 2.5rem;
+}
+
+.btn-text {
+  font-size: 1.1rem;
+}
+
+/* ===========================
+   LOCATION STATUS
+=========================== */
+.location-status {
+  background: linear-gradient(145deg, #050910, #070d17);
+  border-radius: 16px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.55);
+}
+
+.location-icon {
+  font-size: 1.5rem;
+}
+
+.location-text {
+  flex: 1;
+  color: #9ba3b5;
+  font-size: 0.9rem;
+}
+
+.location-status.inside {
+  border-color: rgba(0, 255, 136, 0.3);
+  background: rgba(0, 255, 136, 0.05);
+}
+
+.location-status.inside .location-text {
+  color: #00ff88;
+}
+
+.location-status.outside {
+  border-color: rgba(255, 107, 122, 0.3);
+  background: rgba(255, 107, 122, 0.05);
+}
+
+.location-status.outside .location-text {
+  color: #ff6b7a;
+}
+
+/* ===========================
+   RECORDS SECTION
+=========================== */
+.records-section {
+  background: linear-gradient(145deg, #050910, #070d17);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.55);
+}
+
+.records-section h3 {
+  font-size: 1rem;
+  color: #00ff88;
+  margin-bottom: 15px;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.filters input {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f5f5f5;
+  font-size: 0.9rem;
+}
+
+.filters input:focus {
+  outline: none;
+  border-color: #00ff88;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-filter {
+  padding: 8px 16px;
+  background: rgba(0, 255, 136, 0.2);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.btn-filter:hover {
+  background: rgba(0, 255, 136, 0.3);
+  transform: translateY(-2px);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.table thead {
+  background: rgba(12, 18, 30, 0.85);
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: right;
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(12, 18, 30, 0.65);
+}
+
+.table tbody tr:nth-child(odd) {
+  background: rgba(8, 14, 24, 0.9);
+}
+
+.table tbody tr:hover {
+  background: rgba(0, 255, 136, 0.08);
+}
+
+/* ===========================
+   RIGHT PANEL
+=========================== */
+.panel {
+  background: linear-gradient(145deg, #050810, #06101d);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 0.78rem;
+}
+
+.panel h3 {
+  font-size: 0.86rem;
+  margin-bottom: 8px;
+  color: #00ff88;
+}
+
+.stats-box {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.stat-item {
+  padding: 12px;
+  background: rgba(12, 18, 30, 0.6);
+  border-radius: 8px;
+  border-right: 3px solid #00ff88;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #9ba3b5;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  color: #00ff88;
+  font-weight: 600;
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 240px 1fr;
+  }
+
+  .panel {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .btn-checkin,
+  .btn-checkout {
+    max-width: 100%;
+  }
+}
+

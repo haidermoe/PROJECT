@@ -1,0 +1,292 @@
+/**
+ * ======================================================
+ * Recipe Viewer CSS - Standard Recipe Template Style
+ * ======================================================
+ * تصميم مطابق للورقة الأصلية - قابل للطباعة A4
+ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  background: #f5f5f5;
+  padding: 20px;
+  direction: rtl;
+  min-height: 100vh;
+}
+
+.recipe-container {
+  max-width: 210mm; /* A4 width */
+  margin: 0 auto;
+  background: white;
+  padding: 20mm;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* ===========================
+   HEADER
+=========================== */
+.recipe-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #000;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.company-logos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.logo {
+  font-weight: bold;
+  font-size: 14px;
+  color: #333;
+}
+
+.header-right {
+  flex: 1;
+  text-align: left;
+}
+
+.header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.info-row {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.info-row .label {
+  font-weight: bold;
+  min-width: 80px;
+}
+
+.info-row .value {
+  color: #333;
+}
+
+/* ===========================
+   TITLE
+=========================== */
+.recipe-title {
+  text-align: center;
+  margin: 20px 0;
+  padding: 10px 0;
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+}
+
+.recipe-title h1 {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: #000;
+  text-transform: uppercase;
+}
+
+/* ===========================
+   ITEM DETAILS
+=========================== */
+.item-details {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 10px;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-item {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.detail-label {
+  font-weight: bold;
+  min-width: 100px;
+  color: #333;
+}
+
+.detail-value {
+  color: #000;
+  flex: 1;
+}
+
+/* ===========================
+   INGREDIENTS SECTION
+=========================== */
+.ingredients-section {
+  margin: 25px 0;
+}
+
+.ingredients-section h2 {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #000;
+  text-transform: uppercase;
+  border-bottom: 1px solid #000;
+  padding-bottom: 5px;
+}
+
+.ingredients-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.ingredients-table thead {
+  background: #f0f0f0;
+}
+
+.ingredients-table th {
+  padding: 10px 8px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: bold;
+  border: 1px solid #000;
+  background: #e8e8e8;
+}
+
+.ingredients-table td {
+  padding: 8px;
+  border: 1px solid #000;
+  font-size: 12px;
+  color: #333;
+}
+
+.ingredients-table tbody tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+/* ===========================
+   PROCEDURES SECTION
+=========================== */
+.procedures-section {
+  margin: 25px 0;
+}
+
+.procedures-section h2 {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #000;
+  text-transform: uppercase;
+  border-bottom: 1px solid #000;
+  padding-bottom: 5px;
+}
+
+.procedures-content {
+  padding: 15px;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #333;
+  white-space: pre-line;
+  font-family: 'Courier New', monospace;
+}
+
+/* ===========================
+   FOOTER ACTIONS
+=========================== */
+.recipe-footer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.btn-print,
+.btn-back {
+  padding: 10px 20px;
+  border: 1px solid #333;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-print:hover,
+.btn-back:hover {
+  background: #333;
+  color: white;
+}
+
+/* ===========================
+   PRINT STYLES
+=========================== */
+@media print {
+  body {
+    background: white;
+    padding: 0;
+  }
+
+  .recipe-container {
+    box-shadow: none;
+    padding: 15mm;
+  }
+
+  .recipe-footer {
+    display: none;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}
+
+/* ===========================
+   RESPONSIVE
+=========================== */
+@media (max-width: 768px) {
+  .recipe-container {
+    padding: 10mm;
+  }
+
+  .detail-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .recipe-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .header-right {
+    text-align: right;
+  }
+}
+

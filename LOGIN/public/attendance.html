@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>البصمة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="attendance.css" />
+</head>
+
+<body>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" />
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <div class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">الصفحة الرئيسية</a>
+        <a class="menu-item" href="/inventory.html">المخزن</a>
+        <a class="menu-item" href="/recipes.html">الوصفات</a>
+        <a class="menu-item" href="/employees.html">الموظفين</a>
+        <a class="menu-item">المبيعات</a>
+        <a class="menu-item" href="/withdrawals.html">سحوبات</a>
+        <a class="menu-item" href="/waste.html">الهدر</a>
+        <a class="menu-item active" href="/attendance.html">البصمة</a>
+        <a class="menu-item" href="/work-hours.html">ساعات العمل</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/leaves.html">الإجازات</a>
+        <a class="menu-item" href="/payroll.html">💰 الرواتب</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item">إدارة المنيو الذكية (AI)</a>
+        <a class="menu-item" href="/settings.html">⚙️ الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="content">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <h2 class="page-title">البصمة</h2>
+        <div id="currentTime" class="current-time"></div>
+      </div>
+
+      <!-- Status Card -->
+      <div class="status-card" id="statusCard">
+        <div class="status-icon" id="statusIcon">⏰</div>
+        <div class="status-text" id="statusText">جاري التحميل...</div>
+        <div class="status-time" id="statusTime"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button class="btn-checkin" id="checkInBtn" onclick="handleCheckIn()">
+          <span class="btn-icon">✅</span>
+          <span class="btn-text">تسجيل دخول</span>
+        </button>
+        <button class="btn-checkout" id="checkOutBtn" onclick="handleCheckOut()" style="display: none;">
+          <span class="btn-icon">🚪</span>
+          <span class="btn-text">تسجيل خروج</span>
+        </button>
+      </div>
+
+      <!-- Location Status -->
+      <div class="location-status" id="locationStatus">
+        <div class="location-icon">📍</div>
+        <div class="location-text" id="locationText">جاري تحديد الموقع...</div>
+      </div>
+
+      <!-- My Records -->
+      <div class="records-section">
+        <h3>سجلاتي</h3>
+        <div class="filters">
+          <input type="date" id="filterStartDate" />
+          <input type="date" id="filterEndDate" />
+          <button class="btn-filter" onclick="loadMyRecords()">🔍 تطبيق</button>
+        </div>
+        <table class="table" id="myRecordsTable">
+          <thead>
+            <tr>
+              <th>تاريخ</th>
+              <th>وقت الدخول</th>
+              <th>وقت الخروج</th>
+              <th>ساعات العمل</th>
+              <th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+      <h3>إحصائياتي</h3>
+      <div class="stats-box">
+        <div class="stat-item">
+          <div class="stat-label">إجمالي الساعات (هذا الشهر)</div>
+          <div class="stat-value" id="totalHoursMonth">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">إجمالي الساعات (هذا الأسبوع)</div>
+          <div class="stat-value" id="totalHoursWeek">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">عدد الأيام</div>
+          <div class="stat-value" id="totalDays">0</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="attendance.js"></script>
+
+</body>
+
+</html>
+
