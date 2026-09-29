@@ -111,9 +111,9 @@
               const me = await response.json();
               const role = me?.user?.role;
               window.location.href =
-                role === 'hr' ? '/hr-dashboard.html' : '/dashboard/dashboard.html';
+                role === 'hr' ? '/hr-dashboard.html' : '/hub.html';
             } catch {
-              window.location.href = '/dashboard/dashboard.html';
+              window.location.href = '/hub.html';
             }
           } else {
             // التوكن غير صالح - تنظيف localStorage
@@ -204,7 +204,7 @@
             const dest =
               data.user?.role === 'hr'
                 ? '/hr-dashboard.html'
-                : '/dashboard/dashboard.html';
+                : '/hub.html';
             console.log('🔄 إعادة التوجيه إلى', dest);
             window.location.replace(dest);
           }, 500);

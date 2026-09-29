@@ -139,35 +139,35 @@ async function requireAuth() {
         'garage_manager'
       ];
 
-      // kitchen_employee يمكنه الوصول للمخزن والسحوبات
-      if (user.role === 'kitchen_employee') {
-        const currentPath = window.location.pathname;
-        const kitchenEmployeeAllowedPages = ['/attendance.html', '/leaves.html', '/index.html', '/inventory.html', '/withdrawals.html'];
-        
-        // صفحة الإشعارات فقط للمدير العام
-        if (currentPath === '/notifications.html') {
-          console.log(`⚠️ المستخدم ${user.username} (${user.role}) يحاول الوصول إلى صفحة الإشعارات. جاري إعادة التوجيه إلى /inventory.html`);
-          window.location.replace("/inventory.html");
-          return false;
-        }
-        
-        const isAllowedPage = kitchenEmployeeAllowedPages.some(page => currentPath.includes(page));
-        
-        if (!isAllowedPage) {
-          // إعادة التوجيه إلى صفحة المخزن
-          console.log('⚠️ موظف المطبخ لا يمكنه الوصول إلى هذه الصفحة. إعادة التوجيه إلى المخزن...');
-          if (document.body) {
-            document.body.style.display = '';
-          }
+      // 1. موظفي المطبخ (Kitchen Portal)
+      if (user.role === 'kitchen_employee' || user.role === 'kitchen_manager') {
+        const currentPath = window.location.pathname.replace(/\\/g, '/');
+        const kitchenAllowed = ['/inventory.html', '/recipes.html', '/withdrawals.html', '/waste.html', '/attendance.html', '/leaves.html', '/index.html'];
+        const isAllowed = kitchenAllowed.some(page => currentPath.includes(page));
+        if (!isAllowed) {
+          console.log(`⚠️ موظف/مدير المطبخ لا يمكنه الوصول لـ ${currentPath} - إعادة التوجيه إلى المخزن`);
           window.location.replace('/inventory.html');
           return false;
         }
       }
 
-      // موارد بشرية: صفحات تشغيل/مطبخ/مالية ممنوعة (لوحة رئيسية، مخزن، وصفات، …)
+      // 2. موظفي الصالة والويترية (Dining / Waiter POS Portal)
+      const floorRoles = ['waiter', 'captain', 'hall_manager', 'hall_captain'];
+      if (floorRoles.includes(user.role)) {
+        const currentPath = window.location.pathname.replace(/\\/g, '/');
+        const floorAllowed = ['/waiter.html', '/floor-management.html', '/attendance.html', '/leaves.html', '/index.html'];
+        const isAllowed = floorAllowed.some(page => currentPath.includes(page));
+        if (!isAllowed) {
+          console.log(`⚠️ كادر الصالة لا يمكنه الوصول لـ ${currentPath} - إعادة التوجيه إلى شاشة الويتر`);
+          window.location.replace('/waiter.html');
+          return false;
+        }
+      }
+
+      // 3. الموارد البشرية (HR Portal)
       if (user.role === 'hr') {
         const currentPath = window.location.pathname.replace(/\\/g, '/');
-        const hrAllowedSuffixes = [
+        const hrAllowed = [
           '/hr-dashboard.html',
           '/hr-attendance.html',
           '/payroll.html',
@@ -179,37 +179,34 @@ async function requireAuth() {
           '/notifications.html',
           '/index.html'
         ];
-        const isHrPageAllowed = hrAllowedSuffixes.some(
-          (suffix) => currentPath === suffix || currentPath.endsWith(suffix)
-        );
-        if (!isHrPageAllowed) {
-          console.log(
-            '⚠️ صلاحية HR: هذه الصفحة خارج نطاق الموارد البشرية — إعادة توجيه إلى لوحة HR'
-          );
+        const isAllowed = hrAllowed.some(page => currentPath.includes(page));
+        if (!isAllowed) {
+          console.log('⚠️ صلاحية HR: إعادة توجيه إلى لوحة الموارد البشرية');
           window.location.replace('/hr-dashboard.html');
           return false;
         }
       }
 
-      // إذا كان موظف عادي وحاول الوصول لصفحة غير مصرح بها
-      if (regularEmployeeRoles.includes(user.role)) {
-        const currentPath = window.location.pathname;
-        const allowedPages = ['/attendance.html', '/leaves.html', '/index.html'];
-      
-      // صفحة الإشعارات فقط للمدير العام
-      if (currentPath === '/notifications.html' && user.role !== 'admin') {
-        console.log(`⚠️ المستخدم ${user.username} (${user.role}) يحاول الوصول إلى صفحة الإشعارات. جاري إعادة التوجيه إلى /dashboard/dashboard.html`);
-        window.location.replace("/dashboard/dashboard.html");
-        return false;
+      // 4. المحاسب المالي (Finance Portal)
+      if (user.role === 'accountant') {
+        const currentPath = window.location.pathname.replace(/\\/g, '/');
+        const financeAllowed = ['/accounting.html', '/purchases.html', '/attendance.html', '/leaves.html', '/index.html'];
+        const isAllowed = financeAllowed.some(page => currentPath.includes(page));
+        if (!isAllowed) {
+          console.log('⚠️ صلاحية المحاسب: إعادة توجيه إلى لوحة المحاسبة والمالية');
+          window.location.replace('/accounting.html');
+          return false;
+        }
       }
-        const isAllowedPage = allowedPages.some(page => currentPath.includes(page));
 
-        if (!isAllowedPage) {
-          // إعادة التوجيه إلى صفحة البصمة
-          console.log('⚠️ الموظف العادي لا يمكنه الوصول إلى هذه الصفحة. إعادة التوجيه إلى البصمة...');
-          if (document.body) {
-            document.body.style.display = '';
-          }
+      // 5. الموظفون العاديون (حضور وإجازات فقط)
+      const basicEmployeeRoles = ['employee', 'cleaner', 'receptionist', 'garage_employee', 'garage_manager'];
+      if (basicEmployeeRoles.includes(user.role)) {
+        const currentPath = window.location.pathname.replace(/\\/g, '/');
+        const basicAllowed = ['/attendance.html', '/leaves.html', '/index.html'];
+        const isAllowed = basicAllowed.some(page => currentPath.includes(page));
+        if (!isAllowed) {
+          console.log('⚠️ الموظف العادي: إعادة توجيه إلى صفحة البصمة');
           window.location.replace('/attendance.html');
           return false;
         }

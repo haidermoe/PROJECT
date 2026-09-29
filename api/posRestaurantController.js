@@ -167,9 +167,11 @@ exports.sendWaiterOrder = async (req, res) => {
           table_id = ?,
           waiter_id = ?,
           waiter_name = ?,
-          notes = ?
+          notes = ?,
+          guest_count = ?,
+          seated_at = COALESCE(seated_at, NOW())
       WHERE id = ?
-    `, [floorId || null, tableId || null, waiterId, waiterName, notes || null, orderId]);
+    `, [floorId || null, tableId || null, waiterId, waiterName, notes || null, Number(guestCount) || 2, orderId]);
 
     // 3. تحديث حالة الطاولة في الخريطة إلى 'مشغولة'
     if (tableId) {
@@ -221,10 +223,13 @@ exports.payAndCloseOrder = async (req, res) => {
     const order = orderRows[0];
     const totalAmount = parseFloat(order.total_amount) || 0;
 
-    // 1. تحديث حالة الطلب إلى 'paid'
+    // 1. تحديث حالة الطلب إلى 'paid' وتوثيق مدة الجلوس
     await connection.query(`
       UPDATE pos_orders 
-      SET status = 'paid', payment_method = ?
+      SET status = 'paid', 
+          payment_method = ?,
+          closed_at = NOW(),
+          duration_minutes = GREATEST(1, TIMESTAMPDIFF(MINUTE, COALESCE(seated_at, created_at), NOW()))
       WHERE id = ?
     `, [paymentMethod, orderId]);
 
@@ -328,17 +333,225 @@ exports.createFloor = async (req, res) => {
 
 exports.createTable = async (req, res) => {
   try {
-    const { floor_id, table_number, seats = 4 } = req.body;
+    const { 
+      floor_id, 
+      table_number, 
+      seats = 4, 
+      shape = 'square', 
+      position_x = 100, 
+      position_y = 100, 
+      width = 120, 
+      height = 120 
+    } = req.body;
+
     if (!floor_id || !table_number) {
       return res.status(400).json({ status: 'error', message: 'الصالة ورقم الطاولة مطلوبان' });
     }
 
     const [resInsert] = await appPool.query(
-      `INSERT INTO pos_tables (floor_id, table_number, seats) VALUES (?, ?, ?)`,
-      [floor_id, table_number, seats]
+      `INSERT INTO pos_tables (floor_id, table_number, seats, shape, position_x, position_y, width, height) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        floor_id, 
+        table_number.trim(), 
+        parseInt(seats) || 4, 
+        shape, 
+        parseInt(position_x) || 100, 
+        parseInt(position_y) || 100, 
+        parseInt(width) || 120, 
+        parseInt(height) || 120
+      ]
     );
-    res.json({ status: 'success', message: 'تم إنشاء الطاولة بنجاح', tableId: resInsert.insertId });
+
+    res.json({
+      status: 'success', 
+      message: 'تم إنشاء الطاولة بنجاح', 
+      tableId: resInsert.insertId 
+    });
   } catch (err) {
+    console.error('❌ خطأ في createTable:', err);
     res.status(500).json({ status: 'error', message: err.message });
   }
 };
+
+exports.updateTable = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { table_number, seats, shape, width, height, position_x, position_y } = req.body;
+
+    await appPool.query(`
+      UPDATE pos_tables
+      SET table_number = COALESCE(?, table_number),
+          seats = COALESCE(?, seats),
+          shape = COALESCE(?, shape),
+          width = COALESCE(?, width),
+          height = COALESCE(?, height),
+          position_x = COALESCE(?, position_x),
+          position_y = COALESCE(?, position_y)
+      WHERE id = ?
+    `, [table_number, seats, shape, width, height, position_x, position_y, id]);
+
+    res.json({ status: 'success', message: 'تم تحديث بيانات الطاولة بنجاح' });
+  } catch (err) {
+    console.error('❌ خطأ في updateTable:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+exports.deleteTable = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [tableRows] = await appPool.query(`SELECT status FROM pos_tables WHERE id = ?`, [id]);
+    if (!tableRows.length) {
+      return res.status(404).json({ status: 'error', message: 'الطاولة غير موجودة' });
+    }
+    if (tableRows[0].status === 'occupied') {
+      return res.status(400).json({ status: 'error', message: 'لا يمكن حذف طاولة مشغولة حالياً بطلب زبائن' });
+    }
+
+    await appPool.query(`DELETE FROM pos_tables WHERE id = ?`, [id]);
+    res.json({ status: 'success', message: 'تم حذف الطاولة من الصالة بنجاح' });
+  } catch (err) {
+    console.error('❌ خطأ في deleteTable:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+// ===============================
+// 7) حفظ المخطط المعماري للصالة (Bulk Layout Save)
+// ===============================
+exports.saveFloorLayout = async (req, res) => {
+  const connection = await appPool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const { floorId } = req.params;
+    const { tables } = req.body;
+
+    if (!tables || !Array.isArray(tables)) {
+      await connection.rollback();
+      return res.status(400).json({ status: 'error', message: 'قائمة الطاولات مطلوبة' });
+    }
+
+    for (const t of tables) {
+      if (t.id) {
+        await connection.query(`
+          UPDATE pos_tables
+          SET position_x = ?, position_y = ?, width = ?, height = ?, shape = ?, seats = ?, table_number = ?
+          WHERE id = ? AND floor_id = ?
+        `, [
+          Math.max(0, parseInt(t.position_x) || 0),
+          Math.max(0, parseInt(t.position_y) || 0),
+          Math.max(60, parseInt(t.width) || 120),
+          Math.max(60, parseInt(t.height) || 120),
+          t.shape || 'square',
+          Math.max(1, parseInt(t.seats) || 4),
+          t.table_number || String(t.id),
+          t.id,
+          floorId
+        ]);
+      }
+    }
+
+    await connection.commit();
+    res.json({ status: 'success', message: 'تم حفظ المخطط المعماري للصالة بنجاح' });
+  } catch (err) {
+    await connection.rollback();
+    console.error('❌ خطأ في saveFloorLayout:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  } finally {
+    connection.release();
+  }
+};
+
+// ===============================
+// 8) محرك تحليلات أداء الصالة ودوران الطاولات (Floor Analytics & KPIs)
+// ===============================
+exports.getFloorAnalytics = async (req, res) => {
+  try {
+    const { floorId, days = 1 } = req.query;
+
+    let floorFilter = '';
+    const params = [];
+    if (floorId) {
+      floorFilter = 'WHERE t.floor_id = ?';
+      params.push(floorId);
+    }
+
+    // 1. إجمالي الطاولات والمقاعد والطاقة الاستيعابية
+    const [seatsRows] = await appPool.query(`
+      SELECT 
+        COUNT(t.id) AS total_tables,
+        COALESCE(SUM(t.seats), 0) AS total_capacity,
+        COALESCE(SUM(CASE WHEN t.status IN ('occupied', 'billed') THEN t.seats ELSE 0 END), 0) AS occupied_capacity
+      FROM pos_tables t
+      ${floorFilter}
+    `, params);
+
+    const totalCapacity = parseInt(seatsRows[0]?.total_capacity) || 1;
+    const occupiedCapacity = parseInt(seatsRows[0]?.occupied_capacity) || 0;
+    const liveOccupancyRate = Math.round((occupiedCapacity / totalCapacity) * 100);
+
+    // 2. إحصائيات الطلبات والجلسات ومعدلات الدوران
+    const [statsRows] = await appPool.query(`
+      SELECT 
+        COUNT(o.id) AS total_orders_served,
+        COALESCE(SUM(o.total_amount), 0) AS total_sales,
+        COALESCE(AVG(o.guest_count), 2) AS avg_guests_per_table,
+        COALESCE(AVG(CASE WHEN o.duration_minutes > 0 THEN o.duration_minutes ELSE TIMESTAMPDIFF(MINUTE, o.created_at, COALESCE(o.closed_at, NOW())) END), 35) AS avg_duration_minutes,
+        COALESCE(SUM(o.guest_count), 0) AS total_guests_served
+      FROM pos_orders o
+      WHERE o.status IN ('ordered', 'billed', 'paid')
+        AND o.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        ${floorId ? 'AND o.floor_id = ?' : ''}
+    `, floorId ? [days, floorId] : [days]);
+
+    const totalOrders = parseInt(statsRows[0]?.total_orders_served) || 0;
+    const totalTables = parseInt(seatsRows[0]?.total_tables) || 1;
+    const turnoverRate = Math.round((totalOrders / totalTables) * 10) / 10;
+
+    // 3. أداء كل طاولة بالتفصيل (Table Breakdown)
+    const [tableBreakdown] = await appPool.query(`
+      SELECT 
+        t.id AS table_id,
+        t.table_number,
+        t.seats,
+        t.status,
+        t.shape,
+        f.name AS floor_name,
+        COUNT(o.id) AS turnover_count,
+        COALESCE(SUM(o.total_amount), 0) AS total_revenue,
+        COALESCE(AVG(CASE WHEN o.duration_minutes > 0 THEN o.duration_minutes ELSE TIMESTAMPDIFF(MINUTE, o.created_at, COALESCE(o.closed_at, NOW())) END), 0) AS avg_duration,
+        COALESCE(AVG(o.guest_count), 0) AS avg_guests
+      FROM pos_tables t
+      JOIN pos_floors f ON t.floor_id = f.id
+      LEFT JOIN pos_orders o ON t.id = o.table_id 
+        AND o.status IN ('ordered', 'billed', 'paid')
+        AND o.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      ${floorId ? 'WHERE t.floor_id = ?' : ''}
+      GROUP BY t.id, t.table_number, t.seats, t.status, t.shape, f.name
+      ORDER BY turnover_count DESC, total_revenue DESC
+    `, floorId ? [days, floorId] : [days]);
+
+    res.json({
+      status: 'success',
+      data: {
+        kpis: {
+          total_tables: totalTables,
+          total_capacity: totalCapacity,
+          occupied_capacity: occupiedCapacity,
+          live_occupancy_rate: liveOccupancyRate,
+          table_turnover_rate: turnoverRate,
+          avg_seating_duration: Math.round(parseFloat(statsRows[0]?.avg_duration_minutes) || 0),
+          avg_guests_per_table: Math.round((parseFloat(statsRows[0]?.avg_guests_per_table) || 0) * 10) / 10,
+          total_sales: parseFloat(statsRows[0]?.total_sales) || 0,
+          total_guests_served: parseInt(statsRows[0]?.total_guests_served) || 0
+        },
+        tables: tableBreakdown
+      }
+    });
+  } catch (err) {
+    console.error('❌ خطأ في getFloorAnalytics:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+

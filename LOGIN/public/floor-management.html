@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>إدارة وتخطيط الصالات وتحليلات الأداء | Odoo POS Floor Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="accounting.css" />
+  <link rel="stylesheet" href="floor-management.css" />
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي الموحد -->
+    <aside class="sidebar"></aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-title-group">
+          <h1 class="page-title">🍽️ إدارة ومخطط الصالات وتحليلات الأداء</h1>
+          <span class="badge-odoo">Odoo Floor Plan & Table Analytics</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn-primary" id="btnToggleDesigner" onclick="toggleDesignerMode()">
+            <i class="fa-solid fa-pen-ruler"></i> وضع تصميم المخطط
+          </button>
+          <button class="btn-success" id="btnSaveLayout" onclick="saveCurrentFloorLayout()" style="display:none;">
+            <i class="fa-solid fa-floppy-disk"></i> حفظ المخطط المعماري
+          </button>
+          <button class="btn-primary" onclick="openNewTableModal()">
+            <i class="fa-solid fa-plus"></i> إضافة طاولة
+          </button>
+        </div>
+      </header>
+
+      <!-- شريط التنقل بين العرض الرسومي والتحليلات -->
+      <nav class="nav-tabs" style="margin-bottom: 15px;">
+        <button class="tab-btn active" id="tabBtnMap" onclick="switchMainTab('map')">
+          <i class="fa-solid fa-map-location-dot"></i> المخطط الرسومي للصالة (Visual Floor)
+        </button>
+        <button class="tab-btn" id="tabBtnAnalytics" onclick="switchMainTab('analytics')">
+          <i class="fa-solid fa-chart-pie"></i> تحليلات دوران الطاولات والإشغال (Analytics)
+        </button>
+      </nav>
+
+      <!-- تبويب 1: المخطط الرسومي للصالة -->
+      <section class="tab-content active" id="secMap">
+        <!-- شريط اختيار الصالات -->
+        <div class="floors-tabs-bar" id="floorsTabsBar">
+          <!-- ألسنة الصالات تولد برمجياً -->
+        </div>
+
+        <!-- تنبيه وضع التصميم -->
+        <div class="designer-banner" id="designerBanner" style="display: none;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <i class="fa-solid fa-hand-pointer"></i>
+            <span><strong>وضع التصميم مفعّل:</strong> اسحب الطاولات لتغيير أماكنها في الصالة، أو اضغط على أي طاولة لتعديل شكلها أو عدد كراسيها.</span>
+          </div>
+          <button class="btn-sm btn-success" onclick="saveCurrentFloorLayout()">
+            <i class="fa-solid fa-check"></i> حفظ التغييرات الآن
+          </button>
+        </div>
+
+        <!-- مساحة رسم وتوزيع الصالة 2D Canvas -->
+        <div class="floor-canvas-wrapper">
+          <div class="floor-canvas" id="floorCanvas">
+            <!-- الطاولات مع الكراسي تولد هنا برمجياً -->
+          </div>
+        </div>
+      </section>
+
+      <!-- تبويب 2: لوحة تحليلات أداء الصالة ودوران الطاولات -->
+      <section class="tab-content" id="secAnalytics">
+        <!-- مؤشرات الأداء الحية -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+              <i class="fa-solid fa-rotate"></i>
+            </div>
+            <div>
+              <div class="kpi-label">معدل دوران الطاولات (Turnover)</div>
+              <div class="kpi-value" id="kpiTurnoverRate">0 دورة/طاولة</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+              <i class="fa-solid fa-stopwatch"></i>
+            </div>
+            <div>
+              <div class="kpi-label">متوسط وقت الجلوس والخدمة</div>
+              <div class="kpi-value" id="kpiAvgDuration">0 دقيقة</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+              <i class="fa-solid fa-chair"></i>
+            </div>
+            <div>
+              <div class="kpi-label">نسبة إشغال المقاعد الفورية</div>
+              <div class="kpi-value" id="kpiOccupancyRate">0%</div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">
+              <i class="fa-solid fa-people-group"></i>
+            </div>
+            <div>
+              <div class="kpi-label">متوسط الضيوف في كل طاولة</div>
+              <div class="kpi-value" id="kpiAvgGuests">0 زبائن</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- جدول تفصيلي لكل طاولة -->
+        <div class="table-container" style="margin-top:20px;">
+          <div class="table-header-bar">
+            <h3>📊 تقرير كفاءة ودوران الطاولات الفردية</h3>
+            <div style="font-size:0.85rem; color:#94a3b8;">مقارنة معدل الاستخدام والمبيعات لكل طاولة في المطعم</div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>رقم الطاولة</th>
+                <th>الصالة</th>
+                <th>عدد الكراسي</th>
+                <th>الشكل الهندسي</th>
+                <th>معدل الدوران (مرات الجلوس)</th>
+                <th>متوسط وقت الجلسة</th>
+                <th>متوسط عدد الزبائن</th>
+                <th>إجمالي الدخل المحقق</th>
+                <th>الحالة الحالية</th>
+              </tr>
+            </thead>
+            <tbody id="analyticsTableBody">
+              <tr><td colspan="9" style="text-align:center; color:#94a3b8;">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal 1: إضافة طاولة جديدة -->
+  <div class="modal" id="modalNewTable">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>➕ إضافة طاولة جديدة للمخطط</h2>
+        <button class="close-btn" onclick="closeModal('modalNewTable')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>الصالة التابعة لها *</label>
+          <select id="newTableFloorSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label>رقم أو اسم الطاولة *</label>
+          <input type="text" id="newTableNumberInput" placeholder="مثلاً: طاولة 6 أو VIP-2" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>عدد الكراسي (المقاعد) *</label>
+            <input type="number" id="newTableSeatsInput" value="4" min="1" max="24" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>شكل الطاولة الهندسي</label>
+            <select id="newTableShapeSelect">
+              <option value="square">مربعة (Square) 🟦</option>
+              <option value="round">دائرية (Round) 🟢</option>
+              <option value="rectangle">مستطيلة (Rectangle) ▭</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalNewTable')">إلغاء</button>
+        <button class="btn-primary" onclick="submitCreateTable()">إضافة الطاولة للمخطط</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: تعديل خصائص طاولة موجودة -->
+  <div class="modal" id="modalEditTable">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>⚙️ تعديل خصائص الطاولة</h2>
+        <button class="close-btn" onclick="closeModal('modalEditTable')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editTableId" />
+        <div class="form-group">
+          <label>رقم أو اسم الطاولة</label>
+          <input type="text" id="editTableNumber" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>عدد الكراسي</label>
+            <input type="number" id="editTableSeats" min="1" max="24" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>شكل الطاولة</label>
+            <select id="editTableShape">
+              <option value="square">مربعة 🟦</option>
+              <option value="round">دائرية 🟢</option>
+              <option value="rectangle">مستطيلة ▭</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>العرض (px)</label>
+            <input type="number" id="editTableWidth" min="70" max="300" step="10" />
+          </div>
+          <div class="form-group flex-1">
+            <label>الارتفاع (px)</label>
+            <input type="number" id="editTableHeight" min="70" max="300" step="10" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn-cancel" onclick="submitDeleteTable()" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4);">
+          <i class="fa-solid fa-trash"></i> حذف الطاولة
+        </button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn-secondary" onclick="closeModal('modalEditTable')">إلغاء</button>
+          <button class="btn-primary" onclick="submitUpdateTable()">حفظ التعديل</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="floor-management.js"></script>
+</body>
+</html>

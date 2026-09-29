@@ -1,0 +1,89 @@
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>مركز التحكم الرئيسي (Hub)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/design-system.css">
+    <link rel="stylesheet" href="hub.css">
+</head>
+
+<body>
+    <div class="layout">
+        <!-- START: Collapsed Sidebar -->
+        <aside class="sidebar collapsed" id="mainSidebar">
+            <div class="user-box">
+                <img src="/chef_pic1.jpg" class="avatar" alt="Avatar">
+            </div>
+
+            <div class="menu">
+                <a class="menu-item active" onclick="openBentoModal('operations')" title="Inventory & Operations">📦</a>
+                <a class="menu-item" onclick="openBentoModal('hr')" title="Human Resources">👥</a>
+                <a class="menu-item" onclick="openBentoModal('management')" title="Management & Insights">📊</a>
+                <a class="menu-item" onclick="openBentoModal('settings')" title="System & Settings">⚙️</a>
+                <a class="menu-item logout" id="logoutBtn" title="Logout">🚪</a>
+            </div>
+        </aside>
+        <!-- END: Sidebar -->
+
+        <!-- START: Main content -->
+        <main class="content bento-container">
+            <!-- TOP BAR -->
+            <div class="topbar">
+                <div class="page-title">مركز التحكم الرئيسي (Hub)</div>
+                <div class="top-icons">
+                    <a href="/dashboard/dashboard.html" class="btn-classic">العودة للداشبورد الكلاسيكي</a>
+                </div>
+            </div>
+
+            <!-- BENTO GRID -->
+            <div class="bento-grid">
+                <!-- Card 1 -->
+                <div class="bento-card" onclick="openBentoModal('operations')">
+                    <div class="bento-icon">📦</div>
+                    <h3>Inventory & Operations</h3>
+                    <p>Warehouse, Recipes, Withdrawals, Waste</p>
+                </div>
+                <!-- Card 2 -->
+                <div class="bento-card" onclick="openBentoModal('hr')">
+                    <div class="bento-icon">👥</div>
+                    <h3>Human Resources</h3>
+                    <p>Employees, Attendance, Leaves, Schedules</p>
+                </div>
+                <!-- Card 3 -->
+                <div class="bento-card" onclick="openBentoModal('management')">
+                    <div class="bento-icon">📊</div>
+                    <h3>Management & Insights</h3>
+                    <p>Sales, Manager Insights, AI Menu</p>
+                </div>
+                <!-- Card 4 -->
+                <div class="bento-card" onclick="openBentoModal('settings')">
+                    <div class="bento-icon">⚙️</div>
+                    <h3>System & Settings</h3>
+                    <p>Notifications, Settings</p>
+                </div>
+            </div>
+        </main>
+        <!-- END: Main content -->
+
+        <!-- BENTO MODAL -->
+        <div class="bento-modal" id="bentoModal">
+            <div class="bento-modal-content">
+                <span class="close-btn" onclick="closeBentoModal()">&times;</span>
+                <h2 id="bentoModalTitle">Title</h2>
+                <div class="bento-links" id="bentoModalLinks">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="common/auth-check.js"></script>
+    <script src="hub.js"></script>
+</body>
+
+</html>
+
+<!DOCTYPE html>

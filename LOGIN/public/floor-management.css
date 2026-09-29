@@ -1,0 +1,210 @@
+/* ======================================================
+   Floor Management & 2D Designer CSS - Odoo POS Restaurant
+   ====================================================== */
+
+.floors-tabs-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.floor-tab-pill {
+  background: #1e293b;
+  border: 1px solid var(--border-color);
+  color: #94a3b8;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.floor-tab-pill:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.floor-tab-pill.active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.designer-banner {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid #3b82f6;
+  color: #93c5fd;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+/* Floor 2D Canvas */
+.floor-canvas-wrapper {
+  background: #0b1120;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: auto;
+  position: relative;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+  min-height: 650px;
+}
+
+.floor-canvas {
+  width: 1200px;
+  height: 750px;
+  position: relative;
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.1) 1.5px, transparent 1.5px),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 30px 30px, 150px 150px, 150px 150px;
+}
+
+/* Visual Table Card */
+.visual-table {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s;
+  z-index: 10;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  border: 2px solid #334155;
+  background: #1e293b;
+}
+
+.visual-table:hover {
+  transform: scale(1.03);
+  z-index: 20;
+}
+
+/* Shapes */
+.visual-table.shape-round {
+  border-radius: 50%;
+}
+
+.visual-table.shape-square {
+  border-radius: 14px;
+}
+
+.visual-table.shape-rectangle {
+  border-radius: 12px;
+}
+
+/* Statuses */
+.visual-table.status-available {
+  border-color: #10b981;
+  background: radial-gradient(circle, #132d29 0%, #0f172a 100%);
+}
+
+.visual-table.status-occupied {
+  border-color: #ef4444;
+  background: radial-gradient(circle, #381a20 0%, #0f172a 100%);
+  animation: pulse-occupied 2s infinite ease-in-out;
+}
+
+.visual-table.status-billed {
+  border-color: #f59e0b;
+  background: radial-gradient(circle, #382c16 0%, #0f172a 100%);
+}
+
+@keyframes pulse-occupied {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Table Details Inside Card */
+.vt-number {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #f8fafc;
+  pointer-events: none;
+}
+
+.vt-seats {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  pointer-events: none;
+}
+
+.vt-status-info {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+.vt-status-info.occupied {
+  color: #f87171;
+}
+
+.vt-status-info.billed {
+  color: #fbbf24;
+}
+
+.vt-status-info.available {
+  color: #34d399;
+}
+
+/* Visual Chairs around Table */
+.vt-chair {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #475569;
+  border: 1.5px solid #1e293b;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.visual-table.status-available .vt-chair {
+  background: #059669;
+}
+
+.visual-table.status-occupied .vt-chair {
+  background: #dc2626;
+}
+
+.visual-table.status-billed .vt-chair {
+  background: #d97706;
+}
+
+/* Designer Mode Active */
+.floor-canvas.designer-active .visual-table {
+  cursor: grab;
+  border-style: dashed;
+}
+
+.floor-canvas.designer-active .visual-table:active {
+  cursor: grabbing;
+}
+
+.visual-table.dragging {
+  opacity: 0.85;
+  transform: scale(1.06);
+  z-index: 100;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.8);
+}

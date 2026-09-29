@@ -75,7 +75,12 @@ function initializeTabs() {
 
     document.getElementById('settingsMenu').style.display = 'none';
     document.getElementById('tabPanels').style.display = 'block';
-    document.getElementById('backToMenu').style.display = 'block';
+    
+    const topbarBackBtn = document.getElementById('topbarBackBtn');
+    const topbarTitle = document.getElementById('topbarTitle');
+    if (topbarBackBtn) topbarBackBtn.style.display = 'flex';
+    if (topbarTitle) topbarTitle.style.display = 'none';
+    
     document.getElementById('tabsLayout').classList.add('single-view');
 
     activeTab = tabName;
@@ -110,11 +115,14 @@ function showSettingsMenu() {
   const tabsLayout = document.getElementById('tabsLayout');
   const settingsMenu = document.getElementById('settingsMenu');
   const tabPanels = document.getElementById('tabPanels');
-  const backToMenu = document.getElementById('backToMenu');
+  
+  const topbarBackBtn = document.getElementById('topbarBackBtn');
+  const topbarTitle = document.getElementById('topbarTitle');
   
   if (settingsMenu) settingsMenu.style.display = 'grid';
   if (tabPanels) tabPanels.style.display = 'none';
-  if (backToMenu) backToMenu.style.display = 'none';
+  if (topbarBackBtn) topbarBackBtn.style.display = 'none';
+  if (topbarTitle) topbarTitle.style.display = 'block';
   if (tabsLayout) tabsLayout.classList.remove('single-view');
   
   activeTab = null;

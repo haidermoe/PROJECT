@@ -177,10 +177,6 @@ body {
   transform: translateX(-2px);
 }
 
-.menu-item.active::after {
-  display: none;
-}
-
 .menu-item.logout {
   margin-top: auto;
   background: rgba(255, 107, 122, 0.1);
@@ -197,6 +193,7 @@ body {
 /* ===========================
    MAIN CONTENT
    =========================== */
+
 .content {
   background: linear-gradient(145deg, #050810, #050913);
   border-radius: 20px;
@@ -210,20 +207,6 @@ body {
   overflow-y: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   animation: slideIn 0.5s ease-out 0.2s both;
-}
-
-.content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.content::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-}
-
-.content::-webkit-scrollbar-thumb {
-  background: rgba(0, 255, 136, 0.3);
-  border-radius: 4px;
 }
 
 .content::-webkit-scrollbar-thumb:hover {

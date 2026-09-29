@@ -9,7 +9,13 @@ router.use(authMiddleware);
 // الصالات والطاولات
 router.get('/floors-and-tables', controller.getFloorsAndTables);
 router.post('/floors', controller.createFloor);
+router.post('/floors/:floorId/layout', controller.saveFloorLayout);
 router.post('/tables', controller.createTable);
+router.put('/tables/:id', controller.updateTable);
+router.delete('/tables/:id', controller.deleteTable);
+
+// تحليلات وإحصائيات أداء الصالة ومعدل الدوران
+router.get('/analytics', controller.getFloorAnalytics);
 
 // قائمة الطعام المتاحة
 router.get('/menu', controller.getMenu);

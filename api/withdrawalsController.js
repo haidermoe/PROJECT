@@ -54,24 +54,32 @@ exports.scanQRCode = async (req, res) => {
       console.log('✅ استخدام وزن البورشن ككمية السحب:', withdrawal_quantity);
     }
 
+    const withdrawalQty = parseFloat(withdrawal_quantity);
+
     // التحقق من الكمية
-    if (!withdrawal_quantity || withdrawal_quantity <= 0) {
+    if (isNaN(withdrawalQty) || withdrawalQty <= 0) {
       return res.status(400).json({
         status: "error",
-        message: "كمية السحب غير صحيحة"
+        message: "كمية السحب غير صحيحة أو ليست رقماً صالحاً"
       });
     }
 
-    // التحقق من وجود الإنتاج
-    const [productionRows] = await appPool.query(
+    const connection = await appPool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+    // التحقق من وجود الإنتاج مع FOR UPDATE لمنع التزامن
+    const [productionRows] = await connection.query(
       `SELECT rp.*, ps.remaining_quantity 
        FROM recipe_productions rp
        LEFT JOIN production_statistics ps ON rp.id = ps.production_id
-       WHERE rp.id = ?`,
+       WHERE rp.id = ? FOR UPDATE`,
       [productionId]
     );
 
     if (productionRows.length === 0) {
+      await connection.rollback();
+      connection.release();
       return res.status(404).json({
         status: "error",
         message: "الإنتاج غير موجود"
@@ -79,11 +87,12 @@ exports.scanQRCode = async (req, res) => {
     }
 
     const production = productionRows[0];
-    const remainingQty = parseFloat(production.remaining_quantity || production.production_quantity);
-    const withdrawalQty = parseFloat(withdrawal_quantity || 0);
+    const remainingQty = parseFloat(production.remaining_quantity !== null && production.remaining_quantity !== undefined ? production.remaining_quantity : production.production_quantity);
 
     // التحقق من الكمية المتبقية
     if (withdrawalQty > remainingQty) {
+      await connection.rollback();
+      connection.release();
       return res.status(400).json({
         status: "error",
         message: `الكمية المتبقية غير كافية. المتبقي: ${remainingQty}`
@@ -94,16 +103,13 @@ exports.scanQRCode = async (req, res) => {
     const expiryDate = new Date(production.expiry_date);
     const now = new Date();
     if (now > expiryDate) {
+      await connection.rollback();
+      connection.release();
       return res.status(400).json({
         status: "error",
         message: "هذا الإنتاج منتهي الصلاحية"
       });
     }
-
-    // إدراج السحب
-    const connection = await appPool.getConnection();
-    try {
-      await connection.beginTransaction();
 
       // إدراج السحب
       const [result] = await connection.execute(

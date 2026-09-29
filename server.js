@@ -60,6 +60,18 @@ initializeDatabases().then(async () => {
     console.warn('⚠️ خطأ في تهيئة جداول المحاسبة والـ POS:', migErr.message);
   }
 
+  // تهيئة جداول المشتريات والموردين (معايير أودو)
+  try {
+    const { initPurchaseTables } = require('./database/initPurchases');
+    await initPurchaseTables();
+  } catch (purchErr) {
+    console.warn('⚠️ خطأ في تهيئة جداول المشتريات:', purchErr.message);
+  }
+
+  // إنشاء جداول المدير
+  const { initManagerTables } = require('./database/initManagerTables');
+  await initManagerTables();
+
   // بدء المهام الخلفية التلقائية بعد نجاح الاتصال
   const { startAutomations } = require('./api/automationService');
   startAutomations();
@@ -126,6 +138,12 @@ app.use('/api/accounting', require('./api/accountingRoutes'));
 
 // مسارات الصالات ونظام طلبات الويترية (Odoo POS Restaurant)
 app.use('/api/pos-restaurant', require('./api/posRestaurantRoutes'));
+
+// مسارات المشتريات والموردين (Odoo Purchases & Vendors)
+app.use('/api/purchase', require('./api/purchaseRoutes'));
+
+// مسارات المدير
+app.use('/api/manager', require('./api/managerRoutes'));
 
 // استيراد middleware للتحقق من التوكن
 const { authMiddleware } = require('./auth/authMiddleware');

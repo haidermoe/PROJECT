@@ -201,25 +201,28 @@ async function loadKPIs() {
     // مواد قليلة
     const lowStockRes = await API("GET", "/api/dashboard/low-stock");
     if (lowStockRes.status === "success") {
-      document.getElementById("lowStockCount").textContent = lowStockRes.data.length || 0;
+      const el = document.getElementById("lowStockCount");
+      if(el) el.textContent = lowStockRes.data.length || 0;
     }
 
     // عدد الموظفين
     const empRes = await API("GET", "/api/dashboard/employee-count");
     if (empRes.status === "success") {
-      document.getElementById("employeeCount").textContent = empRes.data.count || 0;
+      const el = document.getElementById("employeeCount");
+      if(el) el.textContent = empRes.data.count || 0;
     }
 
     // آخر عملية سحب
     const lastOutRes = await API("GET", "/api/dashboard/last-out");
     if (lastOutRes.status === "success" && lastOutRes.data) {
       const date = new Date(lastOutRes.data.created_at);
-      document.getElementById("lastTransaction").textContent = 
-        date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+      const el = document.getElementById("lastTransaction");
+      if(el) el.textContent = date.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
     }
 
     // الكميات المنتجة اليوم (سيتم إضافتها لاحقاً)
-    document.getElementById("productionToday").textContent = "0";
+    const pEl = document.getElementById("productionToday");
+    if(pEl) pEl.textContent = "0";
   } catch (error) {
     console.error("خطأ في تحميل KPIs:", error);
   }
@@ -567,3 +570,6 @@ window.addEventListener('beforeunload', () => {
     clearInterval(notificationsInterval);
   }
 });
+
+
+

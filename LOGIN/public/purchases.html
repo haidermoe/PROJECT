@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>نظام المشتريات والموردين | Odoo Purchases</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="accounting.css" />
+  <link rel="stylesheet" href="purchases.css" />
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي الموحد -->
+    <aside class="sidebar"></aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-title-group">
+          <h1 class="page-title">🛍️ المشتريات ودورة الموردين (P2P)</h1>
+          <span class="badge-odoo">معايير Odoo 19 ERP</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn-primary" onclick="openNewVendorModal()">
+            <i class="fa-solid fa-user-plus"></i> إضافة مورد جديد
+          </button>
+          <button class="btn-success" onclick="openNewOrderModal()">
+            <i class="fa-solid fa-cart-plus"></i> إنشاء أمر شراء (RFQ)
+          </button>
+        </div>
+      </header>
+
+      <!-- شريط مؤشرات الأداء (KPI Cards) -->
+      <section class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+            <i class="fa-solid fa-money-bill-trend-up"></i>
+          </div>
+          <div>
+            <div class="kpi-label">مشتريات هذا الشهر</div>
+            <div class="kpi-value" id="kpiMonthlySpent">0 د.ع</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+            <i class="fa-solid fa-truck-ramp-box"></i>
+          </div>
+          <div>
+            <div class="kpi-label">أوامر معلقة بانتظار الاستلام</div>
+            <div class="kpi-value" id="kpiPendingOrders">0</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+          </div>
+          <div>
+            <div class="kpi-label">مستحقات وفواتير غير مسددة</div>
+            <div class="kpi-value" id="kpiUnpaidBills">0 د.ع</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+            <i class="fa-solid fa-handshake"></i>
+          </div>
+          <div>
+            <div class="kpi-label">إجمالي الموردين النشطين</div>
+            <div class="kpi-value" id="kpiVendorsCount">0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ألسنة التبويب (Tabs Navigation) -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('orders')">
+          <i class="fa-solid fa-file-lines"></i> أوامر الشراء (Purchase Orders)
+        </button>
+        <button class="tab-btn" onclick="switchTab('bills')">
+          <i class="fa-solid fa-receipt"></i> فواتير الموردين (Vendor Bills)
+        </button>
+        <button class="tab-btn" onclick="switchTab('vendors')">
+          <i class="fa-solid fa-users-gear"></i> دليل الموردين والشركاء (Vendors)
+        </button>
+      </nav>
+
+      <!-- تبويب 1: أوامر الشراء -->
+      <section class="tab-content active" id="tab-orders">
+        <div class="table-container">
+          <div class="table-header-bar">
+            <h3>قائمة أوامر الشراء وطلبات عروض الأسعار</h3>
+            <div class="filter-group">
+              <input type="text" id="orderSearchInput" placeholder="بحث برقم الطلب أو المورد..." oninput="filterOrders()" />
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>رقم الأمر (PO)</th>
+                <th>المورد</th>
+                <th>تاريخ الطلب</th>
+                <th>تاريخ التوريد المتوقع</th>
+                <th>عدد البنود</th>
+                <th>المبلغ الإجمالي</th>
+                <th>حالة الاستلام والطلب</th>
+                <th>حالة الفوترة</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+              <tr><td colspan="9" style="text-align: center; color: #94a3b8;">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- تبويب 2: فواتير الموردين -->
+      <section class="tab-content" id="tab-bills">
+        <div class="table-container">
+          <div class="table-header-bar">
+            <h3>سجل فواتير المشتريات ومطابقة الذمم الدائنة</h3>
+            <div class="filter-group">
+              <input type="text" id="billSearchInput" placeholder="بحث برقم الفاتورة أو المورد..." oninput="filterBills()" />
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>رقم الفاتورة</th>
+                <th>أمر الشراء المرتبط</th>
+                <th>المورد</th>
+                <th>تاريخ الفاتورة</th>
+                <th>تاريخ الاستحقاق</th>
+                <th>إجمالي الفاتورة</th>
+                <th>المدفوع</th>
+                <th>المتبقي</th>
+                <th>حالة السداد</th>
+                <th>القيد المحاسبي المزدوج</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="billsTableBody">
+              <tr><td colspan="11" style="text-align: center; color: #94a3b8;">جاري التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- تبويب 3: الموردين -->
+      <section class="tab-content" id="tab-vendors">
+        <div class="table-container">
+          <div class="table-header-bar">
+            <h3>دليل الموردين والشركاء التجاريين (res.partner)</h3>
+          </div>
+          <div class="vendors-grid" id="vendorsGrid">
+            <!-- كروت الموردين ستظهر هنا -->
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal 1: إنشاء أمر شراء جديد (RFQ / PO) -->
+  <div class="modal" id="modalNewOrder">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h2>🛍️ إنشاء أمر شراء جديد (Purchase Order / RFQ)</h2>
+        <button class="close-btn" onclick="closeModal('modalNewOrder')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>المورد (Vendor) *</label>
+            <select id="poVendorSelect" required>
+              <option value="">-- اختر المورد --</option>
+            </select>
+          </div>
+          <div class="form-group flex-1">
+            <label>تاريخ التوريد المتوقع</label>
+            <input type="date" id="poPlannedDate" />
+          </div>
+        </div>
+
+        <div class="order-lines-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4>بنود ومواد الشراء (Order Lines)</h4>
+            <button type="button" class="btn-sm btn-primary" onclick="addOrderLineRow()">
+              <i class="fa-solid fa-plus"></i> إضافة مادة
+            </button>
+          </div>
+
+          <table class="sub-table" id="orderLinesTable">
+            <thead>
+              <tr>
+                <th style="width: 40%;">المادة من المخزن</th>
+                <th style="width: 20%;">الكمية</th>
+                <th style="width: 20%;">سعر الوحدة</th>
+                <th style="width: 15%;">المجموع</th>
+                <th style="width: 5%;"></th>
+              </tr>
+            </thead>
+            <tbody id="orderLinesTbody">
+              <!-- أسطر البنود تضاف هنا -->
+            </tbody>
+          </table>
+
+          <div class="order-summary-box">
+            <div class="summary-line">
+              <span>إجمالي أمر الشراء:</span>
+              <span id="orderGrandTotal" style="font-weight:bold; color:#10b981; font-size:1.3rem;">0.00 د.ع</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:15px;">
+          <label>ملاحظات وشروط التوريد</label>
+          <textarea id="poNotes" rows="2" placeholder="أي شروط خاصة بالتسليم أو الجودة..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalNewOrder')">إلغاء</button>
+        <button class="btn-primary" onclick="submitCreateOrder()">
+          <i class="fa-solid fa-check"></i> حفظ أمر الشراء
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: تفاصيل أمر الشراء ودورة أودو (Odoo Workflow Actions) -->
+  <div class="modal" id="modalOrderDetails">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <h2 id="odModalTitle">أمر الشراء</h2>
+          <span id="odModalStateBadge" class="status-badge"></span>
+        </div>
+        <button class="close-btn" onclick="closeModal('modalOrderDetails')">&times;</button>
+      </div>
+
+      <!-- شريط دورة العمل القياسية لأودو (Workflow Stepper) -->
+      <div class="odoo-stepper" id="odooStepper">
+        <div class="step" id="step-draft"><span class="step-num">1</span> طلب تسعير (RFQ)</div>
+        <div class="step-divider"></div>
+        <div class="step" id="step-confirmed"><span class="step-num">2</span> معتمد (Confirmed)</div>
+        <div class="step-divider"></div>
+        <div class="step" id="step-received"><span class="step-num">3</span> مستلم بالمخزن (Received)</div>
+        <div class="step-divider"></div>
+        <div class="step" id="step-billed"><span class="step-num">4</span> مفوتر ومرحل (Billed)</div>
+      </div>
+
+      <div class="modal-body">
+        <!-- أزرار الإجراءات المباشرة لمعايير Odoo -->
+        <div class="action-buttons-bar" id="odActionButtons">
+          <!-- الأزرار ستتغير ديناميكياً حسب حالة الطلب -->
+        </div>
+
+        <div class="order-info-grid">
+          <div><strong>المورد:</strong> <span id="odPartnerName"></span></div>
+          <div><strong>هاتف المورد:</strong> <span id="odPartnerPhone"></span></div>
+          <div><strong>تاريخ الطلب:</strong> <span id="odDateOrder"></span></div>
+          <div><strong>تاريخ التوريد:</strong> <span id="odDatePlanned"></span></div>
+        </div>
+
+        <h4 style="margin: 15px 0 10px 0;">تفاصيل الأصناف والكميات</h4>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>المادة</th>
+              <th>الكمية المطلوبة</th>
+              <th>الكمية المستلمة</th>
+              <th>الكمية المفوترة</th>
+              <th>سعر الشراء</th>
+              <th>المجموع الفرعي</th>
+            </tr>
+          </thead>
+          <tbody id="odLinesTableBody"></tbody>
+        </table>
+
+        <!-- إذن الاستلام والفواتير المرتبطة -->
+        <div id="odPickingsSection" style="margin-top:15px; display:none;">
+          <h4 style="color:#3b82f6;">📦 إذن الاستلام المخزني المرتبط:</h4>
+          <div id="odPickingsList"></div>
+        </div>
+
+        <div id="odBillsSection" style="margin-top:15px; display:none;">
+          <h4 style="color:#10b981;">🧾 فواتير المورد المرتبطة:</h4>
+          <div id="odBillsList"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalOrderDetails')">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: سداد فاتورة المورد -->
+  <div class="modal" id="modalPayBill">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>💳 سداد دفعة للمورد (Register Payment)</h2>
+        <button class="close-btn" onclick="closeModal('modalPayBill')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="payBillId" />
+        <div class="form-group">
+          <label>رقم الفاتورة</label>
+          <input type="text" id="payBillNumber" disabled />
+        </div>
+        <div class="form-group">
+          <label>المورد</label>
+          <input type="text" id="payPartnerName" disabled />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>إجمالي الفاتورة</label>
+            <input type="text" id="payTotalAmount" disabled />
+          </div>
+          <div class="form-group flex-1">
+            <label>المبلغ المتبقي للذمة</label>
+            <input type="text" id="payRemainingAmount" disabled style="color:#ef4444; font-weight:bold;" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>المبلغ المراد سداده الآن *</label>
+            <input type="number" id="payAmountInput" step="any" min="0.01" required />
+          </div>
+          <div class="form-group flex-1">
+            <label>طريقة الدفع (الحساب المحاسبي)</label>
+            <select id="payMethodSelect">
+              <option value="cash">الصندوق النقدي الرئيسي (101000)</option>
+              <option value="bank">الحساب البنكي / البطاقات (102000)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>ملاحظات وسند السداد</label>
+          <input type="text" id="payNotesInput" placeholder="رقم الشيك أو الحوالة أو سند القبض..." />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalPayBill')">إلغاء</button>
+        <button class="btn-success" onclick="submitPayBill()">
+          <i class="fa-solid fa-check-double"></i> تأكيد السداد وترحيل القيد
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: إضافة مورد جديد -->
+  <div class="modal" id="modalNewVendor">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2>👥 إضافة مورد جديد (New Vendor)</h2>
+        <button class="close-btn" onclick="closeModal('modalNewVendor')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>اسم المورد / الشركة *</label>
+          <input type="text" id="vendorNameInput" placeholder="مثلاً: شركة الفرات للمواد الغذائية" required />
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>رقم الهاتف</label>
+            <input type="text" id="vendorPhoneInput" placeholder="077XXXXXXXX" />
+          </div>
+          <div class="form-group flex-1">
+            <label>البريد الإلكتروني</label>
+            <input type="email" id="vendorEmailInput" placeholder="supplier@example.com" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label>العنوان / المدينة</label>
+            <input type="text" id="vendorStreetInput" placeholder="بغداد - الكرادة" />
+          </div>
+          <div class="form-group flex-1">
+            <label>الرقم الضريبي / السجل التجاري</label>
+            <input type="text" id="vendorTaxIdInput" placeholder="10293847" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>ملاحظات إضافية</label>
+          <textarea id="vendorNotesInput" rows="2" placeholder="شروط الائتمان، الأصناف المعتمدة..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalNewVendor')">إلغاء</button>
+        <button class="btn-primary" onclick="submitCreateVendor()">حفظ المورد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="purchases.js"></script>
+</body>
+</html>
