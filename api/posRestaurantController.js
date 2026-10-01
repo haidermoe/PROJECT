@@ -8,6 +8,7 @@
 const { appPool } = require('../database/appConnection');
 const { createOrderAndRoutePrint } = require('./printRoutingService');
 const { depleteOrderFromStation } = require('./stationStockService');
+const cacheService = require('./cacheService');
 
 // ===============================
 // 1) جلب الصالات والطاولات وحالتها
@@ -291,6 +292,9 @@ exports.payAndCloseOrder = async (req, res) => {
     }
 
     await connection.commit();
+
+    // إبطال كاش الحسابات والفروع فورياً لتحديث الإيرادات والمبيعات الموحدة
+    cacheService.invalidate(['accounting', 'branches']);
 
     res.json({
       status: 'success',

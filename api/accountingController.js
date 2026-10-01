@@ -6,6 +6,7 @@
  */
 
 const { appPool } = require('../database/appConnection');
+const cacheService = require('./cacheService');
 
 // ===============================
 //      1) شجرة الحسابات (Chart of Accounts)
@@ -226,6 +227,10 @@ exports.createMove = async (req, res) => {
     }
 
     await connection.commit();
+
+    // إبطال الكاش فورياً لتحديث المؤشرات والتقارير الموحدة آلياً (Odoo Cache Invalidation)
+    cacheService.invalidate(['accounting', 'branches']);
+
     res.json({
       status: 'success',
       message: `تم إنشاء القيد المحاسبي (${moveName}) بنجاح`,
@@ -489,58 +494,64 @@ exports.getTrialBalance = async (req, res) => {
 exports.getFinancialOverview = async (req, res) => {
   try {
     const { branchId } = req.query;
-    let branchFilter = "";
-    const params = [];
+    const cacheKey = `accounting:overview:${branchId || 'all'}`;
 
-    if (branchId && branchId !== 'all') {
-      branchFilter = "AND m.branch_id = ?";
-      params.push(branchId);
-    }
+    const data = await cacheService.wrap(cacheKey, 45, ['accounting'], async () => {
+      let branchFilter = "";
+      const params = [];
 
-    // 1. السيولة النقدية المتوفرة (كاش وبنك)
-    const [liquidityRows] = await appPool.query(`
-      SELECT 
-        COALESCE(SUM(l.debit - l.credit), 0) AS liquid_balance
-      FROM account_account a
-      JOIN account_move_line l ON a.id = l.account_id
-      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
-      WHERE a.account_type = 'asset_cash'
-    `, params);
+      if (branchId && branchId !== 'all') {
+        branchFilter = "AND m.branch_id = ?";
+        params.push(branchId);
+      }
 
-    // 2. إجمالي مبيعات الشهر الحالي
-    const [monthlyRevenueRows] = await appPool.query(`
-      SELECT 
-        COALESCE(SUM(l.credit - l.debit), 0) AS current_month_revenue
-      FROM account_account a
-      JOIN account_move_line l ON a.id = l.account_id
-      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
-      WHERE a.account_type = 'income' AND MONTH(m.date) = MONTH(CURRENT_DATE()) AND YEAR(m.date) = YEAR(CURRENT_DATE())
-    `, params);
+      // 1. السيولة النقدية المتوفرة (كاش وبنك)
+      const [liquidityRows] = await appPool.query(`
+        SELECT 
+          COALESCE(SUM(l.debit - l.credit), 0) AS liquid_balance
+        FROM account_account a
+        JOIN account_move_line l ON a.id = l.account_id
+        JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
+        WHERE a.account_type = 'asset_cash'
+      `, params);
 
-    // 3. إجمالي مصاريف وتكاليف الشهر الحالي
-    const [monthlyExpenseRows] = await appPool.query(`
-      SELECT 
-        COALESCE(SUM(l.debit - l.credit), 0) AS current_month_expense
-      FROM account_account a
-      JOIN account_move_line l ON a.id = l.account_id
-      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
-      WHERE a.account_type IN ('expense', 'expense_direct_cost') AND MONTH(m.date) = MONTH(CURRENT_DATE()) AND YEAR(m.date) = YEAR(CURRENT_DATE())
-    `, params);
+      // 2. إجمالي مبيعات الشهر الحالي
+      const [monthlyRevenueRows] = await appPool.query(`
+        SELECT 
+          COALESCE(SUM(l.credit - l.debit), 0) AS current_month_revenue
+        FROM account_account a
+        JOIN account_move_line l ON a.id = l.account_id
+        JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
+        WHERE a.account_type = 'income' AND MONTH(m.date) = MONTH(CURRENT_DATE()) AND YEAR(m.date) = YEAR(CURRENT_DATE())
+      `, params);
 
-    const cashAndBank = parseFloat(liquidityRows[0]?.liquid_balance) || 0;
-    const monthlyRevenue = parseFloat(monthlyRevenueRows[0]?.current_month_revenue) || 0;
-    const monthlyExpense = parseFloat(monthlyExpenseRows[0]?.current_month_expense) || 0;
-    const monthlyNetProfit = monthlyRevenue - monthlyExpense;
+      // 3. إجمالي مصاريف وتكاليف الشهر الحالي
+      const [monthlyExpenseRows] = await appPool.query(`
+        SELECT 
+          COALESCE(SUM(l.debit - l.credit), 0) AS current_month_expense
+        FROM account_account a
+        JOIN account_move_line l ON a.id = l.account_id
+        JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
+        WHERE a.account_type IN ('expense', 'expense_direct_cost') AND MONTH(m.date) = MONTH(CURRENT_DATE()) AND YEAR(m.date) = YEAR(CURRENT_DATE())
+      `, params);
 
-    res.json({
-      status: 'success',
-      data: {
+      const cashAndBank = parseFloat(liquidityRows[0]?.liquid_balance) || 0;
+      const monthlyRevenue = parseFloat(monthlyRevenueRows[0]?.current_month_revenue) || 0;
+      const monthlyExpense = parseFloat(monthlyExpenseRows[0]?.current_month_expense) || 0;
+      const monthlyNetProfit = monthlyRevenue - monthlyExpense;
+
+      return {
         cashAndBank,
         monthlyRevenue,
         monthlyExpense,
         monthlyNetProfit,
         profitMargin: monthlyRevenue > 0 ? ((monthlyNetProfit / monthlyRevenue) * 100).toFixed(1) : 0
-      }
+      };
+    });
+
+    res.json({
+      status: 'success',
+      data
     });
   } catch (err) {
     console.error('❌ خطأ في getFinancialOverview:', err);
@@ -552,74 +563,80 @@ exports.getFinancialOverview = async (req, res) => {
 exports.getBranchFinancialComparison = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    let dateFilter = "";
-    const params = [];
-    if (startDate && endDate) {
-      dateFilter = "AND m.date BETWEEN ? AND ?";
-      params.push(startDate, endDate);
-    }
+    const cacheKey = `accounting:branch_comp:${startDate || 'all'}:${endDate || 'all'}`;
 
-    const [rows] = await appPool.query(`
-      SELECT 
-        b.id AS branch_id,
-        b.branch_name,
-        b.branch_code,
-        b.currency,
-        b.is_headquarters,
-        COALESCE(SUM(CASE WHEN a.account_type = 'income' THEN (l.credit - l.debit) ELSE 0 END), 0) AS revenue,
-        COALESCE(SUM(CASE WHEN a.account_type = 'expense_direct_cost' THEN (l.debit - l.credit) ELSE 0 END), 0) AS cogs,
-        COALESCE(SUM(CASE WHEN a.account_type = 'expense' THEN (l.debit - l.credit) ELSE 0 END), 0) AS operating_expenses
-      FROM branches b
-      LEFT JOIN account_move m ON b.id = m.branch_id AND m.state = 'posted' ${dateFilter}
-      LEFT JOIN account_move_line l ON m.id = l.move_id
-      LEFT JOIN account_account a ON l.account_id = a.id
-      WHERE b.is_active = 1
-      GROUP BY b.id, b.branch_name, b.branch_code, b.currency, b.is_headquarters
-      ORDER BY revenue DESC
-    `, params);
+    const data = await cacheService.wrap(cacheKey, 45, ['accounting', 'branches'], async () => {
+      let dateFilter = "";
+      const params = [];
+      if (startDate && endDate) {
+        dateFilter = "AND m.date BETWEEN ? AND ?";
+        params.push(startDate, endDate);
+      }
 
-    const totalGroupRevenue = rows.reduce((sum, r) => sum + parseFloat(r.revenue || 0), 0);
-    const totalGroupNetProfit = rows.reduce((sum, r) => {
-      const gross = parseFloat(r.revenue || 0) - parseFloat(r.cogs || 0);
-      const net = gross - parseFloat(r.operating_expenses || 0);
-      return sum + net;
-    }, 0);
+      const [rows] = await appPool.query(`
+        SELECT 
+          b.id AS branch_id,
+          b.branch_name,
+          b.branch_code,
+          b.currency,
+          b.is_headquarters,
+          COALESCE(SUM(CASE WHEN a.account_type = 'income' THEN (l.credit - l.debit) ELSE 0 END), 0) AS revenue,
+          COALESCE(SUM(CASE WHEN a.account_type = 'expense_direct_cost' THEN (l.debit - l.credit) ELSE 0 END), 0) AS cogs,
+          COALESCE(SUM(CASE WHEN a.account_type = 'expense' THEN (l.debit - l.credit) ELSE 0 END), 0) AS operating_expenses
+        FROM branches b
+        LEFT JOIN account_move m ON b.id = m.branch_id AND m.state = 'posted' ${dateFilter}
+        LEFT JOIN account_move_line l ON m.id = l.move_id
+        LEFT JOIN account_account a ON l.account_id = a.id
+        WHERE b.is_active = 1
+        GROUP BY b.id, b.branch_name, b.branch_code, b.currency, b.is_headquarters
+        ORDER BY revenue DESC
+      `, params);
 
-    const comparison = rows.map(r => {
-      const rev = parseFloat(r.revenue) || 0;
-      const cogs = parseFloat(r.cogs) || 0;
-      const opex = parseFloat(r.operating_expenses) || 0;
-      const grossProfit = rev - cogs;
-      const netProfit = grossProfit - opex;
-      const grossMargin = rev > 0 ? ((grossProfit / rev) * 100).toFixed(2) : 0;
-      const netMargin = rev > 0 ? ((netProfit / rev) * 100).toFixed(2) : 0;
-      const contributionPercent = totalGroupRevenue > 0 ? ((rev / totalGroupRevenue) * 100).toFixed(1) : 0;
+      const totalGroupRevenue = rows.reduce((sum, r) => sum + parseFloat(r.revenue || 0), 0);
+      const totalGroupNetProfit = rows.reduce((sum, r) => {
+        const gross = parseFloat(r.revenue || 0) - parseFloat(r.cogs || 0);
+        const net = gross - parseFloat(r.operating_expenses || 0);
+        return sum + net;
+      }, 0);
+
+      const comparison = rows.map(r => {
+        const rev = parseFloat(r.revenue) || 0;
+        const cogs = parseFloat(r.cogs) || 0;
+        const opex = parseFloat(r.operating_expenses) || 0;
+        const grossProfit = rev - cogs;
+        const netProfit = grossProfit - opex;
+        const grossMargin = rev > 0 ? ((grossProfit / rev) * 100).toFixed(2) : 0;
+        const netMargin = rev > 0 ? ((netProfit / rev) * 100).toFixed(2) : 0;
+        const contributionPercent = totalGroupRevenue > 0 ? ((rev / totalGroupRevenue) * 100).toFixed(1) : 0;
+
+        return {
+          branchId: r.branch_id,
+          branchName: r.branch_name,
+          branchCode: r.branch_code,
+          currency: r.currency,
+          isHeadquarters: !!r.is_headquarters,
+          revenue: rev,
+          cogs: cogs,
+          grossProfit: grossProfit,
+          operatingExpenses: opex,
+          netProfit: netProfit,
+          grossMargin: parseFloat(grossMargin),
+          netMargin: parseFloat(netMargin),
+          contributionPercent: parseFloat(contributionPercent)
+        };
+      });
 
       return {
-        branchId: r.branch_id,
-        branchName: r.branch_name,
-        branchCode: r.branch_code,
-        currency: r.currency,
-        isHeadquarters: !!r.is_headquarters,
-        revenue: rev,
-        cogs: cogs,
-        grossProfit: grossProfit,
-        operatingExpenses: opex,
-        netProfit: netProfit,
-        grossMargin: parseFloat(grossMargin),
-        netMargin: parseFloat(netMargin),
-        contributionPercent: parseFloat(contributionPercent)
+        totalGroupRevenue,
+        totalGroupNetProfit,
+        currency: 'IQD',
+        branches: comparison
       };
     });
 
     res.json({
       status: 'success',
-      data: {
-        totalGroupRevenue,
-        totalGroupNetProfit,
-        currency: 'IQD',
-        branches: comparison
-      }
+      data
     });
   } catch (err) {
     console.error('❌ خطأ في getBranchFinancialComparison:', err);

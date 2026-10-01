@@ -6,24 +6,28 @@
  */
 
 const { appPool } = require('../database/appConnection');
+const cacheService = require('./cacheService');
 
 // ===============================
 // 1) جلب قائمة الفروع مع مؤشراتها التشغيلية
 // ===============================
 exports.getBranches = async (req, res) => {
   try {
-    const [branches] = await appPool.query(`
-      SELECT 
-        b.*,
-        (SELECT COUNT(*) FROM pos_stations s WHERE s.branch_id = b.id) AS stations_count,
-        (SELECT COUNT(*) FROM pos_tables t JOIN pos_floors f ON t.floor_id = f.id WHERE f.branch_id = b.id) AS tables_count,
-        (SELECT COUNT(*) FROM pos_orders o WHERE o.branch_id = b.id AND DATE(o.created_at) = CURDATE() AND o.status != 'cancelled') AS today_orders_count,
-        (SELECT COALESCE(SUM(o.total_amount), 0) FROM pos_orders o WHERE o.branch_id = b.id AND DATE(o.created_at) = CURDATE() AND o.status = 'paid') AS today_sales,
-        (SELECT COUNT(*) FROM ingredients i WHERE i.branch_id = b.id) AS inventory_items_count
-      FROM branches b
-      WHERE b.is_active = 1
-      ORDER BY b.is_headquarters DESC, b.id ASC
-    `);
+    const branches = await cacheService.wrap('branches:list', 45, ['branches'], async () => {
+      const [rows] = await appPool.query(`
+        SELECT 
+          b.*,
+          (SELECT COUNT(*) FROM pos_stations s WHERE s.branch_id = b.id) AS stations_count,
+          (SELECT COUNT(*) FROM pos_tables t JOIN pos_floors f ON t.floor_id = f.id WHERE f.branch_id = b.id) AS tables_count,
+          (SELECT COUNT(*) FROM pos_orders o WHERE o.branch_id = b.id AND DATE(o.created_at) = CURDATE() AND o.status != 'cancelled') AS today_orders_count,
+          (SELECT COALESCE(SUM(o.total_amount), 0) FROM pos_orders o WHERE o.branch_id = b.id AND DATE(o.created_at) = CURDATE() AND o.status = 'paid') AS today_sales,
+          (SELECT COUNT(*) FROM ingredients i WHERE i.branch_id = b.id) AS inventory_items_count
+        FROM branches b
+        WHERE b.is_active = 1
+        ORDER BY b.is_headquarters DESC, b.id ASC
+      `);
+      return rows;
+    });
 
     res.json({ status: 'success', data: branches });
   } catch (err) {
@@ -98,6 +102,8 @@ exports.createBranch = async (req, res) => {
       [`الصالة الرئيسية - ${branch_name}`, newBranchId]
     );
 
+    cacheService.invalidate(['branches']);
+
     res.json({
       status: 'success',
       message: 'تم إنشاء الفرع بنجاح وتهيئة صالته الرئيسية',
@@ -152,6 +158,8 @@ exports.updateBranch = async (req, res) => {
         id
       ]
     );
+
+    cacheService.invalidate(['branches']);
 
     res.json({ status: 'success', message: 'تم تحديث بيانات الفرع بنجاح' });
   } catch (err) {
@@ -225,6 +233,8 @@ exports.createInterBranchTransfer = async (req, res) => {
     );
 
     await connection.commit();
+
+    cacheService.invalidate(['branches', 'accounting', 'inventory']);
 
     res.json({
       status: 'success',
@@ -312,6 +322,8 @@ exports.receiveInterBranchTransfer = async (req, res) => {
 
     await connection.commit();
 
+    cacheService.invalidate(['branches', 'accounting', 'inventory']);
+
     res.json({
       status: 'success',
       message: `تم تأكيد استلام الشحنة #${transfer.transfer_number} بنجاح وإيداع الكمية (${transfer.quantity} ${transfer.unit}) في مخزن الفرع المستلم.`
@@ -378,63 +390,62 @@ exports.listInterBranchTransfers = async (req, res) => {
 // ===============================
 exports.getConsolidatedDashboard = async (req, res) => {
   try {
-    // 1. إجمالي مبيعات وأرباح كل فرع
-    const [branchStats] = await appPool.query(`
-      SELECT 
-        b.id AS branch_id,
-        b.branch_name,
-        b.branch_code,
-        b.currency,
-        b.is_headquarters,
-        COALESCE(sales.total_revenue, 0) AS total_revenue,
-        COALESCE(sales.total_orders, 0) AS total_orders,
-        COALESCE(cogs.total_cogs, 0) AS total_cogs,
-        (COALESCE(sales.total_revenue, 0) - COALESCE(cogs.total_cogs, 0)) AS gross_profit,
-        COALESCE(inv.inventory_value, 0) AS inventory_value
-      FROM branches b
-      LEFT JOIN (
-        SELECT branch_id, SUM(total_amount) AS total_revenue, COUNT(*) AS total_orders
-        FROM pos_orders
-        WHERE status = 'paid'
-        GROUP BY branch_id
-      ) sales ON b.id = sales.branch_id
-      LEFT JOIN (
-        SELECT m.branch_id, SUM(l.debit) AS total_cogs
-        FROM account_move m
-        JOIN account_move_line l ON m.id = l.move_id
-        JOIN account_account a ON l.account_id = a.id
-        WHERE m.state = 'posted' AND a.account_type = 'expense_direct_cost'
-        GROUP BY m.branch_id
-      ) cogs ON b.id = cogs.branch_id
-      LEFT JOIN (
-        SELECT branch_id, SUM(stock_quantity * 5000) AS inventory_value
-        FROM ingredients
-        GROUP BY branch_id
-      ) inv ON b.id = inv.branch_id
-      WHERE b.is_active = 1
-      ORDER BY total_revenue DESC
-    `);
+    const data = await cacheService.wrap('branches:holding_dashboard', 45, ['branches', 'accounting'], async () => {
+      // 1. إجمالي مبيعات وأرباح كل فرع
+      const [branchStats] = await appPool.query(`
+        SELECT 
+          b.id AS branch_id,
+          b.branch_name,
+          b.branch_code,
+          b.currency,
+          b.is_headquarters,
+          COALESCE(sales.total_revenue, 0) AS total_revenue,
+          COALESCE(sales.total_orders, 0) AS total_orders,
+          COALESCE(cogs.total_cogs, 0) AS total_cogs,
+          (COALESCE(sales.total_revenue, 0) - COALESCE(cogs.total_cogs, 0)) AS gross_profit,
+          COALESCE(inv.inventory_value, 0) AS inventory_value
+        FROM branches b
+        LEFT JOIN (
+          SELECT branch_id, SUM(total_amount) AS total_revenue, COUNT(*) AS total_orders
+          FROM pos_orders
+          WHERE status = 'paid'
+          GROUP BY branch_id
+        ) sales ON b.id = sales.branch_id
+        LEFT JOIN (
+          SELECT m.branch_id, SUM(l.debit) AS total_cogs
+          FROM account_move m
+          JOIN account_move_line l ON m.id = l.move_id
+          JOIN account_account a ON l.account_id = a.id
+          WHERE m.state = 'posted' AND a.account_type = 'expense_direct_cost'
+          GROUP BY m.branch_id
+        ) cogs ON b.id = cogs.branch_id
+        LEFT JOIN (
+          SELECT branch_id, SUM(stock_quantity * 5000) AS inventory_value
+          FROM ingredients
+          GROUP BY branch_id
+        ) inv ON b.id = inv.branch_id
+        WHERE b.is_active = 1
+        ORDER BY total_revenue DESC
+      `);
 
-    // إجماليات المجموعة القابضة
-    const groupRevenue = branchStats.reduce((sum, b) => sum + parseFloat(b.total_revenue || 0), 0);
-    const groupOrders = branchStats.reduce((sum, b) => sum + parseInt(b.total_orders || 0), 0);
-    const groupCOGS = branchStats.reduce((sum, b) => sum + parseFloat(b.total_cogs || 0), 0);
-    const groupGrossProfit = groupRevenue - groupCOGS;
-    const groupInventoryValue = branchStats.reduce((sum, b) => sum + parseFloat(b.inventory_value || 0), 0);
+      // إجماليات المجموعة القابضة
+      const groupRevenue = branchStats.reduce((sum, b) => sum + parseFloat(b.total_revenue || 0), 0);
+      const groupOrders = branchStats.reduce((sum, b) => sum + parseInt(b.total_orders || 0), 0);
+      const groupCOGS = branchStats.reduce((sum, b) => sum + parseFloat(b.total_cogs || 0), 0);
+      const groupGrossProfit = groupRevenue - groupCOGS;
+      const groupInventoryValue = branchStats.reduce((sum, b) => sum + parseFloat(b.inventory_value || 0), 0);
 
-    // حساب نسبة مساهمة كل فرع في المبيعات
-    const formattedBranchStats = branchStats.map(b => {
-      const rev = parseFloat(b.total_revenue) || 0;
-      const share = groupRevenue > 0 ? ((rev / groupRevenue) * 100).toFixed(1) : 0;
+      // حساب نسبة مساهمة كل فرع في المبيعات
+      const formattedBranchStats = branchStats.map(b => {
+        const rev = parseFloat(b.total_revenue) || 0;
+        const share = groupRevenue > 0 ? ((rev / groupRevenue) * 100).toFixed(1) : 0;
+        return {
+          ...b,
+          revenue_share_percentage: parseFloat(share)
+        };
+      });
+
       return {
-        ...b,
-        revenue_share_percentage: parseFloat(share)
-      };
-    });
-
-    res.json({
-      status: 'success',
-      data: {
         holding_summary: {
           company_name: 'مجموعة أركاف القابضة (Arcave Restaurant Group)',
           total_branches: branchStats.length,
@@ -446,7 +457,12 @@ exports.getConsolidatedDashboard = async (req, res) => {
           currency: 'IQD'
         },
         branches: formattedBranchStats
-      }
+      };
+    });
+
+    res.json({
+      status: 'success',
+      data
     });
   } catch (err) {
     console.error('❌ خطأ في getConsolidatedDashboard:', err);
