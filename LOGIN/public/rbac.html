@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>نظام الصلاحيات والأدوار المتقدم | Enterprise RBAC Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="common/sidebar.css" />
+  <link rel="stylesheet" href="rbac.css" />
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar">
+        <div class="username">مدير النظام</div>
+      </div>
+
+      <nav class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">🏠 الصفحة الرئيسية</a>
+        <a class="menu-item" href="/kitchen-prep.html">👨‍🍳 تحضير الوصفات والباركود</a>
+        <a class="menu-item" href="/kitchen-audit.html">⚖️ جرد ومطابقة السكاشن</a>
+        <a class="menu-item" href="/inventory.html">📦 المخزن</a>
+        <a class="menu-item" href="/recipes.html">🍳 كروت الوصفات</a>
+        <a class="menu-item" href="/waiter.html">📱 شاشة طلبات الويترية</a>
+        <a class="menu-item" href="/branches.html">🏢 الفروع والتحويلات</a>
+        <a class="menu-item" href="/accounting.html">💰 شجرة الحسابات والمالية</a>
+        <a class="menu-item" href="/employees.html">👥 إدارة الموظفين</a>
+        <a class="menu-item active" href="/rbac.html">🛡️ الصلاحيات والأدوار (RBAC)</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+        <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+        <a class="menu-item" href="/settings.html">⚙️ الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">🚪 تسجيل الخروج</a>
+      </nav>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">🛡️ إدارة الأدوار ومصفوفة الصلاحيات (RBAC)</h1>
+          <small style="color: #94a3b8;">التحكم بصلاحيات الموظفين، الأدوار القياسية والمخصصة، ومطابقة معايير Odoo Security Groups</small>
+        </div>
+        <div style="display:flex; gap: 10px;">
+          <a href="/employees.html" class="btn-secondary">
+            <span>👥 إدارة المستخدمين</span>
+          </a>
+          <button class="btn-primary" onclick="openNewRoleModal()">
+            <span>➕ إنشاء دور وظيفي جديد</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- شريط الإحصائيات -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">الأدوار المعتمدة</div>
+          <div class="stat-value" id="rolesCount">9</div>
+          <small style="color: #38bdf8;">نظامية ومخصصة</small>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">الصلاحيات المعيارية</div>
+          <div class="stat-value" id="permsCount">21</div>
+          <small style="color: #10b981;">تغطي كافة الموديولات</small>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">المستخدمين النشطين</div>
+          <div class="stat-value" id="activeUsersCount">—</div>
+          <small style="color: #c084fc;">مرتبطين بأدوارهم</small>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">نموذج الحماية</div>
+          <div class="stat-value" style="font-size: 1.25rem; color:#f59e0b;">Strict RBAC</div>
+          <small style="color: #94a3b8;">عزل كامل وتحقق مزدوج</small>
+        </div>
+      </div>
+
+      <!-- بطاقة مصفوفة الصلاحيات الرئيسية -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">📋 مصفوفة الصلاحيات والأدوار (Permission Matrix)</h2>
+            <p style="color: #94a3b8; font-size: 0.85rem; margin-top: 4px;">
+              قم بتحديد أو إلغاء الصلاحيات لأي دور، ثم اضغط على زر حفظ الدور. التغييرات تنعكس فورياً على شاشات الموظفين.
+            </p>
+          </div>
+          <div style="display:flex; gap: 10px; align-items:center;">
+            <label style="font-size: 0.85rem; color:#94a3b8; font-weight:600;">اختر الدور المراد ضبطه:</label>
+            <select id="roleSelector" class="form-control" style="width: auto; min-width: 250px;" onchange="onRoleChange()">
+              <!-- الخيارات ديناميكياً -->
+            </select>
+            <button class="btn-primary" style="background:#10b981;" onclick="saveSelectedRolePermissions()">
+              <span>💾 حفظ صلاحيات الدور</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="roleInfoBanner" class="role-banner">
+          <!-- تفاصيل الدور المختار -->
+        </div>
+
+        <!-- مصفوفة الموديولات والصلاحيات -->
+        <div class="matrix-container" id="matrixContainer">
+          <div style="text-align:center; padding: 40px; color:#94a3b8;">
+            جاري تحميل مصفوفة الصلاحيات...
+          </div>
+        </div>
+      </div>
+
+      <!-- بطاقة جدول كافة الأدوار المسجلة في النظام -->
+      <div class="card" style="margin-top: 24px;">
+        <h3 class="card-title" style="margin-bottom: 16px;">👥 قائمة الأدوار الوظيفية في المنشأة</h3>
+        <div class="table-wrap">
+          <table class="roles-table">
+            <thead>
+              <tr>
+                <th>كود الدور</th>
+                <th>اسم الدور الوظيفي</th>
+                <th>الوصف والمسؤوليات</th>
+                <th>نوع الدور</th>
+                <th>عدد الصلاحيات الممنوحة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="rolesTableBody">
+              <!-- أسطر الأدوار ديناميكياً -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- نافذة إنشاء دور وظيفي جديد (Modal) -->
+  <div class="modal-overlay" id="newRoleModal">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom: 12px;">
+        <h3 style="color:#f8fafc; font-size:1.15rem;">➕ إنشاء دور وظيفي جديد</h3>
+        <button type="button" class="btn-close" onclick="closeNewRoleModal()">✖</button>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap: 14px; margin-top: 16px;">
+        <div class="form-group">
+          <label>كود الدور الفريد (بالإنجليزية - مثال: barista أو delivery_lead):</label>
+          <input type="text" id="newRoleCode" class="form-control" placeholder="مثال: station_assistant" />
+        </div>
+
+        <div class="form-group">
+          <label>اسم الدور الوظيفي بالعربية:</label>
+          <input type="text" id="newRoleName" class="form-control" placeholder="مثال: ☕ باريستا ومسؤول كوفي بار" />
+        </div>
+
+        <div class="form-group">
+          <label>الوصف والمهام:</label>
+          <input type="text" id="newRoleDesc" class="form-control" placeholder="مثال: مسؤول تحضير المشروبات الساخنة والباردة وطلبات البار" />
+        </div>
+
+        <div>
+          <label style="display:block; margin-bottom: 8px; font-weight:600; color:#38bdf8;">حدد الصلاحيات الأولية لهذا الدور:</label>
+          <div class="new-role-perms-grid" id="newRolePermsList">
+            <!-- الصلاحيات checkboxes -->
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn-secondary" onclick="closeNewRoleModal()">إلغاء</button>
+        <button type="button" class="btn-primary" style="background:#10b981;" onclick="submitNewRole()">🚀 حفظ وإنشاء الدور</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="common/permissions.js"></script>
+  <script src="rbac.js"></script>
+</body>
+</html>

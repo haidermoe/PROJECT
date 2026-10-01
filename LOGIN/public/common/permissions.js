@@ -1,6 +1,34 @@
 /* ======================================================
-   Permissions Helper - إدارة الصلاحيات
-====================================================== */
+   Permissions Helper - إدارة الصلاحيات المتقدمة (Enterprise RBAC)
+   ====================================================== */
+
+let cachedUserPermissions = null;
+
+// جلب الصلاحيات المخزنة أو تحميلها من السيرفر
+async function fetchUserPermissions() {
+  const token = localStorage.getItem('token');
+  if (!token) return new Set();
+
+  try {
+    const res = await fetch('/api/rbac/user-permissions', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+      cachedUserPermissions = new Set(data.data.permissions || []);
+      localStorage.setItem('user_permissions', JSON.stringify(data.data.permissions || []));
+      return cachedUserPermissions;
+    }
+  } catch (e) {
+    console.warn('لم يتم جلب الصلاحيات من السيرفر:', e.message);
+  }
+
+  const saved = localStorage.getItem('user_permissions');
+  if (saved) {
+    try { cachedUserPermissions = new Set(JSON.parse(saved)); } catch (e) {}
+  }
+  return cachedUserPermissions || new Set();
+}
 
 // جلب بيانات المستخدم الحالي
 function getCurrentUser() {
@@ -17,6 +45,20 @@ function getCurrentUser() {
 
 // التحقق من الصلاحيات
 const Permissions = {
+  // فحص صلاحية دقيقة بالكود (Granular Permission Check)
+  has(permissionCode) {
+    const user = getCurrentUser();
+    if (user && user.role === 'admin') return true; // المدير العام يملك كافة الصلاحيات
+
+    if (!cachedUserPermissions) {
+      const saved = localStorage.getItem('user_permissions');
+      if (saved) {
+        try { cachedUserPermissions = new Set(JSON.parse(saved)); } catch (e) {}
+      }
+    }
+    return cachedUserPermissions ? cachedUserPermissions.has(permissionCode) : false;
+  },
+
   // المدير: صلاحيات كاملة
   isAdmin() {
     const user = getCurrentUser();
@@ -29,10 +71,16 @@ const Permissions = {
     return user && user.role === 'manager';
   },
 
-  // الشيف: يمكنه إدارة الوصفات
+  // الشيف: يمكنه إدارة الوصفات والمطبخ
   isKitchenManager() {
     const user = getCurrentUser();
     return user && user.role === 'kitchen_manager';
+  },
+
+  // الويتر
+  isWaiter() {
+    const user = getCurrentUser();
+    return user && ['waiter', 'captain', 'hall_captain'].includes(user.role);
   },
 
   // الموظف: صلاحيات محدودة
@@ -60,18 +108,13 @@ const Permissions = {
     return fullAccessRoles.includes(user.role);
   },
 
-  // التحقق من أن المستخدم موظف عادي (يرى فقط البصمة والإجازات)
-  // ملاحظة: kitchen_employee ليس موظف عادي لأنه يمكنه الوصول للمخزن والسحوبات
   isRegularEmployee() {
     const user = getCurrentUser();
     if (!user) return false;
     const regularEmployeeRoles = [
       'employee',
-      'waiter',
-      'captain',
       'cleaner',
       'hall_manager',
-      'hall_captain',
       'receptionist',
       'garage_employee',
       'garage_manager'
@@ -79,44 +122,64 @@ const Permissions = {
     return regularEmployeeRoles.includes(user.role);
   },
 
-  // إدارة حسابات المستخدمين (مدير عام أو موارد بشرية)
+  // الصلاحيات الوظيفية المعتمدة على RBAC
   canManageUsers() {
-    return this.isAdmin() || this.isHR();
+    return this.isAdmin() || this.isHR() || this.has('users.manage');
   },
 
-  // يمكنه إضافة/تعديل/حذف الوصفات
+  canManageRBAC() {
+    return this.isAdmin() || this.has('rbac.manage');
+  },
+
   canManageRecipes() {
-    return this.isAdmin() || this.isKitchenManager();
+    return this.isAdmin() || this.isKitchenManager() || this.has('recipes.manage');
   },
 
-  // يمكنه إضافة مواد للمخزن
   canAddInventory() {
-    return this.isAdmin() || this.isKitchenManager();
+    return this.isAdmin() || this.isKitchenManager() || this.has('inventory.write');
   },
 
-  // يمكنه فقط سحب وإيداع (الموظف وموظف المطبخ)
-  canOnlyWithdrawDeposit() {
-    return this.isEmployee() || this.isKitchenEmployee();
-  },
-
-  // يمكنه سحب من المخزن (موظف المطبخ)
   canWithdrawFromInventory() {
-    return this.isKitchenEmployee() || this.isAdmin() || this.isKitchenManager();
+    return this.isAdmin() || this.isKitchenManager() || this.isKitchenEmployee() || this.has('inventory.transact');
   },
 
-  // يحتاج موافقة لتعديل الوصفات (الشيف)
-  needsApprovalForEdit() {
-    return this.isKitchenManager();
+  canOrderPOS() {
+    return this.isAdmin() || this.isWaiter() || this.has('pos.order');
+  },
+
+  canAuditKitchen() {
+    return this.isAdmin() || this.isKitchenManager() || this.has('kitchen.audit');
+  },
+
+  canManageAccounting() {
+    return this.isAdmin() || user?.role === 'accountant' || this.has('accounting.read');
   }
 };
 
-// إخفاء/إظهار العناصر حسب الصلاحيات
-function applyPermissions() {
+// إخفاء/إظهار العناصر في الواجهة طبقاً للصلاحيات
+async function applyPermissions() {
   const user = getCurrentUser();
   if (!user) return;
 
-  // الموظفون العاديون: إخفاء كل الصفحات ما عدا البصمة والإجازات
-  // ملاحظة: kitchen_employee يمكنه الوصول للمخزن والسحوبات
+  // جلب أحدث الصلاحيات من السيرفر
+  await fetchUserPermissions();
+
+  // 1) إخفاء العناصر التي تحمل وسم data-permission إذا كان المستخدم لا يملك الصلاحية
+  document.querySelectorAll('[data-permission]').forEach(el => {
+    const requiredPerm = el.getAttribute('data-permission');
+    if (requiredPerm && !Permissions.has(requiredPerm)) {
+      el.style.display = 'none';
+    }
+  });
+
+  // 2) إخفاء العناصر التي تحمل وسم data-role-min
+  document.querySelectorAll('[data-role-admin-only]').forEach(el => {
+    if (!Permissions.isAdmin()) {
+      el.style.display = 'none';
+    }
+  });
+
+  // 3) التحقق من صفحات المستخدمين العاديين
   if (Permissions.isRegularEmployee()) {
     const restrictedPages = [
       '/dashboard/dashboard.html',
@@ -126,69 +189,35 @@ function applyPermissions() {
       '/withdrawals.html',
       '/waste.html',
       '/work-hours.html',
-      '/add-recipe.html'
+      '/add-recipe.html',
+      '/accounting.html',
+      '/branches.html',
+      '/kitchen-prep.html',
+      '/kitchen-audit.html',
+      '/rbac.html'
     ];
 
     restrictedPages.forEach(page => {
-      const links = document.querySelectorAll(`a[href="${page}"]`);
-      links.forEach(link => {
+      document.querySelectorAll(`a[href="${page}"]`).forEach(link => {
         link.style.display = 'none';
       });
     });
+  }
 
-    // إخفاء عناصر القائمة الأخرى
-    const restrictedMenuItems = document.querySelectorAll('.menu-item');
-    restrictedMenuItems.forEach(item => {
-      const href = item.getAttribute('href');
-        // السماح بالبصمة والإجازات وشاشة الويتر وتسجيل الخروج
-        if (href !== '/attendance.html' && href !== '/leaves.html' && href !== '/waiter.html' && href !== '/notifications.html' && !item.classList.contains('logout')) {
-          item.style.display = 'none';
-        }
-      } else if (!item.classList.contains('logout')) {
-        // إخفاء عناصر القائمة بدون رابط (مثل "المبيعات", "إدارة المنيو", "الإعدادات")
-        item.style.display = 'none';
-      }
+  // 4) تقييد رابط إدارة الصلاحيات RBAC للأدمن فقط
+  if (!Permissions.isAdmin()) {
+    document.querySelectorAll('a[href="/rbac.html"], a[href="/rbac"]').forEach(link => {
+      link.style.display = 'none';
     });
   }
 
   if (!Permissions.canManageUsers()) {
-    const employeeLinks = document.querySelectorAll('a[href="/employees.html"]');
-    employeeLinks.forEach(link => {
+    document.querySelectorAll('a[href="/employees.html"]').forEach(link => {
       link.style.display = 'none';
     });
   }
-
-  if (!Permissions.isAdmin() && !Permissions.isHR()) {
-    const notificationLinks = document.querySelectorAll('a[href="/notifications.html"]');
-    notificationLinks.forEach(link => {
-      link.style.display = 'none';
-    });
-  }
-
-  // إخفاء زر إضافة مادة للموظفين العاديين
-  if (Permissions.isRegularEmployee()) {
-    const addButtons = document.querySelectorAll('#addItemBtn');
-    addButtons.forEach(btn => {
-      if (btn) btn.style.display = 'none';
-    });
-  }
-
-  // إخفاء أزرار التعديل والحذف في الوصفات للموظفين العاديين
-  if (Permissions.isRegularEmployee()) {
-    const editButtons = document.querySelectorAll('.btn-mini.edit');
-    const deleteButtons = document.querySelectorAll('.btn-mini.delete');
-    editButtons.forEach(btn => btn.style.display = 'none');
-    deleteButtons.forEach(btn => btn.style.display = 'none');
-  }
 }
 
-// تطبيق الصلاحيات عند تحميل الصفحة
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', applyPermissions);
-} else {
-  applyPermissions();
-}
-
-// تصدير للاستخدام في ملفات أخرى
+document.addEventListener('DOMContentLoaded', applyPermissions);
 window.Permissions = Permissions;
-
+window.applyPermissions = applyPermissions;

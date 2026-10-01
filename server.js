@@ -133,6 +133,9 @@ app.use('/api/branches', require('./api/branchesRoutes'));
 // مسارات التحضير والباركودات وجرد ومطابقة سكاشن المطبخ
 app.use('/api/kitchen-ops', require('./api/kitchenOperationsRoutes'));
 
+// مسارات إدارة الأدوار والصلاحيات المتقدمة (Enterprise RBAC)
+app.use('/api/rbac', require('./api/rbacRoutes'));
+
 // استيراد middleware للتحقق من التوكن
 const { authMiddleware } = require('./auth/authMiddleware');
 
@@ -192,6 +195,14 @@ app.get('/kitchen-audit.html', (req, res) => {
 });
 app.get('/kitchen-audit', (req, res) => {
   res.redirect('/kitchen-audit.html');
+});
+
+// Explicitly serve rbac.html
+app.get('/rbac.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/rbac.html'));
+});
+app.get('/rbac', (req, res) => {
+  res.redirect('/rbac.html');
 });
 
 // Health check endpoint (required by Render and other hosting providers)

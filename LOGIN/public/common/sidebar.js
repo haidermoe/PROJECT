@@ -46,6 +46,8 @@ function initSidebar() {
         item.classList.add('active');
       } else if (href === '/kitchen-audit.html' && currentPath.includes('/kitchen-audit')) {
         item.classList.add('active');
+      } else if (href === '/rbac.html' && currentPath.includes('/rbac')) {
+        item.classList.add('active');
       }
     }
   });
@@ -60,11 +62,16 @@ function initSidebar() {
     };
   }
 
-      // إظهار/إخفاء رابط الإعدادات وجداول الدوام بناءً على الرتبة
+      // إظهار/إخفاء رابط الإعدادات و RBAC بناءً على الرتبة
       const userData = localStorage.getItem('user');
       if (userData) {
         try {
           const user = JSON.parse(userData);
+          const rbacLink = root.querySelector('.menu-item[href="/rbac.html"]');
+          if (rbacLink) {
+            rbacLink.style.display = (user.role === 'admin') ? 'flex' : 'none';
+          }
+
           const settingsLink = root.querySelector('.menu-item[href="/settings.html"]');
           if (settingsLink) {
             if (user.role === 'admin') {
