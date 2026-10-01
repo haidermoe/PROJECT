@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>إدارة الشركات والفروع والمناقلات | Multi-Company Consolidation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="common/sidebar.css" />
   <link rel="stylesheet" href="branches.css" />
 </head>
 <body>
@@ -11,39 +12,26 @@
   <div class="layout">
     <!-- الشريط الجانبي -->
     <aside class="sidebar">
-      <div class="brand-box">
-        <span style="font-size: 1.5rem;">🏢</span>
-        <div>
-          <div class="brand-title">إدارة الشركات والفروع</div>
-          <small style="color: #94a3b8;">معايير Odoo Consolidation</small>
-        </div>
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar">
+        <div class="username">مدير النظام</div>
       </div>
 
       <nav class="menu">
-        <a href="/dashboard/dashboard.html" class="menu-item">
-          <span>🏠</span> الصفحة الرئيسية
-        </a>
-        <a href="/branches.html" class="menu-item active">
-          <span>🏢</span> الفروع والشركات
-        </a>
-        <a href="/waiter.html" class="menu-item">
-          <span>📱</span> شاشة طلبات الويترية (POS)
-        </a>
-        <a href="/accounting.html" class="menu-item">
-          <span>💰</span> شجرة الحسابات والمالية
-        </a>
-        <a href="/inventory.html" class="menu-item">
-          <span>📦</span> إدارة المخزن
-        </a>
-        <a href="/recipes.html" class="menu-item">
-          <span>🍳</span> الوصفات والإنتاج
-        </a>
-        <a href="/settings.html" class="menu-item">
-          <span>⚙️</span> إعدادات النظام وطابعات POS
-        </a>
-        <a href="#" class="menu-item logout" id="logoutBtn">
-          <span>🚪</span> تسجيل الخروج
-        </a>
+        <a class="menu-item" href="/dashboard/dashboard.html">🏠 الصفحة الرئيسية</a>
+        <a class="menu-item" href="/kitchen-prep.html">👨‍🍳 تحضير الوصفات والباركود</a>
+        <a class="menu-item" href="/kitchen-audit.html">⚖️ جرد ومطابقة السكاشن</a>
+        <a class="menu-item" href="/inventory.html">📦 المخزن</a>
+        <a class="menu-item" href="/recipes.html">🍳 كروت الوصفات</a>
+        <a class="menu-item" href="/waiter.html">📱 شاشة طلبات الويترية</a>
+        <a class="menu-item active" href="/branches.html">🏢 الفروع والتحويلات</a>
+        <a class="menu-item" href="/accounting.html">💰 شجرة الحسابات والمالية</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+        <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item" href="/settings.html">⚙️ الإعدادات</a>
+        <a class="menu-item logout" id="logoutBtn">🚪 تسجيل الخروج</a>
       </nav>
     </aside>
 
@@ -285,6 +273,7 @@
     </div>
   </div>
 
+  <script src="common/sidebar.js"></script>
   <script src="branches.js"></script>
 </body>
 </html>

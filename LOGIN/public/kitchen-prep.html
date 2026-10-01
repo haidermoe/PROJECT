@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>تحضير وجبات المطبخ وطباعة الباركود وسحب العهد | Kitchen Prep & Barcode Labels</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="common/sidebar.css" />
   <link rel="stylesheet" href="kitchen-prep.css" />
   <!-- مكتبة توليد الباركودات المعيارية -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -13,33 +14,25 @@
   <div class="layout">
     <!-- الشريط الجانبي -->
     <aside class="sidebar" id="sidebarContainer">
-      <div class="brand-box" style="padding: 20px; border-bottom: 1px solid var(--border-color); display:flex; align-items:center; gap: 10px;">
-        <span style="font-size: 1.5rem;">👨‍🍳</span>
-        <div>
-          <div style="font-size: 1.1rem; font-weight: bold; color: #38bdf8;">عمليات المطبخ والتحضير</div>
-          <small style="color: #94a3b8;">دفعات الإنتاج والباركود</small>
-        </div>
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar">
+        <div class="username">مدير المطبخ</div>
       </div>
 
-      <nav class="menu" style="display:flex; flex-direction:column; padding: 16px 12px; gap: 6px;">
-        <a href="/dashboard/dashboard.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
-          <span>🏠</span> الصفحة الرئيسية
-        </a>
-        <a href="/kitchen-prep.html" class="menu-item active" style="background:#1e293b; color:#38bdf8; text-decoration:none; padding:10px 14px; border-radius:8px; font-weight:bold;">
-          <span>🏷️</span> تحضير الدفعات وطباعة الباركود
-        </a>
-        <a href="/kitchen-audit.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
-          <span>⚖️</span> جرد ومطابقة نهاية الشفت (Audit)
-        </a>
-        <a href="/recipes.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
-          <span>🍳</span> كروت الوصفات (Recipe Cards)
-        </a>
-        <a href="/inventory.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
-          <span>📦</span> إدارة المخزن
-        </a>
-        <a href="/accounting.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
-          <span>💰</span> المالية والمحاسبة
-        </a>
+      <nav class="menu">
+        <a class="menu-item" href="/dashboard/dashboard.html">🏠 الصفحة الرئيسية</a>
+        <a class="menu-item active" href="/kitchen-prep.html">👨‍🍳 تحضير الوصفات والباركود</a>
+        <a class="menu-item" href="/kitchen-audit.html">⚖️ جرد ومطابقة السكاشن</a>
+        <a class="menu-item" href="/inventory.html">📦 المخزن</a>
+        <a class="menu-item" href="/recipes.html">🍳 كروت الوصفات</a>
+        <a class="menu-item" href="/waiter.html">📱 شاشة طلبات الويترية</a>
+        <a class="menu-item" href="/branches.html">🏢 الفروع والتحويلات</a>
+        <a class="menu-item" href="/accounting.html">💰 شجرة الحسابات والمالية</a>
+        <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+        <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+        <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+        <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+        <a class="menu-item logout" id="logoutBtn">🚪 تسجيل الخروج</a>
       </nav>
     </aside>
 
@@ -193,6 +186,7 @@
     </main>
   </div>
 
+  <script src="common/sidebar.js"></script>
   <script src="kitchen-prep.js"></script>
 </body>
 </html>

@@ -69,6 +69,7 @@ exports.getMenu = async (req, res) => {
       SELECT 
         i.id,
         i.item_name,
+        i.category,
         i.price,
         i.station_id,
         s.station_name,
@@ -76,7 +77,7 @@ exports.getMenu = async (req, res) => {
       FROM pos_items i
       LEFT JOIN pos_stations s ON i.station_id = s.id
       WHERE i.is_active = 1
-      ORDER BY s.station_name ASC, i.item_name ASC
+      ORDER BY i.category ASC, i.item_name ASC
     `);
 
     // إذا لم تكن هناك أصناف في pos_items بعد، نقوم بجلب الوصفات كأصناف منيو افتراضية
@@ -182,6 +183,13 @@ exports.sendWaiterOrder = async (req, res) => {
             current_order_id = ?
         WHERE id = ?
       `, [orderId, tableId]);
+    }
+
+    // 4. خصم مكونات الوجبات فورياً من رصيد السكشن المسؤول (مخزون الشفت التشغيلي)
+    try {
+      await depleteOrderFromStation(orderId);
+    } catch (depleteErr) {
+      console.warn('⚠️ [Deplete on Send Order]:', depleteErr.message);
     }
 
     res.json({

@@ -140,9 +140,8 @@ function applyPermissions() {
     const restrictedMenuItems = document.querySelectorAll('.menu-item');
     restrictedMenuItems.forEach(item => {
       const href = item.getAttribute('href');
-      if (href) {
-        // السماح فقط بالبصمة والإجازات وتسجيل الخروج (الإشعارات فقط للمدير)
-        if (href !== '/attendance.html' && href !== '/leaves.html' && href !== '/notifications.html' && !item.classList.contains('logout')) {
+        // السماح بالبصمة والإجازات وشاشة الويتر وتسجيل الخروج
+        if (href !== '/attendance.html' && href !== '/leaves.html' && href !== '/waiter.html' && href !== '/notifications.html' && !item.classList.contains('logout')) {
           item.style.display = 'none';
         }
       } else if (!item.classList.contains('logout')) {

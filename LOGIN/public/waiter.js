@@ -120,17 +120,19 @@ async function loadMenu() {
 }
 
 let selectedCategory = 'all';
+let searchKeyword = '';
 
 function renderCategories() {
   const bar = document.getElementById('categoriesBar');
   if (!bar) return;
 
-  const stations = Array.from(new Set(allMenu.map(m => m.station_name || 'عام')));
+  const categories = Array.from(new Set(allMenu.map(m => m.category || m.station_name || 'عام'))).filter(Boolean);
   bar.innerHTML = `
-    <button class="cat-btn ${selectedCategory === 'all' ? 'active' : ''}" onclick="filterCategory('all')">🌟 الكل</button>
-    ${stations.map(st => `
-      <button class="cat-btn ${selectedCategory === st ? 'active' : ''}" onclick="filterCategory('${st}')">${st}</button>
-    `).join('')}
+    <button class="cat-btn ${selectedCategory === 'all' ? 'active' : ''}" onclick="filterCategory('all')">🌟 الكل (${allMenu.length})</button>
+    ${categories.map(cat => {
+      const count = allMenu.filter(m => (m.category || m.station_name || 'عام') === cat).length;
+      return `<button class="cat-btn ${selectedCategory === cat ? 'active' : ''}" onclick="filterCategory('${cat}')">${cat} (${count})</button>`;
+    }).join('')}
   `;
 }
 
@@ -140,22 +142,46 @@ window.filterCategory = function(cat) {
   renderMenuItems();
 };
 
+window.onSearchMenu = function(val) {
+  searchKeyword = (val || '').trim().toLowerCase();
+  renderMenuItems();
+};
+
 function renderMenuItems() {
   const grid = document.getElementById('menuGrid');
   if (!grid) return;
 
-  const filtered = selectedCategory === 'all' ? allMenu : allMenu.filter(m => (m.station_name || 'عام') === selectedCategory);
+  let filtered = selectedCategory === 'all' 
+    ? allMenu 
+    : allMenu.filter(m => (m.category || m.station_name || 'عام') === selectedCategory);
+
+  if (searchKeyword) {
+    filtered = filtered.filter(m => 
+      (m.item_name || '').toLowerCase().includes(searchKeyword) ||
+      (m.category || '').toLowerCase().includes(searchKeyword) ||
+      (m.station_name || '').toLowerCase().includes(searchKeyword)
+    );
+  }
+
+  const countBadge = document.getElementById('menuCountBadge');
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} صنف متوفر`;
+  }
 
   if (filtered.length === 0) {
-    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 20px;">لا توجد أصناف في هذا القسم</div>';
+    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 40px; font-size:1.05rem;">❌ لا توجد أصناف مطابقة للبحث أو للقسم المختار</div>';
     return;
   }
 
   grid.innerHTML = filtered.map(item => `
     <div class="menu-card" onclick="addToCart(${item.id})">
+      <div class="item-cat-badge">${item.category || 'عام'}</div>
       <div class="item-title">${item.item_name}</div>
       <div class="item-station">📍 ${item.station_name || 'المطبخ'}</div>
-      <div class="item-price">${parseFloat(item.price || 0).toLocaleString()} د.ع</div>
+      <div class="item-price-tag">
+        <span class="price-val">${parseFloat(item.price || 0).toLocaleString()}</span>
+        <span class="price-curr">د.ع</span>
+      </div>
     </div>
   `).join('');
 }

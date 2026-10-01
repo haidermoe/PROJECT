@@ -110,8 +110,15 @@
             try {
               const me = await response.json();
               const role = me?.user?.role;
-              window.location.href =
-                role === 'hr' ? '/hr-dashboard.html' : '/dashboard/dashboard.html';
+              let dest = '/dashboard/dashboard.html';
+              if (role === 'hr') {
+                dest = '/hr-dashboard.html';
+              } else if (role === 'waiter') {
+                dest = '/waiter.html';
+              } else if (role === 'kitchen_manager') {
+                dest = '/kitchen-prep.html';
+              }
+              window.location.href = dest;
             } catch {
               window.location.href = '/dashboard/dashboard.html';
             }
@@ -201,10 +208,15 @@
           // التحويل للداشبورد الصحيح - استخدام replace لتجنب مشاكل history
           // إضافة تأخير أطول للتأكد من حفظ التوكن
           setTimeout(() => {
-            const dest =
-              data.user?.role === 'hr'
-                ? '/hr-dashboard.html'
-                : '/dashboard/dashboard.html';
+            const role = data.user?.role;
+            let dest = '/dashboard/dashboard.html';
+            if (role === 'hr') {
+              dest = '/hr-dashboard.html';
+            } else if (role === 'waiter') {
+              dest = '/waiter.html';
+            } else if (role === 'kitchen_manager') {
+              dest = '/kitchen-prep.html';
+            }
             console.log('🔄 إعادة التوجيه إلى', dest);
             window.location.replace(dest);
           }, 500);

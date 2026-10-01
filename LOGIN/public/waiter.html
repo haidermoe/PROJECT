@@ -17,6 +17,8 @@
       </div>
     </div>
     <div class="header-right">
+      <a href="/kitchen-prep.html" class="btn-header">👨‍🍳 تحضير الوصفات والباركود</a>
+      <a href="/kitchen-audit.html" class="btn-header">⚖️ جرد ومطابقة السكاشن</a>
       <a href="/dashboard/dashboard.html" class="btn-header">📊 الداشبورد</a>
       <a href="/accounting.html" class="btn-header">💰 الحسابات</a>
       <button class="btn-header" id="logoutBtn" style="color:#f87171;">خروج</button>
@@ -40,6 +42,13 @@
   <div class="order-view" id="orderView">
     <!-- قائمة الطعام والأصناف -->
     <section class="menu-section">
+      <div class="menu-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="menuSearchInput" placeholder="بحث سريع عن وجبة أو صنف بالاسم أو القسم..." oninput="onSearchMenu(this.value)" />
+        </div>
+        <div class="items-count-badge" id="menuCountBadge">جاري التحميل...</div>
+      </div>
       <div class="categories-bar" id="categoriesBar">
         <!-- أقسام المنيو -->
       </div>

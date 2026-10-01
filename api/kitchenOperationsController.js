@@ -437,14 +437,15 @@ exports.getStationAuditSummary = async (req, res) => {
       const [waiterRows] = await appPool.query(`
         SELECT 
           COALESCE(o.waiter_name, 'ويتر غير مسمى') AS waiter_name,
-          oi.item_name,
-          SUM(oi.quantity) AS orders_count,
+          COALESCE(oi.item_name, r.name, 'وجبة مباعة') AS item_name,
+          COUNT(DISTINCT o.id) AS orders_count,
           SUM(sm.quantity) AS total_consumed_qty
         FROM station_stock_moves sm
         JOIN pos_orders o ON sm.ref_order_id = o.id
-        JOIN pos_order_items oi ON o.id = oi.order_id
+        LEFT JOIN pos_order_items oi ON sm.ref_order_item_id = oi.id
+        LEFT JOIN recipes r ON sm.recipe_id = r.id
         WHERE sm.station_id = ? AND sm.ingredient_id = ? AND sm.type = 'order_consumption' AND DATE(sm.created_at) = ?
-        GROUP BY o.waiter_name, oi.item_name
+        GROUP BY o.waiter_name, COALESCE(oi.item_name, r.name, 'وجبة مباعة')
         ORDER BY total_consumed_qty DESC
       `, [stationId, ing.id, targetDate]);
 
@@ -508,11 +509,12 @@ exports.submitStationAudit = async (req, res) => {
       lines = []
     } = req.body;
 
+    const auditLines = (lines && lines.length) ? lines : (req.body.items || []);
     const stationId = parseInt(station_id);
     const userId = req.user?.id || null;
     const userRole = req.user?.role || 'employee';
 
-    if (!stationId || !lines.length) {
+    if (!stationId || !auditLines.length) {
       throw new Error('يرجى تحديد السكشن وبنود المطابقة');
     }
 
@@ -532,7 +534,7 @@ exports.submitStationAudit = async (req, res) => {
     const auditId = auditResult.insertId;
 
     // إدراج بنود المطابقة
-    for (const line of lines) {
+    for (const line of auditLines) {
       const theo = parseFloat(line.theoretical_qty) || 0;
       const act = parseFloat(line.actual_qty) !== undefined ? parseFloat(line.actual_qty) : theo;
       const diff = parseFloat((act - theo).toFixed(3));

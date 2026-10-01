@@ -138,7 +138,15 @@ function initSidebar() {
             <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
             <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
           `;
-        } else if (['employee', 'waiter', 'captain', 'cleaner', 'hall_manager', 'hall_captain', 'receptionist', 'garage_employee', 'garage_manager'].includes(user.role)) {
+        } else if (['waiter', 'captain', 'hall_captain'].includes(user.role)) {
+          menuContainer.innerHTML = `
+            <a class="menu-item" href="/waiter.html">📱 شاشة طلبات الويترية (POS)</a>
+            <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+            <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+            <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+            <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+          `;
+        } else if (['employee', 'cleaner', 'hall_manager', 'receptionist', 'garage_employee', 'garage_manager'].includes(user.role)) {
           menuContainer.innerHTML = `
             <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
             <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
@@ -146,17 +154,24 @@ function initSidebar() {
             <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
           `;
         } else if (user.role === 'kitchen_manager') {
-          // Add specific menu adjustments for kitchen_manager if needed
-          // For now, let kitchen managers use the default menu, but hide specific entries
-          const restrictedPages = ['/dashboard/dashboard.html', '/employees.html', '/settings.html', '/payroll.html', '/hr-dashboard.html', '/hr-attendance.html'];
-          restrictedPages.forEach(page => {
-            const links = menuContainer.querySelectorAll(`a[href="${page}"]`);
-            links.forEach(link => link.style.display = 'none');
-          });
+          menuContainer.innerHTML = `
+            <a class="menu-item" href="/kitchen-prep.html">👨‍🍳 تحضير الوصفات والباركود</a>
+            <a class="menu-item" href="/kitchen-audit.html">⚖️ جرد ومطابقة السكاشن</a>
+            <a class="menu-item" href="/recipes.html">🍳 كروت الوصفات</a>
+            <a class="menu-item" href="/inventory.html">📦 المخزن</a>
+            <a class="menu-item" href="/withdrawals.html">🔄 سحوبات</a>
+            <a class="menu-item" href="/waste.html">🗑️ الهدر والتالف</a>
+            <a class="menu-item" href="/waiter.html">📱 شاشة طلبات الويترية</a>
+            <a class="menu-item" href="/shifts.html">📅 جداول الدوام</a>
+            <a class="menu-item" href="/attendance.html">⏰ البصمة</a>
+            <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
+            <a class="menu-item" href="/notifications.html">🔔 الإشعارات</a>
+            <a class="menu-item logout" id="logoutBtn">تسجيل الخروج</a>
+          `;
         }
 
         // Re-attach active class correctly after re-rendering
-        if (user.role === 'hr' || user.role === 'kitchen_employee' || ['employee', 'waiter', 'captain', 'cleaner', 'hall_manager', 'hall_captain', 'receptionist', 'garage_employee', 'garage_manager'].includes(user.role)) {
+        if (['hr', 'kitchen_employee', 'kitchen_manager', 'waiter', 'captain', 'cleaner', 'hall_manager', 'hall_captain', 'receptionist', 'garage_employee', 'garage_manager'].includes(user.role)) {
           const currentPath = window.location.pathname;
           menuContainer.querySelectorAll('.menu-item').forEach(item => {
              const href = item.getAttribute('href');

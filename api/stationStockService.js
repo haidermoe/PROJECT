@@ -87,6 +87,13 @@ async function depleteOrderFromStation(orderId, passedConnection = null) {
   try {
     if (shouldManageTransaction) await connection.beginTransaction();
 
+    // 0) التحقق من عدم خصم هذا الطلب مسبقاً (Idempotent)
+    const [orderCheck] = await connection.query(`SELECT is_stock_depleted FROM pos_orders WHERE id = ?`, [orderId]);
+    if (orderCheck.length && orderCheck[0].is_stock_depleted === 1) {
+      if (shouldManageTransaction) await connection.commit();
+      return true;
+    }
+
     // جلب أصناف الطلب مع معلومات المحطة
     const [orderItems] = await connection.query(`
       SELECT 
@@ -189,13 +196,15 @@ async function depleteOrderFromStation(orderId, passedConnection = null) {
 
         // تسجيل حركة استهلاك في سجل حركات السكشن
         await connection.query(`
-          INSERT INTO station_stock_moves (station_id, ingredient_id, type, quantity, ref_order_id, notes)
-          VALUES (?, ?, 'order_consumption', ?, ?, ?)
+          INSERT INTO station_stock_moves (station_id, ingredient_id, recipe_id, type, quantity, ref_order_id, ref_order_item_id, notes)
+          VALUES (?, ?, ?, 'order_consumption', ?, ?, ?, ?)
         `, [
           targetStationId,
           ring.ingredient_id,
+          recipeId,
           totalConsumed,
           orderId,
+          item.id,
           `استهلاك وجبة: ${item.item_name} (كمية ${orderQty}) - كارت وصفة #${recipeId}`
         ]);
 
@@ -226,6 +235,9 @@ async function depleteOrderFromStation(orderId, passedConnection = null) {
         }
       }
     }
+
+    // وسم الطلب بأنه تم خصم مخزونه بنجاح
+    await connection.query(`UPDATE pos_orders SET is_stock_depleted = 1 WHERE id = ?`, [orderId]);
 
     if (shouldManageTransaction) await connection.commit();
     return true;
