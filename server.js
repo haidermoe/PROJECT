@@ -127,6 +127,9 @@ app.use('/api/accounting', require('./api/accountingRoutes'));
 // مسارات الصالات ونظام طلبات الويترية (Odoo POS Restaurant)
 app.use('/api/pos-restaurant', require('./api/posRestaurantRoutes'));
 
+// مسارات تعدد الشركات والفروع والمخازن واللوجستيات المجمعة
+app.use('/api/branches', require('./api/branchesRoutes'));
+
 // استيراد middleware للتحقق من التوكن
 const { authMiddleware } = require('./auth/authMiddleware');
 
@@ -163,6 +166,14 @@ app.get('/accounting.html', (req, res) => {
 });
 app.get('/accounting', (req, res) => {
   res.redirect('/accounting.html');
+});
+
+// Explicitly serve branches.html
+app.get('/branches.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/branches.html'));
+});
+app.get('/branches', (req, res) => {
+  res.redirect('/branches.html');
 });
 
 // Health check endpoint (required by Render and other hosting providers)

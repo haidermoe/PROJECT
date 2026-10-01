@@ -21,5 +21,6 @@ router.get('/overview', requireRole('admin', 'manager'), controller.getFinancial
 router.get('/reports/profit-and-loss', requireRole('admin', 'manager'), controller.getProfitAndLoss);
 router.get('/reports/balance-sheet', requireRole('admin', 'manager'), controller.getBalanceSheet);
 router.get('/reports/trial-balance', requireRole('admin', 'manager'), controller.getTrialBalance);
+router.get('/reports/branch-comparison', requireRole('admin', 'manager'), controller.getBranchFinancialComparison);
 
 module.exports = router;

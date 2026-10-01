@@ -159,7 +159,8 @@ exports.sendWaiterOrder = async (req, res) => {
     const printResult = await createOrderAndRoutePrint(orderPayload, waiterId);
     const orderId = printResult.orderId;
 
-    // 2. تحديث بيانات إضافية للطلب (الويتر، الصالة، الحالة)
+    // 2. تحديث بيانات إضافية للطلب (الويتر، الصالة، الحالة، والفرع)
+    const branchId = req.headers['x-branch-id'] || req.body.branchId || 1;
     await appPool.query(`
       UPDATE pos_orders 
       SET status = 'ordered',
@@ -167,9 +168,10 @@ exports.sendWaiterOrder = async (req, res) => {
           table_id = ?,
           waiter_id = ?,
           waiter_name = ?,
-          notes = ?
+          notes = ?,
+          branch_id = ?
       WHERE id = ?
-    `, [floorId || null, tableId || null, waiterId, waiterName, notes || null, orderId]);
+    `, [floorId || null, tableId || null, waiterId, waiterName, notes || null, branchId, orderId]);
 
     // 3. تحديث حالة الطاولة في الخريطة إلى 'مشغولة'
     if (tableId) {
@@ -253,15 +255,16 @@ exports.payAndCloseOrder = async (req, res) => {
         const moveName = `POS/${year}/${String(orderId).padStart(4, '0')}`;
 
         const [moveRes] = await connection.query(`
-          INSERT INTO account_move (name, date, ref, journal_id, state, total_amount, created_by)
-          VALUES (?, ?, ?, ?, 'posted', ?, ?)
+          INSERT INTO account_move (name, date, ref, journal_id, state, total_amount, created_by, branch_id)
+          VALUES (?, ?, ?, ?, 'posted', ?, ?, ?)
         `, [
           moveName,
           todayStr,
           `مبيعات طاولة ${order.table_no} - طلب #${orderId} (${paymentMethod === 'card' ? 'بطاقة/شبكة' : 'نقداً'})`,
           posJournal[0].id,
           totalAmount,
-          req.user?.id || null
+          req.user?.id || null,
+          order.branch_id || 1
         ]);
 
         const moveId = moveRes.insertId;

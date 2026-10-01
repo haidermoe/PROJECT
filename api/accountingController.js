@@ -12,7 +12,15 @@ const { appPool } = require('../database/appConnection');
 // ===============================
 exports.getChartOfAccounts = async (req, res) => {
   try {
-    // جلب الحسابات مع حساب الرصيد التراكمي من قيود اليومية المرحّلة
+    const { branchId } = req.query;
+    let branchFilter = "";
+    const params = [];
+    if (branchId && branchId !== 'all') {
+      branchFilter = "AND m.branch_id = ?";
+      params.push(branchId);
+    }
+
+    // جلب الحسابات مع حساب الرصيد التراكمي من قيود اليومية المرحّلة (الموحدة أو لفرع محدد)
     const [accounts] = await appPool.query(`
       SELECT 
         a.id,
@@ -25,11 +33,11 @@ exports.getChartOfAccounts = async (req, res) => {
         COALESCE(SUM(l.credit), 0) AS total_credit
       FROM account_account a
       LEFT JOIN account_move_line l ON a.id = l.account_id
-      LEFT JOIN account_move m ON l.move_id = m.id AND m.state = 'posted'
+      LEFT JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
       WHERE a.is_active = 1
       GROUP BY a.id, a.code, a.name, a.account_type, a.reconcile, a.is_active
       ORDER BY a.code ASC
-    `);
+    `, params);
 
     // تصنيف وتحديد طبيعة الرصيد (مدين أو دائن حسب معايير أودو)
     const formattedAccounts = accounts.map(acc => {
@@ -119,13 +127,23 @@ exports.getJournals = async (req, res) => {
 // ===============================
 exports.getMoves = async (req, res) => {
   try {
-    const [moves] = await appPool.query(`
-      SELECT m.*, j.name AS journal_name, j.code AS journal_code
+    const { branchId } = req.query;
+    let query = `
+      SELECT m.*, j.name AS journal_name, j.code AS journal_code,
+             COALESCE(b.branch_name, 'المقر الرئيسي') AS branch_name,
+             COALESCE(b.branch_code, 'HQ') AS branch_code
       FROM account_move m
       JOIN account_journal j ON m.journal_id = j.id
-      ORDER BY m.date DESC, m.id DESC
-      LIMIT 100
-    `);
+      LEFT JOIN branches b ON m.branch_id = b.id
+    `;
+    const params = [];
+    if (branchId && branchId !== 'all') {
+      query += ` WHERE m.branch_id = ?`;
+      params.push(branchId);
+    }
+    query += ` ORDER BY m.date DESC, m.id DESC LIMIT 100`;
+
+    const [moves] = await appPool.query(query, params);
 
     // إرفاق سطور القيود لكل قيد
     for (const move of moves) {
@@ -152,7 +170,7 @@ exports.createMove = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    const { date, ref, journal_id, lines, state = 'posted' } = req.body;
+    const { date, ref, journal_id, lines, state = 'posted', branch_id } = req.body;
     if (!date || !journal_id || !lines || !Array.isArray(lines) || lines.length < 2) {
       await connection.rollback();
       return res.status(400).json({ status: 'error', message: 'بيانات القيد غير مكتملة، يجب إدخال طرفين على الأقل' });
@@ -190,11 +208,11 @@ exports.createMove = async (req, res) => {
     const seq = String(countRows[0].count + 1).padStart(4, '0');
     const moveName = `${journalCode}/${year}/${seq}`;
 
-    // إدراج القيد الرئيسي
+    // إدراج القيد الرئيسي مع ربطه بالفرع
     const [moveResult] = await connection.query(
-      `INSERT INTO account_move (name, date, ref, journal_id, state, total_amount, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [moveName, date, ref || null, journal_id, state, totalDebit, req.user?.id || null]
+      `INSERT INTO account_move (name, date, ref, journal_id, state, total_amount, created_by, branch_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [moveName, date, ref || null, journal_id, state, totalDebit, req.user?.id || null, branch_id || 1]
     );
     const moveId = moveResult.insertId;
 
@@ -230,13 +248,18 @@ exports.createMove = async (req, res) => {
 // أ) تقرير الأرباح والخسائر (Profit & Loss / P&L)
 exports.getProfitAndLoss = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
-    let dateFilter = "";
+    const { startDate, endDate, branchId } = req.query;
+    let extraFilter = "";
     const params = [];
 
     if (startDate && endDate) {
-      dateFilter = "AND m.date BETWEEN ? AND ?";
+      extraFilter += " AND m.date BETWEEN ? AND ?";
       params.push(startDate, endDate);
+    }
+
+    if (branchId && branchId !== 'all') {
+      extraFilter += " AND m.branch_id = ?";
+      params.push(branchId);
     }
 
     const [rows] = await appPool.query(`
@@ -246,7 +269,7 @@ exports.getProfitAndLoss = async (req, res) => {
         COALESCE(SUM(l.credit), 0) AS total_credit
       FROM account_account a
       LEFT JOIN account_move_line l ON a.id = l.account_id
-      LEFT JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${dateFilter}
+      LEFT JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${extraFilter}
       WHERE a.account_type IN ('income', 'expense_direct_cost', 'expense')
       GROUP BY a.id, a.code, a.name, a.account_type
       ORDER BY a.code ASC
@@ -312,13 +335,18 @@ exports.getProfitAndLoss = async (req, res) => {
 // ب) الميزانية العمومية (Balance Sheet)
 exports.getBalanceSheet = async (req, res) => {
   try {
-    const { asOfDate } = req.query;
+    const { asOfDate, branchId } = req.query;
     let dateFilter = "";
     const params = [];
 
     if (asOfDate) {
-      dateFilter = "AND m.date <= ?";
+      dateFilter += " AND m.date <= ?";
       params.push(asOfDate);
+    }
+
+    if (branchId && branchId !== 'all') {
+      dateFilter += " AND m.branch_id = ?";
+      params.push(branchId);
     }
 
     const [rows] = await appPool.query(`
@@ -399,6 +427,15 @@ exports.getBalanceSheet = async (req, res) => {
 // ج) ميزان المراجعة (Trial Balance)
 exports.getTrialBalance = async (req, res) => {
   try {
+    const { branchId } = req.query;
+    let branchFilter = "";
+    const params = [];
+
+    if (branchId && branchId !== 'all') {
+      branchFilter = "AND m.branch_id = ?";
+      params.push(branchId);
+    }
+
     const [rows] = await appPool.query(`
       SELECT 
         a.id, a.code, a.name, a.account_type,
@@ -406,11 +443,11 @@ exports.getTrialBalance = async (req, res) => {
         COALESCE(SUM(l.credit), 0) AS total_credit
       FROM account_account a
       LEFT JOIN account_move_line l ON a.id = l.account_id
-      LEFT JOIN account_move m ON l.move_id = m.id AND m.state = 'posted'
+      LEFT JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
       WHERE a.is_active = 1
       GROUP BY a.id, a.code, a.name, a.account_type
       ORDER BY a.code ASC
-    `);
+    `, params);
 
     let sumDebit = 0;
     let sumCredit = 0;
@@ -451,15 +488,24 @@ exports.getTrialBalance = async (req, res) => {
 // د) نظرة عامة سريعة للتحليلات (Financial Analytics Dashboard)
 exports.getFinancialOverview = async (req, res) => {
   try {
+    const { branchId } = req.query;
+    let branchFilter = "";
+    const params = [];
+
+    if (branchId && branchId !== 'all') {
+      branchFilter = "AND m.branch_id = ?";
+      params.push(branchId);
+    }
+
     // 1. السيولة النقدية المتوفرة (كاش وبنك)
     const [liquidityRows] = await appPool.query(`
       SELECT 
         COALESCE(SUM(l.debit - l.credit), 0) AS liquid_balance
       FROM account_account a
       JOIN account_move_line l ON a.id = l.account_id
-      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted'
+      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
       WHERE a.account_type = 'asset_cash'
-    `);
+    `, params);
 
     // 2. إجمالي مبيعات الشهر الحالي
     const [monthlyRevenueRows] = await appPool.query(`
@@ -467,9 +513,9 @@ exports.getFinancialOverview = async (req, res) => {
         COALESCE(SUM(l.credit - l.debit), 0) AS current_month_revenue
       FROM account_account a
       JOIN account_move_line l ON a.id = l.account_id
-      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted'
+      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
       WHERE a.account_type = 'income' AND MONTH(m.date) = MONTH(CURRENT_DATE()) AND YEAR(m.date) = YEAR(CURRENT_DATE())
-    `);
+    `, params);
 
     // 3. إجمالي مصاريف وتكاليف الشهر الحالي
     const [monthlyExpenseRows] = await appPool.query(`
@@ -477,9 +523,9 @@ exports.getFinancialOverview = async (req, res) => {
         COALESCE(SUM(l.debit - l.credit), 0) AS current_month_expense
       FROM account_account a
       JOIN account_move_line l ON a.id = l.account_id
-      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted'
+      JOIN account_move m ON l.move_id = m.id AND m.state = 'posted' ${branchFilter}
       WHERE a.account_type IN ('expense', 'expense_direct_cost') AND MONTH(m.date) = MONTH(CURRENT_DATE()) AND YEAR(m.date) = YEAR(CURRENT_DATE())
-    `);
+    `, params);
 
     const cashAndBank = parseFloat(liquidityRows[0]?.liquid_balance) || 0;
     const monthlyRevenue = parseFloat(monthlyRevenueRows[0]?.current_month_revenue) || 0;
@@ -501,3 +547,83 @@ exports.getFinancialOverview = async (req, res) => {
     res.status(500).json({ status: 'error', message: err.message });
   }
 };
+
+// هـ) التقرير المقارن المجمع لأداء الفروع (Multi-Branch Performance Comparison)
+exports.getBranchFinancialComparison = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    let dateFilter = "";
+    const params = [];
+    if (startDate && endDate) {
+      dateFilter = "AND m.date BETWEEN ? AND ?";
+      params.push(startDate, endDate);
+    }
+
+    const [rows] = await appPool.query(`
+      SELECT 
+        b.id AS branch_id,
+        b.branch_name,
+        b.branch_code,
+        b.currency,
+        b.is_headquarters,
+        COALESCE(SUM(CASE WHEN a.account_type = 'income' THEN (l.credit - l.debit) ELSE 0 END), 0) AS revenue,
+        COALESCE(SUM(CASE WHEN a.account_type = 'expense_direct_cost' THEN (l.debit - l.credit) ELSE 0 END), 0) AS cogs,
+        COALESCE(SUM(CASE WHEN a.account_type = 'expense' THEN (l.debit - l.credit) ELSE 0 END), 0) AS operating_expenses
+      FROM branches b
+      LEFT JOIN account_move m ON b.id = m.branch_id AND m.state = 'posted' ${dateFilter}
+      LEFT JOIN account_move_line l ON m.id = l.move_id
+      LEFT JOIN account_account a ON l.account_id = a.id
+      WHERE b.is_active = 1
+      GROUP BY b.id, b.branch_name, b.branch_code, b.currency, b.is_headquarters
+      ORDER BY revenue DESC
+    `, params);
+
+    const totalGroupRevenue = rows.reduce((sum, r) => sum + parseFloat(r.revenue || 0), 0);
+    const totalGroupNetProfit = rows.reduce((sum, r) => {
+      const gross = parseFloat(r.revenue || 0) - parseFloat(r.cogs || 0);
+      const net = gross - parseFloat(r.operating_expenses || 0);
+      return sum + net;
+    }, 0);
+
+    const comparison = rows.map(r => {
+      const rev = parseFloat(r.revenue) || 0;
+      const cogs = parseFloat(r.cogs) || 0;
+      const opex = parseFloat(r.operating_expenses) || 0;
+      const grossProfit = rev - cogs;
+      const netProfit = grossProfit - opex;
+      const grossMargin = rev > 0 ? ((grossProfit / rev) * 100).toFixed(2) : 0;
+      const netMargin = rev > 0 ? ((netProfit / rev) * 100).toFixed(2) : 0;
+      const contributionPercent = totalGroupRevenue > 0 ? ((rev / totalGroupRevenue) * 100).toFixed(1) : 0;
+
+      return {
+        branchId: r.branch_id,
+        branchName: r.branch_name,
+        branchCode: r.branch_code,
+        currency: r.currency,
+        isHeadquarters: !!r.is_headquarters,
+        revenue: rev,
+        cogs: cogs,
+        grossProfit: grossProfit,
+        operatingExpenses: opex,
+        netProfit: netProfit,
+        grossMargin: parseFloat(grossMargin),
+        netMargin: parseFloat(netMargin),
+        contributionPercent: parseFloat(contributionPercent)
+      };
+    });
+
+    res.json({
+      status: 'success',
+      data: {
+        totalGroupRevenue,
+        totalGroupNetProfit,
+        currency: 'IQD',
+        branches: comparison
+      }
+    });
+  } catch (err) {
+    console.error('❌ خطأ في getBranchFinancialComparison:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+

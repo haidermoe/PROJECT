@@ -23,6 +23,9 @@
         <a href="/dashboard/dashboard.html" class="menu-item">
           <span>🏠</span> الصفحة الرئيسية
         </a>
+        <a href="/branches.html" class="menu-item">
+          <span>🏢</span> الفروع والشركات
+        </a>
         <a href="/waiter.html" class="menu-item">
           <span>📱</span> شاشة طلبات الويترية (POS)
         </a>
@@ -47,13 +50,24 @@
     <!-- المحتوى الرئيسي -->
     <main class="main-content">
       <header class="topbar">
-        <h1 class="page-title">📈 الحسابات والتحليلات المالية</h1>
-        <div style="display:flex; gap: 10px;">
+        <div>
+          <h1 class="page-title">📈 الحسابات والتحليلات المالية</h1>
+          <div style="display:flex; align-items:center; gap: 8px; margin-top: 4px;">
+            <label style="font-size: 0.85rem; color: #94a3b8; font-weight: 600;">نطاق التوحيد المالي:</label>
+            <select id="accountingBranchFilter" class="form-control" style="padding: 4px 10px; font-size: 0.85rem; width: auto; background: #0f172a; border-color: #3b82f6;" onchange="onAccountingBranchChange()">
+              <option value="all">🌐 كل الفروع (الميزانية الموحدة للشركة القابضة - Consolidated)</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; gap: 10px; align-items: center;">
+          <a href="/branches.html" class="btn-secondary" style="text-decoration:none; padding: 10px 14px;">
+            <span>🏢 الفروع والمناقلات</span>
+          </a>
           <a href="/waiter.html" class="btn-primary" style="background:#10b981; text-decoration:none;">
             <span>📱 شاشة الويتر</span>
           </a>
           <button class="btn-primary" onclick="openNewMoveModal()">
-            <span>➕ إنشاء قيد محاسبي جديد</span>
+            <span>➕ إنشاء قيد جديد</span>
           </button>
         </div>
       </header>
@@ -74,6 +88,9 @@
         </button>
         <button class="tab-btn" id="tab-btn-tb" onclick="switchTab('tb')">
           ⚖️ ميزان المراجعة (Trial Balance)
+        </button>
+        <button class="tab-btn" id="tab-btn-branch-comp" onclick="switchTab('branch-comp')">
+          🏢 مقارنة أداء الفروع (Branch Performance)
         </button>
       </nav>
 
@@ -255,6 +272,39 @@
           </table>
         </div>
       </section>
+
+      <!-- تبويب 6: مقارنة أداء الفروع -->
+      <section class="tab-panel" id="panel-branch-comp">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+          <div>
+            <h3 style="color:#f1f5f9; font-size:1.15rem;">🏢 مقارنة الأداء المالي والربحية بين فروع المجموعة</h3>
+            <small style="color:#94a3b8;">مقارنة الإيرادات، كلفة البضاعة المباعة، مجمل الربح، والمصاريف التشغيلية وصافي المساهمة لكل فرع</small>
+          </div>
+          <button class="btn-primary" style="background:#8b5cf6;" onclick="loadBranchComparison()">
+            <span>🔄 تحديث المقارنة</span>
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>كود الفرع</th>
+                <th>اسم الفرع / الشركة</th>
+                <th>المدينة</th>
+                <th>إجمالي الإيرادات</th>
+                <th>كلفة المبيعات (COGS)</th>
+                <th>مجمل الربح</th>
+                <th>المصاريف التشغيلية</th>
+                <th>صافي الربح</th>
+                <th>هامش الربح %</th>
+                <th>نسبة المساهمة في المجموعة %</th>
+              </tr>
+            </thead>
+            <tbody id="branchCompTableBody"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -267,12 +317,16 @@
 
       <div style="display:flex; gap: 12px;">
         <div class="form-group" style="flex:1;">
-          <label>تاريخ القيد:</label>
-          <input type="date" id="newMoveDate" class="form-control" />
+          <label>الفرع / الشركة التابعة:</label>
+          <select id="newMoveBranch" class="form-control"></select>
         </div>
         <div class="form-group" style="flex:1;">
           <label>دفتر اليومية:</label>
           <select id="newMoveJournal" class="form-control"></select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>تاريخ القيد:</label>
+          <input type="date" id="newMoveDate" class="form-control" />
         </div>
       </div>
 

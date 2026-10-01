@@ -38,6 +38,10 @@ function initSidebar() {
         item.classList.add('active');
       } else if (href === '/shifts.html' && (currentPath === '/shifts.html' || currentPath.includes('/shifts'))) {
         item.classList.add('active');
+      } else if (href === '/branches.html' && currentPath.includes('/branches')) {
+        item.classList.add('active');
+      } else if (href === '/accounting.html' && currentPath.includes('/accounting')) {
+        item.classList.add('active');
       }
     }
   });
@@ -170,6 +174,46 @@ function initSidebar() {
         }
       }
       
+      // Global Branch Switcher في السايدبار للمدراء
+      if (['admin', 'manager', 'kitchen_manager'].includes(user.role)) {
+        let existingSwitcher = root.querySelector('.sidebar-branch-switcher');
+        if (!existingSwitcher && menuContainer) {
+          const switcherDiv = document.createElement('div');
+          switcherDiv.className = 'sidebar-branch-switcher';
+          switcherDiv.style.cssText = 'padding: 10px 12px; margin: 8px 12px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; font-size: 0.82rem;';
+          switcherDiv.innerHTML = `
+            <div style="color: #94a3b8; margin-bottom: 6px; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+              <span>🏢 نطاق الفرع:</span>
+              <a href="/branches.html" style="color:#38bdf8; text-decoration:none; font-size:0.75rem;">إدارة الفروع</a>
+            </div>
+            <select id="globalSidebarBranchSelect" style="width:100%; background:#1e293b; color:#f8fafc; border:1px solid #475569; border-radius:6px; padding:6px 8px; font-size:0.82rem; outline:none; cursor:pointer;">
+              <option value="all">🌐 كل الفروع (موحد)</option>
+            </select>
+          `;
+          menuContainer.insertBefore(switcherDiv, menuContainer.firstChild);
+
+          const token = localStorage.getItem('token');
+          if (token) {
+            fetch('/api/branches', { headers: { 'Authorization': `Bearer ${token}` } })
+              .then(res => res.json())
+              .then(res => {
+                if (res.status === 'success' && res.data) {
+                  const sel = switcherDiv.querySelector('#globalSidebarBranchSelect');
+                  if (sel) {
+                    sel.innerHTML = '<option value="all">🌐 كل الفروع (موحد)</option>' +
+                      res.data.map(b => `<option value="${b.id}">🏢 ${b.name}</option>`).join('');
+                    sel.value = localStorage.getItem('selected_branch_id') || 'all';
+                    sel.onchange = () => {
+                      localStorage.setItem('selected_branch_id', sel.value);
+                      window.location.reload();
+                    };
+                  }
+                }
+              }).catch(e => console.warn('لم يتم جلب الفروع للسايدبار:', e.message));
+          }
+        }
+      }
+
       // طباعة معلومات المستخدم في Console للمساعدة في التشخيص
       console.log('👤 معلومات المستخدم الحالي:', {
         username: user.username,

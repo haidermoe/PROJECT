@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>إدارة الشركات والفروع والمناقلات | Multi-Company Consolidation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="branches.css" />
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي -->
+    <aside class="sidebar">
+      <div class="brand-box">
+        <span style="font-size: 1.5rem;">🏢</span>
+        <div>
+          <div class="brand-title">إدارة الشركات والفروع</div>
+          <small style="color: #94a3b8;">معايير Odoo Consolidation</small>
+        </div>
+      </div>
+
+      <nav class="menu">
+        <a href="/dashboard/dashboard.html" class="menu-item">
+          <span>🏠</span> الصفحة الرئيسية
+        </a>
+        <a href="/branches.html" class="menu-item active">
+          <span>🏢</span> الفروع والشركات
+        </a>
+        <a href="/waiter.html" class="menu-item">
+          <span>📱</span> شاشة طلبات الويترية (POS)
+        </a>
+        <a href="/accounting.html" class="menu-item">
+          <span>💰</span> شجرة الحسابات والمالية
+        </a>
+        <a href="/inventory.html" class="menu-item">
+          <span>📦</span> إدارة المخزن
+        </a>
+        <a href="/recipes.html" class="menu-item">
+          <span>🍳</span> الوصفات والإنتاج
+        </a>
+        <a href="/settings.html" class="menu-item">
+          <span>⚙️</span> إعدادات النظام وطابعات POS
+        </a>
+        <a href="#" class="menu-item logout" id="logoutBtn">
+          <span>🚪</span> تسجيل الخروج
+        </a>
+      </nav>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">🏢 إدارة الفروع والمطابخ المركزية (Multi-Branch)</h1>
+          <small style="color: #94a3b8;">إدارة الفروع، المناقلات المخزنية، والتقارير المالية الموحدة للمجموعة</small>
+        </div>
+        <div style="display:flex; gap: 10px;">
+          <button class="btn-primary" style="background:#8b5cf6;" onclick="openTransferModal()">
+            <span>🚚 إنشاء مناقلة مخزنية بين الفروع</span>
+          </button>
+          <button class="btn-primary" onclick="openBranchModal()">
+            <span>➕ إضافة فرع جديد</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- مؤشرات الأداء الموحدة للمجموعة (Holding Consolidated KPIs) -->
+      <div style="padding: 24px 24px 0;">
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">🏢 عدد الفروع النشطة</span>
+            <div class="kpi-value" id="kpiTotalBranches">0</div>
+            <span class="kpi-sub">المطابخ المركزية وفروع الصالة</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">📈 إجمالي مبيعات اليوم الموحدة</span>
+            <div class="kpi-value" id="kpiConsolidatedSales" style="color:#10b981;">0 د.ع</div>
+            <span class="kpi-sub">كافة الفروع المسجلة</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">💰 صافي الأرباح الموحدة (هذا الشهر)</span>
+            <div class="kpi-value" id="kpiConsolidatedNet" style="color:#38bdf8;">0 د.ع</div>
+            <span class="kpi-sub" id="kpiNetMarginSub">هامش الربح العام: 0%</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">🚚 شحنات في الطريق بين الفروع</span>
+            <div class="kpi-value" id="kpiTransfersInTransit" style="color:#f59e0b;">0</div>
+            <span class="kpi-sub">بانتظار تأكيد استلام الوجهة</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- شريط التبويبات -->
+      <nav class="tabs-nav">
+        <button class="tab-btn active" id="tab-btn-branches" onclick="switchBranchTab('branches')">
+          🏢 قائمة الفروع والمواقع (Branches Grid)
+        </button>
+        <button class="tab-btn" id="tab-btn-transfers" onclick="switchBranchTab('transfers')">
+          🚚 المناقلات المخزنية واللوجستية (Inter-Branch Transfers)
+        </button>
+        <button class="tab-btn" id="tab-btn-consolidation" onclick="switchBranchTab('consolidation')">
+          📊 المقارنة المالية والأداء الموحد (Consolidated Performance)
+        </button>
+      </nav>
+
+      <!-- تبويب 1: شبكة الفروع -->
+      <section class="tab-panel active" id="panel-branches">
+        <div class="branch-grid" id="branchesGrid">
+          <!-- كروت الفروع ديناميكياً -->
+        </div>
+      </section>
+
+      <!-- تبويب 2: المناقلات المخزنية -->
+      <section class="tab-panel" id="panel-transfers">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+          <h3 style="color:#f1f5f9; font-size:1.1rem;">سجل شحنات ومناقلات المواد بين المطابخ المركزية والفروع</h3>
+          <button class="btn-primary" style="background:#8b5cf6; padding: 8px 14px;" onclick="openTransferModal()">
+            <span>➕ شحنة جديدة</span>
+          </button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>رقم الشحنة</th>
+                <th>فرع المصدر (مرسل)</th>
+                <th>فرع الوجهة (مستلم)</th>
+                <th>المادة المنقولة</th>
+                <th>الكمية المنقولة</th>
+                <th>الحالة</th>
+                <th>تاريخ الإرسال</th>
+                <th>المرسل</th>
+                <th>تاريخ الاستلام</th>
+                <th>الإجراء</th>
+              </tr>
+            </thead>
+            <tbody id="transfersTableBody">
+              <!-- أسطر الشحنات -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- تبويب 3: المقارنة المالية والتشغيلية الموحدة -->
+      <section class="tab-panel" id="panel-consolidation">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+          <div>
+            <h3 style="color:#f1f5f9; font-size:1.1rem;">📊 التحليل المالي المقارن لفروع المجموعة (Multi-Company P&L)</h3>
+            <small style="color:#94a3b8;">مقارنة الإيرادات، التكاليف المباشرة، المصاريف التشغيلية، وصافي مساهمة كل فرع</small>
+          </div>
+          <a href="/accounting.html" class="btn-secondary" style="text-decoration:none;">
+            <span>💰 الانتقال للدفاتر المحاسبية</span>
+          </a>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>كود الفرع</th>
+                <th>اسم الفرع</th>
+                <th>النوع / المدينة</th>
+                <th>إجمالي المبيعات</th>
+                <th>تكلفة المبيعات (COGS)</th>
+                <th>مجمل الربح</th>
+                <th>المصاريف التشغيلية</th>
+                <th>صافي الربح</th>
+                <th>هامش الربح %</th>
+                <th>المساهمة في المجموعة %</th>
+              </tr>
+            </thead>
+            <tbody id="consolidationTableBody">
+              <!-- أسطر المقارنة -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- نافذة إنشاء / تعديل فرع -->
+  <div class="modal-overlay" id="branchModal">
+    <div class="modal-box">
+      <h2 id="branchModalTitle" style="font-size:1.2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        ➕ إضافة فرع أو مطبخ مركزي جديد
+      </h2>
+      <input type="hidden" id="branchIdField" />
+
+      <div style="display:flex; gap: 12px;">
+        <div class="form-group" style="flex:2;">
+          <label>اسم الفرع أو الشركة:</label>
+          <input type="text" id="branchNameField" class="form-control" placeholder="مثال: فرع الكرادة، المطبخ المركزي الرئيسي" required />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>كود الفرع (Code):</label>
+          <input type="text" id="branchCodeField" class="form-control" placeholder="مثال: KRD01" required />
+        </div>
+      </div>
+
+      <div style="display:flex; gap: 12px;">
+        <div class="form-group" style="flex:1;">
+          <label>نوع الموقع (Type):</label>
+          <select id="branchTypeField" class="form-control">
+            <option value="branch">فرع صالة ومطعم (Restaurant Branch)</option>
+            <option value="central_kitchen">مطبخ مركزي ومستودع تموين (Central Kitchen)</option>
+            <option value="warehouse">مستودع رئيسي (Central Warehouse)</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>المدينة / المحافظة:</label>
+          <input type="text" id="branchCityField" class="form-control" placeholder="مثال: بغداد، أربيل، البصرة" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>العنوان بالتفصيل:</label>
+        <input type="text" id="branchAddressField" class="form-control" placeholder="الشارع، المنطقة، رقم المبنى..." />
+      </div>
+
+      <div style="display:flex; gap: 12px;">
+        <div class="form-group" style="flex:1;">
+          <label>رقم هاتف الفرع:</label>
+          <input type="text" id="branchPhoneField" class="form-control" placeholder="0780xxxxxxx" />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>البريد الإلكتروني:</label>
+          <input type="email" id="branchEmailField" class="form-control" placeholder="branch@domain.com" />
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap: 10px; margin-top: 10px;">
+        <button type="button" class="btn-primary" style="background:#475569;" onclick="closeBranchModal()">إلغاء</button>
+        <button type="button" class="btn-primary" style="background:#10b981;" onclick="submitBranch()">حفظ الفرع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة إنشاء مناقلة مخزنية بين الفروع -->
+  <div class="modal-overlay" id="transferModal">
+    <div class="modal-box">
+      <h2 style="font-size:1.2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+        🚚 مناقلة مخزنية بين الفروع والمطابخ المركزية
+      </h2>
+
+      <div style="display:flex; gap: 12px;">
+        <div class="form-group" style="flex:1;">
+          <label>الفرع المصدر (المرسل):</label>
+          <select id="transferFromBranch" class="form-control" onchange="onSourceBranchChange()"></select>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>الفرع الوجهة (المستلم):</label>
+          <select id="transferToBranch" class="form-control"></select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>المادة / المكون المراد تحويله:</label>
+        <select id="transferIngredient" class="form-control" onchange="onIngredientChange()">
+          <option value="">-- اختر مادة من مخزن المصدر --</option>
+        </select>
+        <small id="sourceStockNotice" style="color:#38bdf8; margin-top: 4px;">الرصيد المتاح في فرع المصدر: --</small>
+      </div>
+
+      <div style="display:flex; gap: 12px;">
+        <div class="form-group" style="flex:1;">
+          <label>الكمية المنقولة:</label>
+          <input type="number" id="transferQuantity" class="form-control" step="0.01" min="0.01" placeholder="0.00" required />
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label>الوحدة:</label>
+          <input type="text" id="transferUnitDisplay" class="form-control" readonly placeholder="--" style="background:#172033;" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>ملاحظات الشحنة / السائق / المرجع:</label>
+        <input type="text" id="transferNotes" class="form-control" placeholder="مثال: شحنة صوصات ولحوم مجمدة مع السائق علي..." />
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap: 10px; margin-top: 10px;">
+        <button type="button" class="btn-primary" style="background:#475569;" onclick="closeTransferModal()">إلغاء</button>
+        <button type="button" class="btn-primary" style="background:#8b5cf6;" onclick="submitInterBranchTransfer()">🚀 إرسال الشحنة (في الطريق)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="branches.js"></script>
+</body>
+</html>

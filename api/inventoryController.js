@@ -14,8 +14,9 @@ const { appPool } = require('../database/appConnection');
 // ===============================
 exports.getItems = async (req, res) => {
   try {
-    const [rows] = await appPool.query(`
-      SELECT i.id, i.name, i.unit, i.stock_quantity,
+    const branchId = req.query.branch_id || req.headers['x-branch-id'];
+    let query = `
+      SELECT i.id, i.name, i.unit, i.stock_quantity, i.branch_id,
              COALESCE(i.material_type, 'raw') AS material_type,
              i.recipe_id,
              COALESCE(r.item_name, r.name) AS production_recipe_name,
@@ -25,8 +26,15 @@ exports.getItems = async (req, res) => {
              END AS status
       FROM ingredients i
       LEFT JOIN recipes r ON i.recipe_id = r.id
-      ORDER BY i.id DESC
-    `);
+    `;
+    const params = [];
+    if (branchId && branchId !== 'all') {
+      query += ` WHERE (i.branch_id = ? OR (i.branch_id IS NULL AND ? = 1))`;
+      params.push(parseInt(branchId), parseInt(branchId));
+    }
+    query += ` ORDER BY i.id DESC`;
+
+    const [rows] = await appPool.query(query, params);
     
     // إضافة min_qty افتراضي إذا لم يكن موجوداً
     const items = rows.map(item => ({
@@ -140,13 +148,14 @@ exports.addItem = async (req, res) => {
 
   const finalType = material_type === 'manufactured' ? 'manufactured' : 'raw';
   const finalRecipeId = finalType === 'manufactured' && recipe_id ? parseInt(recipe_id) : null;
+  const branchId = req.body.branch_id || req.headers['x-branch-id'] || 1;
 
   try {
     await appPool.query(
-      "INSERT INTO ingredients (name, unit, stock_quantity, material_type, recipe_id) VALUES (?,?,?,?,?)",
-      [name, unit, parseFloat(quantity) || 0, finalType, finalRecipeId]
+      "INSERT INTO ingredients (name, unit, stock_quantity, material_type, recipe_id, branch_id) VALUES (?,?,?,?,?,?)",
+      [name, unit, parseFloat(quantity) || 0, finalType, finalRecipeId, parseInt(branchId)]
     );
-    res.json({ status: "success", message: "تم إضافة المادة بنجاح وتحديد تصنيفها" });
+    res.json({ status: "success", message: "تم إضافة المادة بنجاح وتحديد تصنيفها والفرع" });
   } catch (err) {
     console.error('❌ خطأ في inventoryController:', err);
     res.status(500).json({ status: "error", message: err.message });

@@ -138,6 +138,45 @@ async function initAccountingAndPosTables() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       INDEX idx_str_status (status),
       INDEX idx_str_station (station_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+    // 9. جدول الشركات والفروع (Multi-Company / Multi-Branch)
+    `CREATE TABLE IF NOT EXISTS branches (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      company_name VARCHAR(150) NOT NULL DEFAULT 'مجموعة المطاعم القابضة',
+      branch_name VARCHAR(150) NOT NULL,
+      branch_code VARCHAR(30) NOT NULL UNIQUE,
+      currency VARCHAR(10) NOT NULL DEFAULT 'IQD',
+      is_headquarters BOOLEAN NOT NULL DEFAULT FALSE,
+      phone VARCHAR(50) NULL,
+      address VARCHAR(255) NULL,
+      manager_name VARCHAR(100) NULL,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_branch_code (branch_code),
+      INDEX idx_is_active (is_active)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`,
+
+    // 10. جدول التحويلات اللوجستية بين الفروع (Inter-Branch Transfers)
+    `CREATE TABLE IF NOT EXISTS inter_branch_transfers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      transfer_number VARCHAR(64) NOT NULL UNIQUE,
+      from_branch_id INT NOT NULL,
+      to_branch_id INT NOT NULL,
+      ingredient_id INT NOT NULL,
+      quantity DECIMAL(12,3) NOT NULL,
+      unit VARCHAR(30) NOT NULL,
+      status ENUM('pending', 'in_transit', 'received', 'cancelled') NOT NULL DEFAULT 'in_transit',
+      notes TEXT NULL,
+      shipped_by INT NULL,
+      received_by INT NULL,
+      shipped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      received_at DATETIME NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_ibt_status (status),
+      INDEX idx_ibt_from (from_branch_id),
+      INDEX idx_ibt_to (to_branch_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`
   ];
 
@@ -158,11 +197,18 @@ async function initAccountingAndPosTables() {
     `ALTER TABLE pos_orders ADD COLUMN waiter_name VARCHAR(100) NULL`,
     `ALTER TABLE pos_orders ADD COLUMN payment_method VARCHAR(50) NULL`,
     `ALTER TABLE pos_orders ADD COLUMN notes TEXT NULL`,
+    `ALTER TABLE pos_orders ADD COLUMN branch_id INT NULL DEFAULT 1`,
     `ALTER TABLE pos_items ADD COLUMN recipe_id INT NULL`,
     `ALTER TABLE waste_records ADD COLUMN station_id INT NULL`,
     `ALTER TABLE waste_records ADD COLUMN deducted_from ENUM('station', 'main_store') DEFAULT 'station'`,
     `ALTER TABLE ingredients ADD COLUMN material_type ENUM('raw', 'manufactured') NOT NULL DEFAULT 'raw'`,
-    `ALTER TABLE ingredients ADD COLUMN recipe_id INT NULL`
+    `ALTER TABLE ingredients ADD COLUMN recipe_id INT NULL`,
+    `ALTER TABLE ingredients ADD COLUMN branch_id INT NULL DEFAULT 1`,
+    `ALTER TABLE account_move ADD COLUMN branch_id INT NULL DEFAULT 1`,
+    `ALTER TABLE pos_stations ADD COLUMN branch_id INT NULL DEFAULT 1`,
+    `ALTER TABLE pos_floors ADD COLUMN branch_id INT NULL DEFAULT 1`,
+    `ALTER TABLE transactions ADD COLUMN branch_id INT NULL DEFAULT 1`,
+    `ALTER TABLE hr_employees ADD COLUMN branch_id INT NULL DEFAULT 1`
   ];
 
   for (const alter of alterColumns) {
@@ -263,7 +309,34 @@ async function initAccountingAndPosTables() {
     } catch (e) {}
   }
 
-  console.log('✅ [System Migration] تم التحقق من وتهيئة جداول المحاسبة وشاشات الويتر بنجاح.');
+  // 11. تهيئة الفروع الافتراضية للشركات
+  const defaultBranches = [
+    [1, 'مجموعة أركاف الدولية للمطاعم', 'المقر الرئيسي والمطبخ المركزي (Central Kitchen & HQ)', 'CK01', 'IQD', 1, '07700000001', 'بغداد - المركز الرئيسي', 'مدير العمليات'],
+    [2, 'مجموعة أركاف الدولية للمطاعم', 'فرع الكرادة (Karrada Branch)', 'KRD01', 'IQD', 0, '07700000002', 'بغداد - الكرادة خارج', 'علي حسن'],
+    [3, 'مجموعة أركاف الدولية للمطاعم', 'فرع المنصور (Mansour Branch)', 'MNS01', 'IQD', 0, '07700000003', 'بغداد - المنصور - شارع 14 رمضان', 'محمد كريم'],
+    [4, 'مجموعة أركاف الدولية للمطاعم', 'فرع أربيل (Erbil Branch)', 'ERB01', 'IQD', 0, '07700000004', 'أربيل - عينكاوة', 'ريبوار أحمد']
+  ];
+
+  for (const b of defaultBranches) {
+    try {
+      await appPool.query(
+        `INSERT IGNORE INTO branches (id, company_name, branch_name, branch_code, currency, is_headquarters, phone, address, manager_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        b
+      );
+    } catch (e) {}
+  }
+
+  // تحديث السجلات الحالية غير المربوطة بفرع لتكون تابعة للمقر الرئيسي
+  try {
+    await appPool.query(`UPDATE account_move SET branch_id = 1 WHERE branch_id IS NULL OR branch_id = 0`);
+    await appPool.query(`UPDATE pos_orders SET branch_id = 1 WHERE branch_id IS NULL OR branch_id = 0`);
+    await appPool.query(`UPDATE ingredients SET branch_id = 1 WHERE branch_id IS NULL OR branch_id = 0`);
+    await appPool.query(`UPDATE pos_stations SET branch_id = 1 WHERE branch_id IS NULL OR branch_id = 0`);
+    await appPool.query(`UPDATE pos_floors SET branch_id = 1 WHERE branch_id IS NULL OR branch_id = 0`);
+    await appPool.query(`UPDATE transactions SET branch_id = 1 WHERE branch_id IS NULL OR branch_id = 0`);
+  } catch (e) {}
+
+  console.log('✅ [System Migration] تم التحقق من وتهيئة جداول المحاسبة وشاشات الويتر وتعدد الفروع بنجاح.');
 }
 
 module.exports = {
