@@ -381,6 +381,18 @@ exports.getStationStocks = async (req, res) => {
   }
 };
 
+exports.transferToStationStock = async (req, res) => {
+  try {
+    const { stationId, ingredientId, quantity, notes } = req.body;
+    const userId = req.user?.id;
+    const result = await transferToStation({ stationId, ingredientId, quantity, userId, notes });
+    res.json({ status: "success", message: result.message });
+  } catch (err) {
+    console.error('❌ خطأ في transferToStationStock:', err);
+    res.status(400).json({ status: "error", message: err.message });
+  }
+};
+
 // ===============================
 //      حاسبة التغطية والإنتاجية المتوقعة (Yield Calculator)
 // ===============================
