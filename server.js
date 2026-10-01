@@ -130,6 +130,9 @@ app.use('/api/pos-restaurant', require('./api/posRestaurantRoutes'));
 // مسارات تعدد الشركات والفروع والمخازن واللوجستيات المجمعة
 app.use('/api/branches', require('./api/branchesRoutes'));
 
+// مسارات التحضير والباركودات وجرد ومطابقة سكاشن المطبخ
+app.use('/api/kitchen-ops', require('./api/kitchenOperationsRoutes'));
+
 // استيراد middleware للتحقق من التوكن
 const { authMiddleware } = require('./auth/authMiddleware');
 
@@ -174,6 +177,21 @@ app.get('/branches.html', (req, res) => {
 });
 app.get('/branches', (req, res) => {
   res.redirect('/branches.html');
+});
+
+// Explicitly serve kitchen prep and audit
+app.get('/kitchen-prep.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/kitchen-prep.html'));
+});
+app.get('/kitchen-prep', (req, res) => {
+  res.redirect('/kitchen-prep.html');
+});
+
+app.get('/kitchen-audit.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/kitchen-audit.html'));
+});
+app.get('/kitchen-audit', (req, res) => {
+  res.redirect('/kitchen-audit.html');
 });
 
 // Health check endpoint (required by Render and other hosting providers)

@@ -42,6 +42,10 @@ function initSidebar() {
         item.classList.add('active');
       } else if (href === '/accounting.html' && currentPath.includes('/accounting')) {
         item.classList.add('active');
+      } else if (href === '/kitchen-prep.html' && currentPath.includes('/kitchen-prep')) {
+        item.classList.add('active');
+      } else if (href === '/kitchen-audit.html' && currentPath.includes('/kitchen-audit')) {
+        item.classList.add('active');
       }
     }
   });

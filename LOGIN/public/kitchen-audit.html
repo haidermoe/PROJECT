@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>كشف جرد ومطابقة نهاية الشفت وتتبع الويترية | Station Reconciliation & Audit</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="kitchen-audit.css" />
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي -->
+    <aside class="sidebar">
+      <div class="brand-box" style="padding: 20px; border-bottom: 1px solid var(--border-color); display:flex; align-items:center; gap: 10px;">
+        <span style="font-size: 1.5rem;">⚖️</span>
+        <div>
+          <div style="font-size: 1.1rem; font-weight: bold; color: #38bdf8;">مطابقة وجرد السكاشن</div>
+          <small style="color: #94a3b8;">تتبع مبيعات الويترية والفروقات</small>
+        </div>
+      </div>
+
+      <nav class="menu" style="display:flex; flex-direction:column; padding: 16px 12px; gap: 6px;">
+        <a href="/dashboard/dashboard.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>🏠</span> الصفحة الرئيسية
+        </a>
+        <a href="/kitchen-audit.html" class="menu-item active" style="background:#1e293b; color:#38bdf8; text-decoration:none; padding:10px 14px; border-radius:8px; font-weight:bold;">
+          <span>⚖️</span> جرد ومطابقة نهاية الشفت
+        </a>
+        <a href="/kitchen-prep.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>🏷️</span> تحضير الدفعات وطباعة الباركود
+        </a>
+        <a href="/recipes.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>🍳</span> كروت الوصفات (Recipe Cards)
+        </a>
+        <a href="/inventory.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>📦</span> إدارة المخزن
+        </a>
+        <a href="/accounting.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>💰</span> المالية والمحاسبة
+        </a>
+      </nav>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">⚖️ كشف جرد ومطابقة السكشن بنهاية الشفت</h1>
+          <small style="color: #94a3b8;">مطابقة الرصيد المفروض مع الفعلي وتفصيل مبيعات كل ويتر بالاسم والكمية</small>
+        </div>
+        <div style="display:flex; gap: 10px;">
+          <a href="/kitchen-prep.html" class="btn-primary" style="background:#3b82f6; text-decoration:none;">
+            <span>🏷️ شاشة التحضير والباركود</span>
+          </a>
+          <button class="btn-primary" style="background:#10b981;" onclick="submitAudit()">
+            <span>💾 اعتماد وإرسال الجرد للإدارة</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="card">
+        <!-- شريط الفلترة واختيار السكشن -->
+        <div class="filter-bar">
+          <div style="display:flex; flex-direction:column; gap: 4px; min-width: 220px;">
+            <label style="font-size: 0.85rem; color:#94a3b8; font-weight:600;">سكشن المطبخ المراد جرده:</label>
+            <select id="auditStationSelect" class="form-control" onchange="loadStationAudit()">
+              <!-- السكاشن ديناميكياً -->
+            </select>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap: 4px;">
+            <label style="font-size: 0.85rem; color:#94a3b8; font-weight:600;">تاريخ الشفت:</label>
+            <input type="date" id="auditDateInput" class="form-control" onchange="loadStationAudit()" />
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap: 4px;">
+            <label style="font-size: 0.85rem; color:#94a3b8; font-weight:600;">اسم الشفت:</label>
+            <select id="auditShiftName" class="form-control">
+              <option value="الشفت الصباحي">الشفت الصباحي ☀️</option>
+              <option value="الشفت المسائي" selected>الشفت المسائي 🌙</option>
+              <option value="شفت السهرة">شفت السهرة 🌃</option>
+            </select>
+          </div>
+
+          <button class="btn-primary" style="align-self: flex-end; padding: 10px 16px;" onclick="loadStationAudit()">
+            <span>🔄 تحديث الكشف</span>
+          </button>
+
+          <div style="margin-right:auto; display:flex; gap: 10px; align-items:center;">
+            <span id="auditOverallStatusBadge" style="font-size: 0.95rem; font-weight:bold; padding: 6px 14px; border-radius: 20px; background:#1e293b; color:#38bdf8;">
+              جاري فحص المطابقة...
+            </span>
+          </div>
+        </div>
+
+        <!-- جدول المطابقة التفصيلي -->
+        <div class="audit-table-wrap">
+          <table class="audit-table">
+            <thead>
+              <tr>
+                <th>اسم المادة / الصوص</th>
+                <th>الافتتاحي</th>
+                <th>المسحوب بالباركود (+)</th>
+                <th>مبيعات الويترية (-)</th>
+                <th>الهدر المسجل (-)</th>
+                <th style="color:#38bdf8;">الرصيد المفروض باقي</th>
+                <th style="color:#c084fc;">الرصيد الفعلي (بيدك)</th>
+                <th>حالة المطابقة</th>
+                <th>شرح وتبرير الشيف (في حال وجود فرق)</th>
+              </tr>
+            </thead>
+            <tbody id="auditTableBody">
+              <!-- أسطر الجرد -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 20px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="color:#94a3b8; font-size:0.85rem;">
+            💡 <strong>تعليمات الجرد:</strong> أدخل الرصيد الفعلي الموجود بالثلاجة لكل مادة. إذا تطابق مع المفروض سيلوّن بالأخضر ✅. إذا وُجد فرق سيلوّن بالأحمر ⚠️ ويجب كتابة التبرير.
+          </div>
+          <button class="btn-primary" style="background:#10b981; padding: 12px 28px; font-size: 1rem;" onclick="submitAudit()">
+            <span>🚀 حفظ وإغلاق جرد السكشن</span>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- نافذة تفصيل مبيعات الويترية (Waiter Breakdown Modal) -->
+  <div class="modal-overlay" id="waiterBreakdownModal">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom: 12px;">
+        <h3 id="waiterModalTitle" style="color:#f8fafc; font-size:1.15rem;">
+          🍽️ تفصيل مبيعات الويترية للصنف
+        </h3>
+        <button type="button" class="btn-primary" style="background:#475569; padding:4px 10px;" onclick="closeWaiterModal()">✖</button>
+      </div>
+
+      <div style="color:#94a3b8; font-size:0.88rem;" id="waiterModalSub">
+        الأصناف والوجبات التي طلبها الويترية بالصالة واستهلكت من عهدة هذا السكشن اليوم:
+      </div>
+
+      <div class="audit-table-wrap" style="max-height: 350px;">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>اسم الويتر (النادل)</th>
+              <th>الصنف / الوجبة المطلوبة</th>
+              <th>عدد الطلبات</th>
+              <th>إجمالي الكمية المستهلكة من العهدة</th>
+            </tr>
+          </thead>
+          <tbody id="waiterTableBody">
+            <!-- أسطر مبيعات كل ويتر -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top: 10px;">
+        <button type="button" class="btn-primary" style="background:#3b82f6;" onclick="closeWaiterModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="kitchen-audit.js"></script>
+</body>
+</html>

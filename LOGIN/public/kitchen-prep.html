@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>تحضير وجبات المطبخ وطباعة الباركود وسحب العهد | Kitchen Prep & Barcode Labels</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="kitchen-prep.css" />
+  <!-- مكتبة توليد الباركودات المعيارية -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي -->
+    <aside class="sidebar" id="sidebarContainer">
+      <div class="brand-box" style="padding: 20px; border-bottom: 1px solid var(--border-color); display:flex; align-items:center; gap: 10px;">
+        <span style="font-size: 1.5rem;">👨‍🍳</span>
+        <div>
+          <div style="font-size: 1.1rem; font-weight: bold; color: #38bdf8;">عمليات المطبخ والتحضير</div>
+          <small style="color: #94a3b8;">دفعات الإنتاج والباركود</small>
+        </div>
+      </div>
+
+      <nav class="menu" style="display:flex; flex-direction:column; padding: 16px 12px; gap: 6px;">
+        <a href="/dashboard/dashboard.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>🏠</span> الصفحة الرئيسية
+        </a>
+        <a href="/kitchen-prep.html" class="menu-item active" style="background:#1e293b; color:#38bdf8; text-decoration:none; padding:10px 14px; border-radius:8px; font-weight:bold;">
+          <span>🏷️</span> تحضير الدفعات وطباعة الباركود
+        </a>
+        <a href="/kitchen-audit.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>⚖️</span> جرد ومطابقة نهاية الشفت (Audit)
+        </a>
+        <a href="/recipes.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>🍳</span> كروت الوصفات (Recipe Cards)
+        </a>
+        <a href="/inventory.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>📦</span> إدارة المخزن
+        </a>
+        <a href="/accounting.html" class="menu-item" style="color:#94a3b8; text-decoration:none; padding:10px 14px; border-radius:8px;">
+          <span>💰</span> المالية والمحاسبة
+        </a>
+      </nav>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">👨‍🍳 تحضير الوصفات، ملصقات الباركود، وسحب السكاشن</h1>
+          <small style="color: #94a3b8;">حساب مقادير الدفعة، طباعة استيكرات العلب الفردية، وتمرير السكنر لإيداع العهدة</small>
+        </div>
+        <div style="display:flex; gap: 10px;">
+          <a href="/kitchen-audit.html" class="btn-primary" style="background:#8b5cf6; text-decoration:none;">
+            <span>⚖️ شاشة جرد ومطابقة السكشن</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- التبويبات -->
+      <nav class="tabs-nav">
+        <button class="tab-btn active" id="tab-btn-prep" onclick="switchPrepTab('prep')">
+          🍳 1. تحضير دفعة صوص/طبخة وطباعة الباركودات
+        </button>
+        <button class="tab-btn" id="tab-btn-scanner" onclick="switchPrepTab('scanner')">
+          📷 2. مسح الباركود السريع لنقل العلب للسكشن
+        </button>
+      </nav>
+
+      <!-- تبويب 1: التحضير والإنتاج -->
+      <section class="tab-panel active" id="panel-prep">
+        <div class="card">
+          <h3 class="card-title">📝 بيانات الدفعة المراد تحضيرها</h3>
+          <div class="form-grid">
+            <div class="form-group" style="grid-column: span 2;">
+              <label>اختر الوصفة أو الصوص من كروت المطبخ:</label>
+              <select id="prepRecipeSelect" class="form-control" onchange="onRecipeSelected()">
+                <option value="">-- جاري تحميل الوصفات... --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>عدد البورشنات / العلب المراد إنتاجها:</label>
+              <input type="number" id="plannedPortionsInput" class="form-control" min="1" value="20" placeholder="مثال: 50 علبة" oninput="calculatePlan()" />
+            </div>
+            <div class="form-group">
+              <label>حجم البورشن / العلبة الواحدة:</label>
+              <input type="number" step="0.01" id="portionSizeInput" class="form-control" value="0.25" placeholder="مثال: 0.250 لتر" oninput="calculatePlan()" />
+            </div>
+            <div class="form-group">
+              <label>مدة الصلاحية (أيام):</label>
+              <input type="number" id="shelfLifeInput" class="form-control" value="7" />
+            </div>
+          </div>
+
+          <div style="display:flex; gap: 10px; align-items:center;">
+            <button type="button" class="btn-primary" onclick="calculatePlan()">
+              <span>🔍 احتساب مقادير المواد الخام</span>
+            </button>
+            <span id="planStatusMsg" style="font-size:0.9rem; font-weight:600;"></span>
+          </div>
+
+          <!-- جدول المقادير المطلوبة وتوافرها بالمخزن -->
+          <div id="ingredientsCheckContainer" style="display:none; margin-top: 20px;">
+            <h4 style="color:#f8fafc; font-size:1rem; margin-bottom: 8px;">مكونات التحضير المحسوبة من كارت الوصفة:</h4>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>المادة الخام</th>
+                    <th>الكمية المطلوبة للدفعة</th>
+                    <th>الرصيد المتاح بالمخزن</th>
+                    <th>حالة التوفر</th>
+                  </tr>
+                </thead>
+                <tbody id="ingredientsCheckTableBody"></tbody>
+              </table>
+            </div>
+
+            <div style="margin-top: 16px; display:flex; justify-content:flex-end;">
+              <button type="button" id="confirmProduceBtn" class="btn-primary btn-success" style="padding: 12px 24px; font-size: 1rem;" onclick="confirmProduceBatch()">
+                <span>🚀 تأكيد الإنتاج وخصم المواد وطباعة الملصقات 🖨️</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- معاينة طباعة ملصقات الباركود للعلب -->
+        <div class="card" id="labelsPrintCard" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+            <div>
+              <h3 class="card-title" style="margin-bottom: 4px;">🏷️ ملصقات الباركود الفردية المنتجة للدفعة</h3>
+              <small style="color:#94a3b8;" id="labelsSummaryText">جاهزة للطباعة والتلزيق على علب الدفعة</small>
+            </div>
+            <button class="btn-primary" style="background:#10b981;" onclick="window.print()">
+              <span>🖨️ طباعة جميع الملصقات (Print Labels)</span>
+            </button>
+          </div>
+
+          <div class="labels-grid" id="labelsGridContainer">
+            <!-- ملصقات الباركود ديناميكياً -->
+          </div>
+        </div>
+      </section>
+
+      <!-- تبويب 2: مسح الباركود ونقل العلبة للسكشن -->
+      <section class="tab-panel" id="panel-scanner">
+        <div class="card">
+          <h3 class="card-title">📷 ماسح الباركود السريع لتسليم العُهد للسكاشن</h3>
+          <p style="color:#94a3b8; font-size:0.9rem; margin-bottom: 16px;">
+            مرر ماسح الباركود (Barcode Scanner Gun) على علبة الصةص، وسيتم التعرف عليها ونقلها فوراً إلى عهدة السكشن المختار دون كتابة يدوي.
+          </p>
+
+          <div style="display:flex; gap: 16px; margin-bottom: 20px;">
+            <div class="form-group" style="flex:1;">
+              <label>السكشن المستلم (أو امسح كود السكشن):</label>
+              <select id="scanTargetStation" class="form-control" style="border-color:#38bdf8; font-weight:bold; font-size:1.05rem;">
+                <!-- السكاشن ديناميكياً -->
+              </select>
+            </div>
+          </div>
+
+          <div class="scanner-zone">
+            <span style="font-size: 3rem;">📸</span>
+            <h3 style="color:#f8fafc; margin-top: 10px;">امسح باركود العلبة الآن</h3>
+            <p style="color:#94a3b8; font-size:0.85rem;">وجّه القارئ أو اكتب كود الملصق واضغط Enter</p>
+            <input type="text" id="barcodeScanInput" class="scanner-input" placeholder="LBL-BATCH2026... أو سكان" autofocus onkeypress="handleScanKeyPress(event)" />
+            <button type="button" class="btn-primary" style="margin-top: 12px;" onclick="processScan()">
+              <span>📥 تأكيد النقل للسكشن</span>
+            </button>
+            <div class="scan-feedback" id="scanFeedback"></div>
+          </div>
+
+          <!-- سجل عمليات المسح الأخيرة في الشفت -->
+          <h4 style="color:#f8fafc; font-size:1rem; margin-bottom: 8px;">📋 سجل المواد المنقولة للسكشن في هذا الشفت:</h4>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>باركود العلبة</th>
+                  <th>اسم المادة / الصوص</th>
+                  <th>الكمية المنقولة</th>
+                  <th>السكشن المستلم</th>
+                  <th>الوقت</th>
+                </tr>
+              </thead>
+              <tbody id="scanHistoryTableBody">
+                <tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:20px;">لا توجد عمليات مسح حتى الآن</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="kitchen-prep.js"></script>
+</body>
+</html>
