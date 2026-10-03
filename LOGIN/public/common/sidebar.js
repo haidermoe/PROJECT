@@ -18,6 +18,7 @@ const ROLE_MENUS = {
     { title: '📦 المخزن', href: '/inventory.html' },
     { title: '🍳 كروت الوصفات', href: '/recipes.html' },
     { title: '📱 شاشة طلبات الويترية (POS)', href: '/waiter.html' },
+    { title: '🏢 إدارة الصالات والمنيو', href: '/floor-management.html' },
     { title: '🏢 الفروع والتحويلات', href: '/branches.html' },
     { title: '💰 شجرة الحسابات والمالية', href: '/accounting.html' },
     { title: '👥 إدارة الموظفين', href: '/employees.html' },
@@ -39,6 +40,7 @@ const ROLE_MENUS = {
     { title: '📦 المخزن', href: '/inventory.html' },
     { title: '🍳 كروت الوصفات', href: '/recipes.html' },
     { title: '📱 شاشة طلبات الويترية (POS)', href: '/waiter.html' },
+    { title: '🏢 إدارة الصالات والمنيو', href: '/floor-management.html' },
     { title: '🏢 الفروع والتحويلات', href: '/branches.html' },
     { title: '💰 شجرة الحسابات والمالية', href: '/accounting.html' },
     { title: '👥 إدارة الموظفين', href: '/employees.html' },
@@ -65,6 +67,7 @@ const ROLE_MENUS = {
 
   cashier: [
     { title: '📱 شاشة الصالة والطلبات (POS)', href: '/waiter.html' },
+    { title: '🏢 إدارة الصالات والمنيو', href: '/floor-management.html' },
     { title: '💰 شاشة اليومية والمدفوعات', href: '/accounting.html' },
     { title: '⏰ البصمة والحضور', href: '/attendance.html' },
     { title: '📅 طلبات الإجازات', href: '/leaves.html' },
@@ -73,6 +76,7 @@ const ROLE_MENUS = {
 
   hall_manager: [
     { title: '📱 شاشة الطاولات والطلبات (POS)', href: '/waiter.html' },
+    { title: '🏢 إدارة الصالات والمنيو', href: '/floor-management.html' },
     { title: '💰 مبيعات اليومية', href: '/accounting.html' },
     { title: '👥 موظفي الصالة والويترية', href: '/employees.html' },
     { title: '📅 جداول دوام الصالة', href: '/shifts.html' },

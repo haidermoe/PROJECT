@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>إدارة الصالات، الطاولات والمنيو | Floor & Menu Management</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="common/sidebar.css" />
+  <link rel="stylesheet" href="floor-management.css" />
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي -->
+    <aside class="sidebar">
+      <div class="user-box">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar">
+        <div class="username" id="sidebarUsername">مدير الصالة</div>
+      </div>
+
+      <nav class="menu" id="sidebarMenu">
+        <!-- يتم ملؤها تلقائياً عبر sidebar.js -->
+      </nav>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 class="page-title">🏢 إدارة الصالات، الطاولات وقائمة الطعام (POS Setup)</h1>
+          <small class="page-subtitle">تهيئة وتخصيص صالات المطعم، تقسيم الطاولات، وربط الأطباق بكروت الوصفات وسكاشن المطبخ</small>
+        </div>
+        <div style="display:flex; gap: 10px; align-items:center;">
+          <a href="/waiter.html" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+            <span>📱 شاشة الويتر الحية</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- شريط المؤشرات السريعة KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-label">🏢 عدد الصالات والسكشنات</span>
+          <div class="kpi-value" id="kpiFloorsCount">0</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">🍽️ إجمالي عدد الطاولات</span>
+          <div class="kpi-value" id="kpiTablesCount">0</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">🍔 عدد أطباق المنيو النشطة</span>
+          <div class="kpi-value" id="kpiDishesCount">0</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">⚡ الملاحظات السريعة الفعالة</span>
+          <div class="kpi-value" id="kpiNotesCount">0</div>
+        </div>
+      </div>
+
+      <!-- ألسنة التبويب -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('floors')">🏢 1. الصالات والسكشنات</button>
+        <button class="tab-btn" onclick="switchTab('tables')">🍽️ 2. توزيع الطاولات</button>
+        <button class="tab-btn" onclick="switchTab('menu')">🍔 3. المنيو وربط الوصفات</button>
+        <button class="tab-btn" onclick="switchTab('notes')">⚡ 4. ملاحظات المطبخ السريعة</button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 1: إدارة الصالات والسكشنات -->
+      <!-- ============================================== -->
+      <div id="tab-floors" class="tab-pane active">
+        <div class="content-split">
+          <div class="form-card">
+            <h3 class="card-title">➕ إضافة صالة / سكشن جديد</h3>
+            <form id="createFloorForm">
+              <div class="form-group">
+                <label>اسم الصالة / القسم *</label>
+                <input type="text" id="floorNameInput" placeholder="مثلاً: الصالة العائلية، التراس الخارجي، VIP..." required />
+              </div>
+              <div class="form-group">
+                <label>ترتيب الظهور (Sequence)</label>
+                <input type="number" id="floorSeqInput" value="1" min="1" />
+              </div>
+              <button type="submit" class="btn-submit">💾 حفظ الصالة</button>
+            </form>
+          </div>
+
+          <div class="list-card">
+            <h3 class="card-title">📋 الصالات الحالية في النظام</h3>
+            <div id="floorsGrid" class="cards-grid">
+              <!-- بطاقات الصالات -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 2: إدارة الطاولات -->
+      <!-- ============================================== -->
+      <div id="tab-tables" class="tab-pane">
+        <div class="content-split">
+          <div class="form-card">
+            <h3 class="card-title">➕ إضافة طاولة جديدة</h3>
+            <form id="createTableForm">
+              <div class="form-group">
+                <label>اختر الصالة / القسم *</label>
+                <select id="tableFloorSelect" required>
+                  <option value="">-- جارِ التحميل --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>رقم أو اسم الطاولة *</label>
+                <input type="text" id="tableNumberInput" placeholder="مثلاً: T1, طاولة 5, كابينة VIP 1" required />
+              </div>
+              <div class="form-group">
+                <label>عدد المقاعد (Seats)</label>
+                <input type="number" id="tableSeatsInput" value="4" min="1" max="50" required />
+              </div>
+              <button type="submit" class="btn-submit">💾 إضافة الطاولة</button>
+            </form>
+          </div>
+
+          <div class="list-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 class="card-title" style="margin-bottom:0;">📋 الطاولات الموزعة في الصالات</h3>
+              <select id="filterFloorSelect" style="max-width:200px;" onchange="renderTablesList()">
+                <option value="all">كل الصالات</option>
+              </select>
+            </div>
+            <div id="tablesGrid" class="cards-grid">
+              <!-- بطاقات الطاولات -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 3: إدارة المنيو وربط الوصفات -->
+      <!-- ============================================== -->
+      <div id="tab-menu" class="tab-pane">
+        <!-- إشعار الربط المحكم بين المنيو والريسيبي كارد -->
+        <div class="sync-banner">
+          <div class="sync-icon">🔗</div>
+          <div class="sync-text">
+            <strong>الربط التلقائي بين المنيو والمخزن:</strong>
+            عند ربط أي طبق بـ <em>كرت الوصفة (Recipe Card)</em>، يقوم النظام تلقائياً بخصم كميات المواد الأولية من <em>رصيد السكشن في المطبخ</em> لحظة إرسال الويتر للطلب، وتسجيل حركة خروج مبيعات فورية دون أي تدخل يدوي!
+          </div>
+        </div>
+
+        <div class="content-split">
+          <div class="form-card">
+            <h3 class="card-title" id="dishFormTitle">➕ إضافة طبق جديد للمنيو</h3>
+            <form id="dishForm">
+              <input type="hidden" id="editDishId" value="" />
+              <div class="form-group">
+                <label>اسم الطبق / المشروب *</label>
+                <input type="text" id="dishNameInput" placeholder="مثلاً: برجر كلاسيك لحم" required />
+              </div>
+              <div class="form-group">
+                <label>التصنيف (Category) *</label>
+                <input type="text" id="dishCategoryInput" list="categoriesList" placeholder="برجر، مقبلات، مشروبات..." required />
+                <datalist id="categoriesList">
+                  <option value="🍔 برجر وسندويشات"></option>
+                  <option value="🍟 مقبلات وبطاطا"></option>
+                  <option value="🥗 صوصات وإضافات"></option>
+                  <option value="🥤 مشروبات وبار"></option>
+                  <option value="🥩 مشويات ووجبات"></option>
+                  <option value="🍰 حلويات"></option>
+                </datalist>
+              </div>
+              <div class="form-group">
+                <label>السعر للزبون (د.ع) *</label>
+                <input type="number" id="dishPriceInput" placeholder="مثلاً: 7500" step="250" required />
+              </div>
+              <div class="form-group">
+                <label>سكشن المطبخ المسؤول عن التحضير والطباعة *</label>
+                <select id="dishStationSelect" required>
+                  <option value="">-- جارِ تحميل السكاشن --</option>
+                </select>
+                <small class="field-hint">يحدد الطابعة التي يطبع عليها بون الطلب، والسكشن الذي يُخصم منه المخزون.</small>
+              </div>
+              <div class="form-group">
+                <label>ربط بكرت الوصفة المعيارية (Recipe Card)</label>
+                <select id="dishRecipeSelect">
+                  <option value="">-- بدون ربط (صنف جاهز / بدون تكلفة خامات) --</option>
+                </select>
+                <small class="field-hint">عند اختياره يتم ربط الطبق بالمكونات المعيارية للخصم الآلي.</small>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn-submit" style="flex:1;">💾 حفظ الطبق</button>
+                <button type="button" class="btn-cancel" id="cancelEditDishBtn" style="display:none;" onclick="cancelDishEdit()">إلغاء</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="list-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 class="card-title" style="margin-bottom:0;">🍔 قائمة الأطباق الحالية</h3>
+              <input type="text" id="searchMenuInput" placeholder="🔍 بحث في المنيو..." style="max-width:220px;" oninput="filterMenuItems()" />
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>الطبق</th>
+                    <th>التصنيف</th>
+                    <th>السعر</th>
+                    <th>السكشن المسؤول</th>
+                    <th>كرت الوصفة المرتبط</th>
+                    <th>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="menuItemsTableBody">
+                  <!-- بيانات المنيو -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 4: إدارة الملاحظات السريعة (Quick Notes) -->
+      <!-- ============================================== -->
+      <div id="tab-notes" class="tab-pane">
+        <div class="content-split">
+          <div class="form-card">
+            <h3 class="card-title">➕ إضافة ملاحظة سريعة للويتر</h3>
+            <form id="createNoteForm">
+              <div class="form-group">
+                <label>نص الملاحظة السريعة *</label>
+                <input type="text" id="noteTextInput" placeholder="مثلاً: بدون بصل، زيادة صوص، سفري..." required />
+              </div>
+              <div class="form-group">
+                <label>التصنيف</label>
+                <select id="noteCategorySelect">
+                  <option value="عام">عام</option>
+                  <option value="لحوم">لحوم واستواء</option>
+                  <option value="دايت">دايت وحمية</option>
+                  <option value="خدمة">خدمة وتقديم</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-submit">💾 إضافة الملاحظة للويتر</button>
+            </form>
+          </div>
+
+          <div class="list-card">
+            <h3 class="card-title">⚡ شرائح الملاحظات السريعة المتاحة للويترية</h3>
+            <p style="color:#94a3b8; font-size:13px; margin-bottom:16px;">
+              هذه الملاحظات تظهر كأزرار سريعة بنقرة واحدة عند طلب الويتر لأي طبق في شاشة الـ POS، وتُطبع مباشرة على بون المطبخ.
+            </p>
+            <div id="quickNotesChipsGrid" class="chips-management-grid">
+              <!-- شرائح الملاحظات -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="common/sidebar.js"></script>
+  <script src="floor-management.js"></script>
+</body>
+</html>

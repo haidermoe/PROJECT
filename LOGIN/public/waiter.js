@@ -271,22 +271,31 @@ window.changeQty = function(index, delta) {
   renderCart();
 };
 
-const QUICK_KITCHEN_NOTES = [
-  '🧅 بدون بصل',
-  '🍅 بدون طماطم',
-  '🥒 بدون مخلل',
-  '🥪 بدون مايونيز',
-  '🥫 صوص خارجي',
-  '🌶️ شطة زيادة / حار',
-  '🚫 بدون شطة / بارد',
-  '🧀 جبن إضافي',
-  '🔥 مستوي جيداً (Well Done)',
-  '🥩 استواء متوسط (Medium)',
-  '🍞 خبز محمص إضافي',
-  '🧂 بدون ملح',
-  '🥡 سفري / علبة خارجية',
-  '⚠️ حساسية طعام'
+let QUICK_KITCHEN_NOTES = [
+  'بدون بصل',
+  'سبايسي / حار',
+  'بدون ثوم',
+  'صلصة خارجية',
+  'استواء كامل (Well Done)',
+  'نص استواء (Medium)',
+  'بدون ملح',
+  'سفري / تيك اوي',
+  'مستعجل جداً'
 ];
+
+async function loadQuickNotes() {
+  try {
+    const res = await fetch('/api/pos-restaurant/quick-notes', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const result = await res.json();
+    if (result.status === 'success' && Array.isArray(result.data) && result.data.length > 0) {
+      QUICK_KITCHEN_NOTES = result.data.map(n => n.note_text);
+    }
+  } catch (err) {
+    console.warn('تعذر جلب الملاحظات من السيرفر، استخدام الافتراضية:', err);
+  }
+}
 
 let activeItemNotesList = [];
 
@@ -545,3 +554,4 @@ document.getElementById('logoutBtn')?.addEventListener('click', () => {
 // بدء التحميل
 loadFloorsAndTables();
 loadMenu();
+loadQuickNotes();
