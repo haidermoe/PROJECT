@@ -192,6 +192,28 @@ exports.getUnreadCount = async (req, res) => {
   }
 };
 
+// ===============================
+//      مسح كافة الإشعارات للمستخدم
+// ===============================
+exports.clearAllNotifications = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(400).json({ status: 'error', message: 'المستخدم غير معروف' });
+    }
+
+    await appPool.execute(`DELETE FROM notifications WHERE user_id = ?`, [userId]);
+
+    res.json({
+      status: 'success',
+      message: 'تم مسح كافة الإشعارات بنجاح'
+    });
+  } catch (err) {
+    console.error('❌ خطأ في clearAllNotifications:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
 // تصدير دالة إنشاء الإشعار للاستخدام في controllers أخرى
 exports.createNotification = createNotification;
 

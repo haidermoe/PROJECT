@@ -226,6 +226,25 @@ async function markAllAsRead() {
 }
 
 // ---------------------------------------------
+// مسح كافة الإشعارات
+// ---------------------------------------------
+async function clearAllNotifications() {
+  if (!confirm('هل أنت متأكد من مسح كافة الإشعارات؟')) return;
+  try {
+    const res = await API('DELETE', '/api/notifications/clear-all');
+    if (res.status === 'success') {
+      loadNotifications();
+      loadUnreadCount();
+    } else {
+      alert(res.message || 'فشل مسح الإشعارات');
+    }
+  } catch (err) {
+    console.error('❌ خطأ في مسح الإشعارات:', err);
+    alert('❌ حدث خطأ في الاتصال بالسيرفر');
+  }
+}
+
+// ---------------------------------------------
 // تبديل عرض غير المقروءة فقط
 // ---------------------------------------------
 function toggleUnreadOnly() {
