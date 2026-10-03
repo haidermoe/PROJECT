@@ -88,14 +88,45 @@
     </aside>
   </div>
 
-  <!-- نافذة منبثقة لإضافة ملاحظات المطبخ -->
+  <!-- نافذة منبثقة لإضافة ملاحظات المطبخ المتعددة -->
   <div class="modal-overlay" id="noteModal">
-    <div class="modal-content">
-      <h3 class="modal-title">📝 ملاحظات المطبخ والتحضير</h3>
-      <input type="text" id="noteInput" class="modal-input" placeholder="مثال: بدون بصل، شطة زيادة، مستوي جيداً..." />
-      <div class="modal-actions">
-        <button class="btn-back-tables" onclick="closeNoteModal()">إلغاء</button>
-        <button class="btn-pay" onclick="saveItemNote()">حفظ الملاحظة</button>
+    <div class="modal-content notes-modal-box">
+      <div class="modal-header-row">
+        <h3 class="modal-title" id="noteModalItemTitle">📝 ملاحظات المطبخ والتحضير</h3>
+        <button class="modal-close-btn" onclick="closeNoteModal()" title="إغلاق">✕</button>
+      </div>
+
+      <!-- الملاحظات المختارة حالياً لهذا الصنف -->
+      <div class="selected-notes-container">
+        <div class="notes-section-label">الملاحظات النشطة على هذا الصنف:</div>
+        <div class="active-notes-tags" id="activeNotesTags">
+          <!-- ستولد هنا وسوم الملاحظات مع زر الحذف -->
+        </div>
+      </div>
+
+      <!-- إدخال ملاحظة مخصصة يدوياً -->
+      <div class="custom-note-group">
+        <label class="notes-section-label">✍️ كتابة ملاحظة مخصصة إضافية:</label>
+        <div class="custom-note-input-row">
+          <input type="text" id="customNoteInput" class="modal-input" placeholder="اكتب ملاحظة (مثلاً: خبز خفيف، بدون ملح، صوص في علبة)..." onkeydown="if(event.key==='Enter'){event.preventDefault();addCustomNote();}" />
+          <button type="button" class="btn-add-custom-note" onclick="addCustomNote()">➕ إضافة</button>
+        </div>
+      </div>
+
+      <!-- اقتراحات سريعة للملاحظات الشائعة بضغطة زر -->
+      <div class="quick-notes-group">
+        <div class="notes-section-label">⚡ خيارات سريعة شائعة (اضغط للإضافة أو الإلغاء فوراً):</div>
+        <div class="quick-chips-grid" id="quickChipsGrid">
+          <!-- ستولد أزرار الخيارات السريعة برمجياً -->
+        </div>
+      </div>
+
+      <div class="modal-actions-bar">
+        <button type="button" class="btn-clear-notes" onclick="clearAllItemNotes()">🗑️ مسح الكل</button>
+        <div style="display:flex; gap: 10px;">
+          <button type="button" class="btn-back-tables" onclick="closeNoteModal()">إلغاء</button>
+          <button type="button" class="btn-save-notes" onclick="saveItemNotes()">💾 اعتماد الملاحظات</button>
+        </div>
       </div>
     </div>
   </div>

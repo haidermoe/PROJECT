@@ -271,25 +271,140 @@ window.changeQty = function(index, delta) {
   renderCart();
 };
 
+const QUICK_KITCHEN_NOTES = [
+  '🧅 بدون بصل',
+  '🍅 بدون طماطم',
+  '🥒 بدون مخلل',
+  '🥪 بدون مايونيز',
+  '🥫 صوص خارجي',
+  '🌶️ شطة زيادة / حار',
+  '🚫 بدون شطة / بارد',
+  '🧀 جبن إضافي',
+  '🔥 مستوي جيداً (Well Done)',
+  '🥩 استواء متوسط (Medium)',
+  '🍞 خبز محمص إضافي',
+  '🧂 بدون ملح',
+  '🥡 سفري / علبة خارجية',
+  '⚠️ حساسية طعام'
+];
+
+let activeItemNotesList = [];
+
 window.openNoteModal = function(index) {
   editingNoteItemIndex = index;
-  const currentNote = currentCart[index]?.notes || '';
-  document.getElementById('noteInput').value = currentNote;
+  const item = currentCart[index];
+  if (!item) return;
+
+  const itemTitleEl = document.getElementById('noteModalItemTitle');
+  if (itemTitleEl) {
+    itemTitleEl.textContent = `📝 ملاحظات: ${item.name}`;
+  }
+
+  // تفكيك الملاحظات الحالية إن وجدت
+  if (item.notes && item.notes.trim()) {
+    activeItemNotesList = item.notes
+      .split(/[،|,|\n]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+  } else {
+    activeItemNotesList = [];
+  }
+
+  const customInput = document.getElementById('customNoteInput');
+  if (customInput) customInput.value = '';
+
+  renderActiveNotesTags();
+  renderQuickChips();
+
   document.getElementById('noteModal').classList.add('active');
+};
+
+function renderActiveNotesTags() {
+  const container = document.getElementById('activeNotesTags');
+  if (!container) return;
+
+  if (activeItemNotesList.length === 0) {
+    container.innerHTML = '<span class="empty-notes-hint">لا توجد ملاحظات مضافة بعد. اختر من الخيارات السريعة أدناه أو اكتب ملاحظة مخصصة.</span>';
+    return;
+  }
+
+  container.innerHTML = activeItemNotesList.map((note, idx) => `
+    <span class="active-tag">
+      ${note}
+      <button type="button" class="remove-tag-btn" onclick="removeNoteByIndex(${idx})" title="حذف">✕</button>
+    </span>
+  `).join('');
+}
+
+function renderQuickChips() {
+  const container = document.getElementById('quickChipsGrid');
+  if (!container) return;
+
+  container.innerHTML = QUICK_KITCHEN_NOTES.map(chip => {
+    const isSelected = activeItemNotesList.includes(chip);
+    return `
+      <button type="button" class="quick-chip-btn ${isSelected ? 'selected' : ''}" onclick="toggleQuickChip('${chip}')">
+        ${chip}
+      </button>
+    `;
+  }).join('');
+}
+
+window.toggleQuickChip = function(chipText) {
+  const idx = activeItemNotesList.indexOf(chipText);
+  if (idx >= 0) {
+    activeItemNotesList.splice(idx, 1);
+  } else {
+    activeItemNotesList.push(chipText);
+  }
+  renderActiveNotesTags();
+  renderQuickChips();
+};
+
+window.removeNoteByIndex = function(idx) {
+  if (idx >= 0 && idx < activeItemNotesList.length) {
+    activeItemNotesList.splice(idx, 1);
+    renderActiveNotesTags();
+    renderQuickChips();
+  }
+};
+
+window.addCustomNote = function() {
+  const input = document.getElementById('customNoteInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val) {
+    if (!activeItemNotesList.includes(val)) {
+      activeItemNotesList.push(val);
+      renderActiveNotesTags();
+      renderQuickChips();
+    }
+    input.value = '';
+    input.focus();
+  }
+};
+
+window.clearAllItemNotes = function() {
+  activeItemNotesList = [];
+  renderActiveNotesTags();
+  renderQuickChips();
 };
 
 window.closeNoteModal = function() {
   document.getElementById('noteModal').classList.remove('active');
   editingNoteItemIndex = null;
+  activeItemNotesList = [];
 };
 
-window.saveItemNote = function() {
+window.saveItemNotes = function() {
   if (editingNoteItemIndex !== null && currentCart[editingNoteItemIndex]) {
-    currentCart[editingNoteItemIndex].notes = document.getElementById('noteInput').value.trim();
+    currentCart[editingNoteItemIndex].notes = activeItemNotesList.join('، ');
   }
   closeNoteModal();
   renderCart();
 };
+
+window.saveItemNote = window.saveItemNotes; // توافقية
 
 function renderCart() {
   const container = document.getElementById('cartItems');
@@ -305,15 +420,21 @@ function renderCart() {
   container.innerHTML = currentCart.map((it, idx) => {
     const itemTotal = it.price * it.quantity;
     total += itemTotal;
+    const notesArray = it.notes ? it.notes.split(/[،|,|\n]+/).map(n => n.trim()).filter(Boolean) : [];
+
     return `
       <div class="cart-row">
         <div class="cart-row-details">
           <div class="cart-row-title">${it.name}</div>
           <div class="cart-row-price">${it.price.toLocaleString()} × ${it.quantity} = ${itemTotal.toLocaleString()} د.ع</div>
-          ${it.notes ? `<div class="cart-row-note">📝 ${it.notes}</div>` : ''}
+          ${notesArray.length > 0 ? `
+            <div class="cart-notes-badges">
+              ${notesArray.map(n => `<span class="cart-single-badge">📝 ${n}</span>`).join('')}
+            </div>
+          ` : ''}
         </div>
         <div class="cart-row-actions">
-          <button class="btn-note" onclick="openNoteModal(${idx})" title="ملاحظة خاصة">✏️</button>
+          <button class="btn-note ${notesArray.length > 0 ? 'has-notes' : ''}" onclick="openNoteModal(${idx})" title="إضافة / تعديل ملاحظات">${notesArray.length > 0 ? '✏️ (' + notesArray.length + ')' : '✏️'}</button>
           <button class="btn-qty" onclick="changeQty(${idx}, -1)">-</button>
           <span class="cart-qty">${it.quantity}</span>
           <button class="btn-qty" onclick="changeQty(${idx}, 1)">+</button>
