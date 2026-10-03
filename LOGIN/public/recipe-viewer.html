@@ -17,6 +17,9 @@
       <span class="toolbar-title" id="toolbarRecipeTitle">كرت الوصفة القياسي</span>
     </div>
     <div style="display:flex; gap:10px; align-items:center;">
+      <button class="toolbar-btn btn-customize-header" onclick="openCustomizeModal()">
+        <span>⚙️ تخصيص الترويسة والشعار</span>
+      </button>
       <button class="toolbar-btn btn-reorder" id="reorderModeBtn" onclick="toggleReorderMode()">
         <span>↕️ إعادة ترتيب المكونات</span>
       </button>
@@ -37,8 +40,11 @@
     <div class="recipe-header">
       <div class="header-left">
         <div class="company-logos">
-          <div class="logo">🍽️ إدارة المطعم والمطبخ المركزي</div>
-          <div style="font-size:11px; color:#555; margin-top:2px;">Central Kitchen • Standard Formulation & Recipe Control</div>
+          <div id="recipeCardLogoWrapper" style="display:none; margin-bottom: 6px;">
+            <img id="recipeCardLogoImg" src="" alt="شعار المنشأة" style="max-height: 48px; max-width: 160px; object-fit: contain; display: block;" />
+          </div>
+          <div class="logo" id="recipeCardBrandName">🍽️ إدارة المطعم والمطبخ المركزي</div>
+          <div style="font-size:11px; color:#555; margin-top:2px;" id="recipeCardSubHeader">Central Kitchen • Standard Formulation & Recipe Control</div>
         </div>
       </div>
       <div class="header-right">
@@ -133,6 +139,64 @@
       <button class="btn-edit" onclick="goToEditPage()">✏️ تعديل كرت الوصفة</button>
       <button class="btn-print" onclick="window.print()">🖨️ طباعة A4</button>
       <button class="btn-back" onclick="window.location.href='/recipes.html'">← رجوع للوصفات</button>
+    </div>
+  </div>
+
+  <!-- نافذة تخصيص الترويسة والشعار (Modal) -->
+  <div id="customizeHeaderModal" class="modal-backdrop no-print" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>⚙️ تخصيص ترويسة وشعار كرت الوصفة</h3>
+        <button type="button" class="btn-close-modal" onclick="closeCustomizeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="custBrandName">اسم المنشأة / المطعم (Brand Name):</label>
+          <input type="text" id="custBrandName" class="modal-input" placeholder="مثال: أركاف سبيشالتي كافيه ومطعم" />
+        </div>
+
+        <div class="form-group">
+          <label for="custSubHeader">الترويسة الفرعية / اسم القسم (Sub-Header):</label>
+          <input type="text" id="custSubHeader" class="modal-input" placeholder="مثال: Central Kitchen • Standard Formulation & Recipe Control" />
+        </div>
+
+        <div class="form-group">
+          <label>شعار المطعم (Logo):</label>
+          <div class="logo-actions-row">
+            <input type="file" id="custLogoFileInput" accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml" style="display:none;" onchange="handleLogoFileUpload(event)" />
+            <button type="button" class="btn-upload-file" onclick="document.getElementById('custLogoFileInput').click()">
+              📁 اختيار صورة من الجهاز (PNG / JPG / SVG)
+            </button>
+          </div>
+          <div style="margin-top: 8px;">
+            <input type="text" id="custLogoUrl" class="modal-input" placeholder="أو الصق رابط صورة الشعار (URL) مباشرةً" oninput="previewLogoFromUrl(this.value)" />
+          </div>
+        </div>
+
+        <div class="form-group-checkbox">
+          <label class="checkbox-container">
+            <input type="checkbox" id="custShowLogo" checked />
+            <span class="checkmark"></span>
+            <span>إظهار الشعار في كرت الوصفة المطبوع</span>
+          </label>
+        </div>
+
+        <!-- Preview Box -->
+        <div class="logo-preview-box">
+          <span class="preview-title">معاينة الشعار الحالية:</span>
+          <div id="modalLogoPreviewContainer" class="logo-preview-inner">
+            <img id="modalLogoPreviewImg" src="" alt="شعار المنشأة" style="max-height:55px; max-width:180px; object-fit:contain; display:none;" />
+            <span id="modalNoLogoText" style="font-size:12px; color:#64748b;">لم يتم تعيين شعار بعد</span>
+          </div>
+          <button type="button" class="btn-remove-logo" id="btnRemoveLogo" style="display:none;" onclick="removeCustomLogo()">
+            🗑️ إزالة الشعار
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" onclick="closeCustomizeModal()">إلغاء</button>
+        <button type="button" class="btn-modal-save" onclick="saveHeaderCustomization()">💾 حفظ التغييرات والاعتماد</button>
+      </div>
     </div>
   </div>
 

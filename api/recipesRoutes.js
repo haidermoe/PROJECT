@@ -22,6 +22,10 @@ router.post("/add", authMiddleware, requireRole('admin', 'manager', 'kitchen_man
 router.put("/edit/:id", authMiddleware, requireRole('admin', 'manager', 'kitchen_manager'), recipes.editRecipe);
 router.delete("/delete/:id", authMiddleware, requireRole('admin', 'manager', 'kitchen_manager'), recipes.deleteRecipe);
 
+// إعدادات ترويسة وشعار كرت الوصفة
+router.get("/template-header/settings", authMiddleware, recipes.getHeaderSettings);
+router.post("/template-header/settings", authMiddleware, requireRole('admin', 'manager', 'kitchen_manager'), recipes.updateHeaderSettings);
+
 // Route جلب وصفة واحدة (يجب أن يكون في النهاية)
 router.get("/:id", authMiddleware, recipes.getRecipe);
 

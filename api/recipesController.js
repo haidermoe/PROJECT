@@ -1274,4 +1274,76 @@ exports.getProductions = async (req, res) => {
   }
 };
 
+// ===============================
+//   إعدادات ترويسة وشعار كرت الوصفة القياسي
+// ===============================
+exports.getHeaderSettings = async (req, res) => {
+  try {
+    const [rows] = await appPool.query(
+      `SELECT setting_key, setting_value FROM settings 
+       WHERE setting_key IN ('recipe_card_brand_name', 'recipe_card_sub_header', 'recipe_card_logo_url', 'recipe_card_show_logo')`
+    );
+
+    const settings = {
+      brand_name: 'أركاف سبيشالتي كافيه ومطعم',
+      sub_header: 'Central Kitchen • Standard Formulation & Recipe Control',
+      logo_url: '',
+      show_logo: '1'
+    };
+
+    rows.forEach(r => {
+      if (r.setting_key === 'recipe_card_brand_name' && r.setting_value !== null) settings.brand_name = r.setting_value;
+      if (r.setting_key === 'recipe_card_sub_header' && r.setting_value !== null) settings.sub_header = r.setting_value;
+      if (r.setting_key === 'recipe_card_logo_url' && r.setting_value !== null) settings.logo_url = r.setting_value;
+      if (r.setting_key === 'recipe_card_show_logo' && r.setting_value !== null) settings.show_logo = r.setting_value;
+    });
+
+    return res.json({ status: "success", data: settings });
+  } catch (err) {
+    console.error('❌ خطأ في getHeaderSettings:', err);
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+exports.updateHeaderSettings = async (req, res) => {
+  try {
+    const { brand_name, sub_header, logo_url, show_logo } = req.body;
+    const userId = req.user?.id || null;
+
+    const items = [
+      ['recipe_card_brand_name', brand_name !== undefined ? String(brand_name) : 'أركاف سبيشالتي كافيه ومطعم', 'اسم المنشأة في كرت الوصفة القياسي'],
+      ['recipe_card_sub_header', sub_header !== undefined ? String(sub_header) : 'Central Kitchen • Standard Formulation & Recipe Control', 'الترويسة الفرعية في كرت الوصفة'],
+      ['recipe_card_logo_url', logo_url !== undefined ? String(logo_url) : '', 'رابط أو كود صورة شعار المنشأة'],
+      ['recipe_card_show_logo', (show_logo === '1' || show_logo === 1 || show_logo === true) ? '1' : '0', 'إظهار الشعار في كرت الوصفة']
+    ];
+
+    for (const [key, val, desc] of items) {
+      await appPool.query(
+        `INSERT INTO settings (setting_key, setting_value, description, updated_by, updated_at)
+         VALUES (?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE
+           setting_value = VALUES(setting_value),
+           updated_by = VALUES(updated_by),
+           updated_at = NOW()`,
+        [key, val, desc, userId]
+      );
+    }
+
+    return res.json({
+      status: "success",
+      message: "تم حفظ إعدادات ترويسة وشعار كرت الوصفة بنجاح",
+      data: {
+        brand_name: brand_name || 'أركاف سبيشالتي كافيه ومطعم',
+        sub_header: sub_header || 'Central Kitchen • Standard Formulation & Recipe Control',
+        logo_url: logo_url || '',
+        show_logo: (show_logo === '1' || show_logo === 1 || show_logo === true) ? '1' : '0'
+      }
+    });
+  } catch (err) {
+    console.error('❌ خطأ في updateHeaderSettings:', err);
+    return res.status(500).json({ status: "error", message: err.message });
+  }
+};
+
+
 

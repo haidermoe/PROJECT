@@ -16,6 +16,12 @@ const recipeId = urlParams.get('id');
 let currentRecipe = null;
 let currentIngredients = [];
 let isReorderMode = false;
+let headerSettings = {
+  brand_name: 'أركاف سبيشالتي كافيه ومطعم',
+  sub_header: 'Central Kitchen • Standard Formulation & Recipe Control',
+  logo_url: '',
+  show_logo: '1'
+};
 
 document.addEventListener('DOMContentLoaded', async function() {
   if (!recipeId) {
@@ -24,8 +30,49 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
 
-  await loadRecipeData();
+  await Promise.all([
+    loadRecipeData(),
+    loadHeaderSettings()
+  ]);
 });
+
+async function loadHeaderSettings() {
+  try {
+    const res = await fetch('/api/recipes/template-header/settings', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const result = await res.json();
+      if (result.status === 'success' && result.data) {
+        headerSettings = result.data;
+      }
+    }
+  } catch (err) {
+    console.warn('تعذر تحميل إعدادات ترويسة الوصفة:', err);
+  } finally {
+    applyHeaderSettings();
+  }
+}
+
+function applyHeaderSettings() {
+  const brandEl = document.getElementById('recipeCardBrandName');
+  const subEl = document.getElementById('recipeCardSubHeader');
+  const logoWrapper = document.getElementById('recipeCardLogoWrapper');
+  const logoImg = document.getElementById('recipeCardLogoImg');
+
+  if (brandEl) brandEl.textContent = headerSettings.brand_name || '🍽️ إدارة المطعم والمطبخ المركزي';
+  if (subEl) subEl.textContent = headerSettings.sub_header || 'Central Kitchen • Standard Formulation & Recipe Control';
+
+  if (logoWrapper && logoImg) {
+    if (headerSettings.show_logo === '1' && headerSettings.logo_url) {
+      logoImg.src = headerSettings.logo_url;
+      logoWrapper.style.display = 'block';
+    } else {
+      logoWrapper.style.display = 'none';
+      logoImg.src = '';
+    }
+  }
+}
 
 async function loadRecipeData() {
   try {
@@ -197,3 +244,122 @@ window.saveNewIngredientsOrder = async function() {
 window.goToEditPage = function() {
   window.location.href = `/add-recipe.html?id=${recipeId}&edit=true`;
 };
+
+// ==========================================
+// نافذة تخصيص الترويسة والشعار (Customization)
+// ==========================================
+window.openCustomizeModal = function() {
+  const modal = document.getElementById('customizeHeaderModal');
+  if (!modal) return;
+
+  document.getElementById('custBrandName').value = headerSettings.brand_name || '';
+  document.getElementById('custSubHeader').value = headerSettings.sub_header || '';
+  document.getElementById('custLogoUrl').value = headerSettings.logo_url || '';
+  document.getElementById('custShowLogo').checked = (headerSettings.show_logo === '1');
+
+  updateModalLogoPreview(headerSettings.logo_url);
+  modal.style.display = 'flex';
+};
+
+window.closeCustomizeModal = function() {
+  const modal = document.getElementById('customizeHeaderModal');
+  if (modal) modal.style.display = 'none';
+};
+
+function updateModalLogoPreview(url) {
+  const previewImg = document.getElementById('modalLogoPreviewImg');
+  const noLogoText = document.getElementById('modalNoLogoText');
+  const removeBtn = document.getElementById('btnRemoveLogo');
+
+  if (url && url.trim()) {
+    previewImg.src = url.trim();
+    previewImg.style.display = 'block';
+    noLogoText.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = 'inline-block';
+  } else {
+    previewImg.src = '';
+    previewImg.style.display = 'none';
+    noLogoText.style.display = 'block';
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+}
+
+window.previewLogoFromUrl = function(url) {
+  updateModalLogoPreview(url);
+};
+
+window.handleLogoFileUpload = function(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert('⚠️ حجم ملف الشعار كبير جداً. يرجى اختيار صورة أقل من 2 ميغابايت للحفاظ على سرعة الطباعة وتحميل النظام.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64Data = e.target.result;
+    document.getElementById('custLogoUrl').value = base64Data;
+    updateModalLogoPreview(base64Data);
+  };
+  reader.readAsDataURL(file);
+};
+
+window.removeCustomLogo = function() {
+  document.getElementById('custLogoUrl').value = '';
+  const fileInput = document.getElementById('custLogoFileInput');
+  if (fileInput) fileInput.value = '';
+  updateModalLogoPreview('');
+};
+
+window.saveHeaderCustomization = async function() {
+  const brandName = document.getElementById('custBrandName').value.trim();
+  const subHeader = document.getElementById('custSubHeader').value.trim();
+  const logoUrl = document.getElementById('custLogoUrl').value.trim();
+  const showLogo = document.getElementById('custShowLogo').checked ? '1' : '0';
+
+  const saveBtn = document.querySelector('.btn-modal-save');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ جاري الحفظ...';
+  }
+
+  try {
+    const res = await fetch('/api/recipes/template-header/settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        brand_name: brandName,
+        sub_header: subHeader,
+        logo_url: logoUrl,
+        show_logo: showLogo
+      })
+    });
+
+    const result = await res.json();
+    if (result.status !== 'success') throw new Error(result.message);
+
+    headerSettings = {
+      brand_name: brandName || 'أركاف سبيشالتي كافيه ومطعم',
+      sub_header: subHeader || 'Central Kitchen • Standard Formulation & Recipe Control',
+      logo_url: logoUrl,
+      show_logo: showLogo
+    };
+
+    applyHeaderSettings();
+    closeCustomizeModal();
+    alert('✅ تم حفظ الترويسة والشعار بنجاح! سيتم اعتمادهما في كروت الوصفات وطباعتها.');
+  } catch (err) {
+    alert(`❌ فشل حفظ التخصيص: ${err.message}`);
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 حفظ التغييرات والاعتماد';
+    }
+  }
+};
+
