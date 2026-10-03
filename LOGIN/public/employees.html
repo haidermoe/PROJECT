@@ -6,6 +6,7 @@
   <title>إدارة الموظفين</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/design-system.css" />
+  <link rel="stylesheet" href="common/sidebar.css" />
   <link rel="stylesheet" href="employees.css" />
 </head>
 
@@ -121,20 +122,23 @@
 
       <label>الرتبة</label>
       <select id="userRole">
-        <option value="employee">👤 موظف</option>
+        <option value="employee">👤 موظف عام</option>
+        <option value="waiter">🍽️ ويتر / كابتن صالة</option>
+        <option value="cashier">💵 كاشير المطعم</option>
+        <option value="station_chef">🍳 شيف سكشن / مسؤول خط الطهي</option>
+        <option value="kitchen_manager">👨‍🍳 مدير مطبخ / شيف تنفيذي</option>
         <option value="kitchen_employee">👨‍🍳 موظف مطبخ</option>
-        <option value="waiter">🍽️ ويتر</option>
-        <option value="captain">👔 كابتن</option>
-        <option value="cleaner">🧹 عامل نظافة</option>
-        <option value="hall_manager">🏢 مسؤول صالة</option>
-        <option value="hall_captain">👔 كابتن صالة</option>
+        <option value="inventory_keeper">📦 أمين المخزن</option>
+        <option value="accountant">💰 مدير الحسابات والمالية</option>
+        <option value="hall_manager">🏢 مدير الصالة ومسؤول الخدمة</option>
+        <option value="captain">👔 كابتن صالة</option>
+        <option value="manager">👔 مدير الفرع</option>
+        <option value="hr">👥 مسؤول موارد بشرية</option>
+        <option value="cleaner">🧹 خدمات ونظافة</option>
         <option value="receptionist">📞 موظف استقبال</option>
         <option value="garage_employee">🚗 موظف كراج</option>
         <option value="garage_manager">🚗 مسؤول كراج</option>
-        <option value="kitchen_manager">👨‍🍳 مدير مطبخ</option>
-        <option value="manager">👔 مدير</option>
-        <option value="hr">👥 موارد بشرية</option>
-        <option value="admin">👑 مدير عام</option>
+        <option value="admin">👑 مدير عام (Admin)</option>
       </select>
 
       <div class="modal-actions">
@@ -162,20 +166,23 @@
 
       <label>الرتبة</label>
       <select id="editRole">
-        <option value="employee">👤 موظف</option>
+        <option value="employee">👤 موظف عام</option>
+        <option value="waiter">🍽️ ويتر / كابتن صالة</option>
+        <option value="cashier">💵 كاشير المطعم</option>
+        <option value="station_chef">🍳 شيف سكشن / مسؤول خط الطهي</option>
+        <option value="kitchen_manager">👨‍🍳 مدير مطبخ / شيف تنفيذي</option>
         <option value="kitchen_employee">👨‍🍳 موظف مطبخ</option>
-        <option value="waiter">🍽️ ويتر</option>
-        <option value="captain">👔 كابتن</option>
-        <option value="cleaner">🧹 عامل نظافة</option>
-        <option value="hall_manager">🏢 مسؤول صالة</option>
-        <option value="hall_captain">👔 كابتن صالة</option>
+        <option value="inventory_keeper">📦 أمين المخزن</option>
+        <option value="accountant">💰 مدير الحسابات والمالية</option>
+        <option value="hall_manager">🏢 مدير الصالة ومسؤول الخدمة</option>
+        <option value="captain">👔 كابتن صالة</option>
+        <option value="manager">👔 مدير الفرع</option>
+        <option value="hr">👥 مسؤول موارد بشرية</option>
+        <option value="cleaner">🧹 خدمات ونظافة</option>
         <option value="receptionist">📞 موظف استقبال</option>
         <option value="garage_employee">🚗 موظف كراج</option>
         <option value="garage_manager">🚗 مسؤول كراج</option>
-        <option value="kitchen_manager">👨‍🍳 مدير مطبخ</option>
-        <option value="manager">👔 مدير</option>
-        <option value="hr">👥 موارد بشرية</option>
-        <option value="admin">👑 مدير عام</option>
+        <option value="admin">👑 مدير عام (Admin)</option>
       </select>
 
       <div class="modal-actions">

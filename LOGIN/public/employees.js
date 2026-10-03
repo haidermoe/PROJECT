@@ -5,7 +5,7 @@
 let currentEditId = null;
 
 function canManageEmployeesAccount(role) {
-  return role === 'admin' || role === 'hr';
+  return role === 'admin' || role === 'hr' || role === 'manager';
 }
 
 // ---------------------------------------------
@@ -341,17 +341,21 @@ async function loadTable() {
           const row = document.createElement("tr");
 
           const roleNames = {
-            'admin': '👑 مدير عام',
-            'hr': '👥 موارد بشرية',
-            'manager': '👔 مدير',
-            'kitchen_manager': '👨‍🍳 مدير مطبخ',
+            'admin': '👑 المدير العام',
+            'manager': '👔 مدير الفرع',
+            'accountant': '💰 مدير الحسابات والمالية',
+            'cashier': '💵 كاشير المطعم',
+            'hall_manager': '🏢 مدير الصالة ومسؤول الخدمة',
+            'kitchen_manager': '👨‍🍳 مدير المطبخ / شيف تنفيذي',
+            'station_chef': '🍳 شيف سكشن / مسؤول خط الطهي',
             'kitchen_employee': '👨‍🍳 موظف مطبخ',
-            'employee': '👤 موظف',
-            'waiter': '🍽️ ويتر',
-            'captain': '👔 كابتن',
-            'cleaner': '🧹 عامل نظافة',
-            'hall_manager': '🏢 مسؤول صالة',
+            'inventory_keeper': '📦 أمين المخزن',
+            'waiter': '🍽️ ويتر / كابتن صالة',
+            'captain': '👔 كابتن صالة',
             'hall_captain': '👔 كابتن صالة',
+            'hr': '👥 مسؤول الموارد البشرية',
+            'employee': '👤 موظف عام',
+            'cleaner': '🧹 خدمات ونظافة',
             'receptionist': '📞 موظف استقبال',
             'garage_employee': '🚗 موظف كراج',
             'garage_manager': '🚗 مسؤول كراج'
