@@ -829,62 +829,9 @@ async function loadRecentRecipes() {
 // ======================================================
 // 9) تعديل وحذف
 // ======================================================
-async function openEdit(id) {
-  const user = getCurrentUser();
-  if (!user) return;
-
-  try {
-    const res = await API("GET", `/api/recipes/${id}`);
-    
-    if (res.status === "success" && res.data) {
-      const recipe = res.data;
-      
-      // إذا كان شيف، نحتاج موافقة
-      if (user.role === 'kitchen_manager') {
-        const name = prompt("اسم الوصفة الجديد:", recipe.name);
-        if (!name) return;
-        
-        const description = prompt("الوصف الجديد:", recipe.description || '');
-        const visibleToEmployees = confirm("هل تريد جعلها مرئية للموظفين؟");
-        
-        const editRes = await API("PUT", `/api/recipes/edit/${id}`, {
-          name,
-          description,
-          visible_to_employees: visibleToEmployees
-        });
-        
-        if (editRes.status === "success") {
-          alert(editRes.message || "تم إرسال طلب الموافقة بنجاح");
-          loadRecipesPage();
-        } else {
-          alert(editRes.message || "حدث خطأ");
-        }
-      } else if (user.role === 'admin') {
-        // المدير: تعديل مباشر
-        const name = prompt("اسم الوصفة:", recipe.name);
-        if (!name) return;
-        
-        const description = prompt("الوصف:", recipe.description || '');
-        const visibleToEmployees = confirm("هل تريد جعلها مرئية للموظفين؟");
-        
-        const editRes = await API("PUT", `/api/recipes/edit/${id}`, {
-          name,
-          description,
-          visible_to_employees: visibleToEmployees
-        });
-        
-        if (editRes.status === "success") {
-          alert("تم التعديل بنجاح");
-          loadRecipesPage();
-        } else {
-          alert(editRes.message || "حدث خطأ");
-        }
-      }
-    }
-  } catch (error) {
-    console.error("خطأ في فتح التعديل:", error);
-    alert("حدث خطأ في تحميل بيانات الوصفة");
-  }
+function openEdit(id) {
+  // الانتقال مباشرة إلى صفحة كرت الوصفة الكاملة لتعديل المكونات والمقادير بشكل احترافي
+  window.location.href = `/add-recipe.html?id=${id}&edit=true`;
 }
 
 async function deleteRecipe(id) {

@@ -172,7 +172,7 @@ exports.getRecipe = async (req, res) => {
     const recipe = rows[0];
     console.log('✅ getRecipe: تم جلب الوصفة:', recipe.item_name || recipe.name);
 
-    // جلب المكونات من الجدول الجديد
+    // جلب المكونات من الجدول الجديد أو القديم
     let ingredients = [];
     try {
       const [ingredientsRows] = await appPool.query(
@@ -182,28 +182,38 @@ exports.getRecipe = async (req, res) => {
          ORDER BY display_order ASC, id ASC`,
         [id]
       );
-      ingredients = ingredientsRows;
-      console.log('✅ getRecipe: تم جلب', ingredients.length, 'مكون من الجدول الجديد');
-    } catch (ingErr) {
-      // إذا فشل، جرب الجدول القديم
-      console.log('⚠️ getRecipe: محاولة استخدام الجدول القديم للمكونات');
-      try {
+      if (ingredientsRows.length > 0) {
+        ingredients = ingredientsRows.map(ing => {
+          // استخراج الكمية والوحدة
+          const parts = (ing.quantity || '').toString().trim().split(' ');
+          const qty = parts[0] || '0';
+          const unit = parts.slice(1).join(' ') || '';
+          return {
+            ingredient_name: ing.ingredient_name,
+            quantity: qty,
+            unit: unit,
+            display_order: ing.display_order
+          };
+        });
+        console.log('✅ getRecipe: تم جلب', ingredients.length, 'مكون من الجدول الجديد');
+      } else {
         const [oldIngredients] = await appPool.query(`
-          SELECT ri.*, i.name AS ingredient_name, i.unit
+          SELECT ri.ingredient_id, i.name AS ingredient_name, ri.quantity, i.unit
           FROM recipe_ingredients ri
           JOIN ingredients i ON ri.ingredient_id = i.id
           WHERE ri.recipe_id = ?
         `, [id]);
-        ingredients = oldIngredients.map(ing => ({
+        ingredients = oldIngredients.map((ing, idx) => ({
+          ingredient_id: ing.ingredient_id,
           ingredient_name: ing.ingredient_name,
-          quantity: ing.quantity + ' ' + (ing.unit || ''),
-          display_order: 0
+          quantity: ing.quantity,
+          unit: ing.unit || '',
+          display_order: idx + 1
         }));
-        console.log('✅ getRecipe: تم جلب', ingredients.length, 'مكون من الجدول القديم');
-      } catch (oldErr) {
-        console.error('❌ getRecipe: خطأ في جلب المكونات:', oldErr.message);
-        // نستمر حتى لو لم نجد مكونات
+        console.log('✅ getRecipe: تم جلب', ingredients.length, 'مكون من recipe_ingredients');
       }
+    } catch (ingErr) {
+      console.error('❌ getRecipe: خطأ في جلب المكونات:', ingErr.message);
     }
 
     res.json({ 
@@ -439,43 +449,135 @@ exports.addRecipe = async (req, res) => {
 // ===============================
 exports.editRecipe = async (req, res) => {
   const { id } = req.params;
-  const { name, description, visible_to_employees } = req.body;
+  const {
+    name,
+    item_name,
+    yield: recipeYield,
+    portions,
+    shelf_life,
+    reference,
+    version,
+    edition,
+    procedure,
+    description,
+    visible_to_employees,
+    ingredients,
+    is_sub_recipe
+  } = req.body;
+
   const userRole = req.user?.role;
   const userId = req.user?.id;
 
-  // المدير يمكنه التعديل مباشرة
-  if (userRole === 'admin') {
-    try {
-      await appPool.query(
-        "UPDATE recipes SET name = ?, description = ?, visible_to_employees = ? WHERE id = ?",
-        [name, description, visible_to_employees ? 1 : 0, id]
-      );
-      return res.json({ status: "success", message: "تم تحديث الوصفة بنجاح" });
-    } catch (err) {
-      return res.json({ status: "error", message: err.message });
-    }
+  const finalName = item_name || name;
+  if (!finalName) {
+    return res.status(400).json({ status: "error", message: "اسم الوصفة مطلوب" });
   }
 
-  // الشيف يحتاج موافقة
-  if (userRole === 'kitchen_manager') {
-    try {
-      // إنشاء طلب موافقة
-      await appPool.query(
-        `INSERT INTO recipe_approval_requests (recipe_id, requested_by, changes_data, status)
-         VALUES (?, ?, ?, 'pending')`,
-        [id, userId, JSON.stringify({ name, description, visible_to_employees })]
-      );
-      return res.json({ 
-        status: "success", 
-        message: "تم إرسال طلب الموافقة على التعديل. سيتم مراجعته من قبل المدير." 
-      });
-    } catch (err) {
-      return res.json({ status: "error", message: err.message });
-    }
-  }
+  // المدير العام والمدراء ومدراء المطبخ يمكنهم التعديل المباشر
+  const connection = await appPool.getConnection();
+  try {
+    await connection.beginTransaction();
 
-  // الموظف العادي لا يمكنه التعديل
-  return res.json({ status: "error", message: "ليس لديك صلاحية لتعديل الوصفات" });
+    const backtick = String.fromCharCode(96);
+    const procedureCol = backtick + 'procedure' + backtick;
+
+    const updateQuery = `
+      UPDATE recipes SET 
+        name = COALESCE(?, name),
+        item_name = COALESCE(?, item_name),
+        yield = COALESCE(?, yield),
+        portions = COALESCE(?, portions),
+        shelf_life = COALESCE(?, shelf_life),
+        reference = COALESCE(?, reference),
+        version = COALESCE(?, version),
+        edition = COALESCE(?, edition),
+        ${procedureCol} = COALESCE(?, ${procedureCol}),
+        description = COALESCE(?, description),
+        visible_to_employees = COALESCE(?, visible_to_employees)
+      WHERE id = ?
+    `;
+
+    await connection.query(updateQuery, [
+      finalName,
+      finalName,
+      recipeYield || null,
+      portions ? parseInt(portions) : null,
+      shelf_life || null,
+      reference || null,
+      version || '001',
+      edition ? parseInt(edition) : 1,
+      procedure || null,
+      description || null,
+      visible_to_employees !== undefined ? (visible_to_employees ? 1 : 0) : null,
+      id
+    ]);
+
+    // إذا تم تمرير مكونات جديدة لتحديث كرت الوصفة
+    if (Array.isArray(ingredients) && ingredients.length > 0) {
+      await connection.query('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [id]);
+      await connection.query('DELETE FROM recipe_ingredients_new WHERE recipe_id = ?', [id]);
+
+      for (let idx = 0; idx < ingredients.length; idx++) {
+        const ing = ingredients[idx];
+        const ingName = (ing.ingredient_name || ing.name || '').trim();
+        const ingQty = parseFloat(ing.quantity) || 0;
+        const ingUnit = (ing.unit || 'وحدة').trim();
+
+        if (!ingName || ingQty <= 0) continue;
+
+        // البحث عن المادة في المخزن أو إضافتها تلقائياً
+        const [ingRows] = await connection.query('SELECT id FROM ingredients WHERE name = ?', [ingName]);
+        let ingId;
+        if (ingRows.length > 0) {
+          ingId = ingRows[0].id;
+        } else {
+          const [newIngRes] = await connection.query(
+            'INSERT INTO ingredients (name, unit, stock_quantity) VALUES (?, ?, 0)',
+            [ingName, ingUnit]
+          );
+          ingId = newIngRes.insertId;
+        }
+
+        // إدراج في recipe_ingredients للخصم الآلي للسكاشن
+        await connection.query(
+          'INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, ?)',
+          [id, ingId, ingQty]
+        );
+
+        // إدراج في recipe_ingredients_new للعرض والتوافقية
+        await connection.query(
+          'INSERT INTO recipe_ingredients_new (recipe_id, ingredient_name, quantity, display_order) VALUES (?, ?, ?, ?)',
+          [id, ingName, `${ingQty} ${ingUnit}`, idx + 1]
+        );
+      }
+    }
+
+    // إذا كانت وصفة تحضير مسبق لمادة مصنعة
+    if (is_sub_recipe) {
+      const [existingIng] = await connection.query("SELECT id FROM ingredients WHERE name = ?", [finalName]);
+      if (existingIng.length) {
+        await connection.query(
+          "UPDATE ingredients SET material_type = 'manufactured', recipe_id = ? WHERE id = ?",
+          [id, existingIng[0].id]
+        );
+      } else {
+        await connection.query(
+          "INSERT INTO ingredients (name, unit, stock_quantity, material_type, recipe_id) VALUES (?, 'وحدة', 0, 'manufactured', ?)",
+          [finalName, id]
+        );
+      }
+    }
+
+    await connection.commit();
+    return res.json({ status: "success", message: "تم تحديث كرت الوصفة ومقاديرها بنجاح" });
+
+  } catch (err) {
+    await connection.rollback();
+    console.error('❌ خطأ في editRecipe:', err);
+    return res.status(500).json({ status: "error", message: err.message });
+  } finally {
+    connection.release();
+  }
 };
 
 // ===============================

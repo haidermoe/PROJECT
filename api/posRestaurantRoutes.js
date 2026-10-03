@@ -21,6 +21,15 @@ router.delete('/items/:id', controller.deleteMenuItem);
 
 // جلب السكاشن والوصفات لربط المنيو
 router.get('/stations-and-recipes', controller.getStationsAndRecipes);
+router.get('/stations', async (req, res) => {
+  try {
+    const { appPool } = require('../database/appConnection');
+    const [stations] = await appPool.query('SELECT * FROM pos_stations WHERE is_active = 1');
+    res.json({ status: 'success', data: stations });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
 
 // إدارة الملاحظات السريعة
 router.get('/quick-notes', controller.getQuickNotes);
