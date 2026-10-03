@@ -78,6 +78,20 @@
       </div>
 
       <!-- بطاقة مصفوفة الصلاحيات الرئيسية -->
+      <div class="card" style="margin-bottom: 20px;">
+        <div style="background: rgba(0, 255, 136, 0.08); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: var(--radius-sm); padding: 16px 20px; display:flex; gap: 14px; align-items:flex-start;">
+          <span style="font-size: 24px; line-height: 1;">💡</span>
+          <div style="font-size: 0.9rem; line-height: 1.6; color: #e2e8f0;">
+            <strong style="color: var(--accent-green); font-size: 1rem; display:block; margin-bottom: 4px;">ما هي مصفوفة الصلاحيات (RBAC) وما الذي تفعله بها؟</strong>
+            هذه الشاشة هي <strong>لوحة التحكم المركزية بأمان النظام</strong> وصلاحيات الموظفين:
+            <ul style="margin: 6px 20px 0 0; color: #cbd5e1;">
+              <li><strong>التحكم في وصول الموظفين:</strong> تحدد ما يستطيع كل دور وظيفي رؤيته (مثلاً: الويتر يدخل فقط على شاشة الطاولات، المحاسب يدخل على القيود وشجرة الحسابات، الشيف يدخل على كروت الوصفات والمطابقة).</li>
+              <li><strong>تعديل الصلاحيات الفورية:</strong> اختر أي دور وظيفي من القائمة أدناه، ثم حدد أو ألغِ علامة (✔️) عن أي صلاحية، ثم اضغط <strong>💾 حفظ صلاحيات الدور</strong>، وستنعكس فورياً على شاشة وقائمة الموظف!</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <div>
@@ -172,7 +186,6 @@
     </div>
   </div>
 
-  <script src="common/auth-check.js"></script>
   <script src="common/sidebar.js"></script>
   <script src="common/permissions.js"></script>
   <script src="rbac.js"></script>

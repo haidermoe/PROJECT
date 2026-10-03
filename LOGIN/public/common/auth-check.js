@@ -7,10 +7,12 @@
  * إذا كان التوكن منتهي أو غير صالح، يتم إعادة التوجيه لتسجيل الدخول
  */
 
-// إخفاء الصفحة فوراً عند تحميل الملف (قبل التحقق)
-if (document.body && window.location.pathname !== '/index.html' && window.location.pathname !== '/') {
-  document.body.style.display = 'none';
-}
+// حماية ضد الشاشة البيضاء: إذا لم يتم استدعاء requireAuth خلال ثانيتين، نظهر الصفحة تلقائياً
+setTimeout(() => {
+  if (document.body && document.body.style.display === 'none') {
+    document.body.style.display = '';
+  }
+}, 2000);
 
 /**
  * التحقق من صحة التوكن مع السيرفر

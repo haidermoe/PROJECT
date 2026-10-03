@@ -6,8 +6,14 @@
  */
 
 const token = localStorage.getItem('token');
+
+// إظهار الصفحة بشكل فوري ومؤكد
+if (document.body) {
+  document.body.style.display = 'flex';
+}
+
 if (!token) {
-  alert('يجب تسجيل الدخول أولاً');
+  alert('يجب تسجيل الدخول كمسؤول أولاً للوصول لمصفوفة الصلاحيات');
   window.location.href = '/index.html';
 }
 
@@ -20,15 +26,29 @@ let currentRolePermissions = new Set();
 // 1) تهيئة الشاشة وجلب البيانات
 // ===============================
 async function initRBAC() {
+  if (document.body) {
+    document.body.style.display = 'flex';
+  }
+
   try {
     // 1. جلب شجرة الصلاحيات
     const permsRes = await fetch('/api/rbac/permissions', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
+
+    if (permsRes.status === 401 || permsRes.status === 403) {
+      alert('⚠️ عذراً، لا تملك صلاحية الوصول إلى مصفوفة الصلاحيات، أو انتهت صلاحية جلستك. يرجى تسجيل الدخول كمدير نظام.');
+      window.location.href = '/index.html';
+      return;
+    }
+
     const permsData = await permsRes.json();
-    if (permsData.status === 'success') {
-      allPermissionsGrouped = permsData.data.grouped;
-      document.getElementById('permsCount').textContent = permsData.data.raw.length;
+    if (permsData.status === 'success' && permsData.data) {
+      allPermissionsGrouped = permsData.data.grouped || [];
+      const permsCountEl = document.getElementById('permsCount');
+      if (permsCountEl && permsData.data.raw) {
+        permsCountEl.textContent = permsData.data.raw.length;
+      }
     }
 
     // 2. جلب قائمة الأدوار

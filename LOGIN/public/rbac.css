@@ -28,17 +28,23 @@
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
 }
 
+html {
+  background-color: #020304;
+  color-scheme: dark;
+}
+
 body {
   background: radial-gradient(
     circle at 20% 20%, 
     rgba(0, 255, 140, 0.12) 0%, 
     #040607 35%, 
     #020304 100%
-  );
+  ) !important;
+  background-color: #020304 !important;
   color: var(--text-main);
   direction: rtl;
   min-height: 100vh;
-  display: flex;
+  display: flex !important;
 }
 
 .layout {
