@@ -487,8 +487,9 @@ window.sendOrderToKitchen = async function() {
     const result = await res.json();
     if (result.status !== 'success') throw new Error(result.message);
 
-    alert(`✅ ${result.message}`);
+    currentCart = [];
     backToTables();
+    alert(`✅ ${result.message}`);
   } catch (err) {
     alert(`❌ حدث خطأ: ${err.message}`);
   } finally {

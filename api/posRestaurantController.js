@@ -199,6 +199,7 @@ exports.sendWaiterOrder = async (req, res) => {
         orderId,
         tableNo,
         totalAmount: printResult.totalAmount,
+        items: printResult.items,
         printResults: printResult.printResults
       }
     });
