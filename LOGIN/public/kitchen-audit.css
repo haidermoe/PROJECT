@@ -1,33 +1,40 @@
 /* ======================================================
    Kitchen Audit & Station Reconciliation CSS
+   ثيم النيون الأخضر الموحد (Neon Green Ultra Theme)
    ====================================================== */
 
 :root {
-  --bg-dark: #0f172a;
-  --card-dark: #1e293b;
-  --card-inner: #0f172a;
-  --accent-green: #10b981;
-  --accent-blue: #3b82f6;
-  --accent-purple: #8b5cf6;
-  --accent-amber: #f59e0b;
-  --accent-red: #ef4444;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border-color: #334155;
+  --bg-primary: #020304;
+  --bg-card: linear-gradient(145deg, #050810, #070b14);
+  --bg-inner: #020304;
+  --accent-green: #00ff88;
+  --accent-green-light: #39ffb8;
+  --accent-green-glow: rgba(0, 255, 136, 0.4);
+  --accent-red: #ff6b7a;
+  --accent-amber: #ffb84d;
+  --text-main: #f5f5f5;
+  --text-muted: #9ba3b5;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(0, 255, 136, 0.3);
   --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
 }
 
 body {
-  background-color: var(--bg-dark);
+  background: radial-gradient(
+    circle at 20% 20%, 
+    rgba(0, 255, 140, 0.12) 0%, 
+    #040607 35%, 
+    #020304 100%
+  );
   color: var(--text-main);
   direction: rtl;
   min-height: 100vh;
@@ -38,6 +45,8 @@ body {
   display: flex;
   width: 100%;
   min-height: 100vh;
+  padding: 16px;
+  gap: 16px;
 }
 
 .main-content {
@@ -46,6 +55,7 @@ body {
   flex-direction: column;
   overflow-y: auto;
   min-width: 0;
+  gap: 16px;
 }
 
 .topbar {
@@ -53,20 +63,46 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 18px 24px;
-  background: #172033;
-  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
 .page-title {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .btn-primary {
-  background: var(--accent-blue);
-  color: white;
+  background: linear-gradient(90deg, #00ff88, #39ffb8);
+  color: #020308;
   border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px var(--accent-green-glow);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 255, 136, 0.6);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f5f5;
+  border: 1px solid var(--border-color);
   padding: 10px 18px;
   border-radius: var(--radius-sm);
   font-weight: 600;
@@ -77,17 +113,21 @@ body {
   transition: all 0.2s;
 }
 
-.btn-primary:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
+.btn-secondary:hover {
+  background: rgba(0, 255, 136, 0.1);
+  border-color: var(--border-accent);
+  color: #ffffff;
 }
 
 .card {
-  background: var(--card-dark);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: 24px;
-  margin: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .filter-bar {
@@ -95,28 +135,29 @@ body {
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .form-control {
-  background: var(--card-inner);
-  border: 1px solid var(--border-color);
-  color: white;
+  background: var(--bg-inner);
+  border: 1px solid var(--border-accent);
+  color: #ffffff;
   padding: 10px 14px;
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
   outline: none;
+  transition: border-color 0.2s;
 }
 
 .form-control:focus {
-  border-color: var(--accent-blue);
+  border-color: var(--accent-green);
+  box-shadow: 0 0 10px var(--accent-green-glow);
 }
 
 /* Audit Table */
 .audit-table-wrap {
-  background: var(--card-inner);
+  background: var(--bg-inner);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   overflow-x: auto;
@@ -130,24 +171,28 @@ body {
 }
 
 .audit-table th {
-  background: #172033;
+  background: rgba(0, 255, 136, 0.08);
   padding: 14px 16px;
-  color: #94a3b8;
-  font-weight: 600;
-  border-bottom: 1px solid var(--border-color);
+  color: var(--accent-green);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-accent);
   white-space: nowrap;
 }
 
 .audit-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #232f48;
-  color: #cbd5e1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #c6cad3;
   vertical-align: middle;
+}
+
+.audit-table tr:hover td {
+  background: rgba(0, 255, 136, 0.03);
 }
 
 /* Match & Variance Row States */
 .row-matched {
-  background: rgba(16, 185, 129, 0.05);
+  background: rgba(0, 255, 136, 0.05);
 }
 
 .row-matched td:first-child {
@@ -155,7 +200,7 @@ body {
 }
 
 .row-variance {
-  background: rgba(239, 68, 68, 0.08);
+  background: rgba(255, 107, 122, 0.08);
 }
 
 .row-variance td:first-child {
@@ -168,9 +213,9 @@ body {
   font-size: 1.05rem;
   font-weight: bold;
   text-align: center;
-  border-radius: 6px;
-  background: #0f172a;
-  border: 2px solid #475569;
+  border-radius: 8px;
+  background: #040609;
+  border: 2px solid rgba(255, 255, 255, 0.2);
   color: white;
   outline: none;
   transition: all 0.2s;
@@ -178,58 +223,64 @@ body {
 
 .actual-input.matched {
   border-color: var(--accent-green);
-  color: #34d399;
-  background: rgba(16, 185, 129, 0.1);
+  color: var(--accent-green);
+  background: rgba(0, 255, 136, 0.15);
+  box-shadow: 0 0 12px var(--accent-green-glow);
 }
 
 .actual-input.variance {
   border-color: var(--accent-red);
-  color: #f87171;
-  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-red);
+  background: rgba(255, 107, 122, 0.15);
+  box-shadow: 0 0 12px rgba(255, 107, 122, 0.4);
 }
 
 .variance-pill {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.8rem;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.82rem;
   font-weight: bold;
 }
 
 .pill-matched {
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
+  background: rgba(0, 255, 136, 0.2);
+  color: var(--accent-green);
+  border: 1px solid var(--border-accent);
 }
 
 .pill-variance {
-  background: rgba(239, 68, 68, 0.2);
-  color: #f87171;
+  background: rgba(255, 107, 122, 0.2);
+  color: var(--accent-red);
+  border: 1px solid rgba(255, 107, 122, 0.4);
 }
 
 .btn-waiter-info {
-  background: #334155;
-  color: #38bdf8;
-  border: 1px solid #475569;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  background: rgba(0, 255, 136, 0.1);
+  color: var(--accent-green);
+  border: 1px solid var(--border-accent);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  transition: all 0.2s;
 }
 
 .btn-waiter-info:hover {
-  background: #38bdf8;
-  color: #0f172a;
+  background: var(--accent-green);
+  color: #020308;
+  font-weight: 700;
 }
 
 .explanation-input {
   width: 100%;
-  padding: 6px 10px;
-  font-size: 0.82rem;
-  border-radius: 6px;
-  background: #1e293b;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  background: #080305;
   border: 1px dashed var(--accent-red);
   color: #f8fafc;
   margin-top: 6px;
@@ -239,12 +290,13 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.85);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 999;
   padding: 16px;
+  backdrop-filter: blur(8px);
 }
 
 .modal-overlay.active {
@@ -252,8 +304,8 @@ body {
 }
 
 .modal-box {
-  background: var(--card-dark);
-  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 650px;
@@ -261,5 +313,5 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
 }

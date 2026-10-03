@@ -197,7 +197,7 @@ function initSidebar() {
     const roleTitle = ROLE_DISPLAY_NAMES[user.role] || user.role;
     usernameElement.innerHTML = `
       <div style="font-weight: 700; font-size: 0.95rem; color: #f8fafc;">${user.username}</div>
-      <div style="font-size: 0.75rem; color: #38bdf8; margin-top: 3px; font-weight: 500;">${roleTitle}</div>
+      <div style="font-size: 0.75rem; color: #00ff88; margin-top: 3px; font-weight: 600;">${roleTitle}</div>
     `;
   }
 
