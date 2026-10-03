@@ -202,8 +202,12 @@ function addIngredientRow(data = null) {
       </select>
       <input type="text" class="ingredient-unit-custom" placeholder="أدخل الوحدة" value="${isCustomUnit ? (data.unit || '') : ''}" style="${isCustomUnit ? 'display:block; margin-top:5px;' : 'display:none; margin-top:5px;'}" autocomplete="off" />
     </td>
-    <td>
-      <button type="button" class="btn-delete" onclick="removeIngredientRow(this)">🗑</button>
+    <td style="white-space:nowrap;">
+      <div style="display:flex; gap:4px; align-items:center; justify-content:center;">
+        <button type="button" class="btn-order-move" onclick="moveIngredientRow(this, -1)" title="تحريك لأعلى" style="padding:2px 6px; cursor:pointer; background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px;">▲</button>
+        <button type="button" class="btn-order-move" onclick="moveIngredientRow(this, 1)" title="تحريك لأسفل" style="padding:2px 6px; cursor:pointer; background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px;">▼</button>
+        <button type="button" class="btn-delete" onclick="removeIngredientRow(this)" title="حذف">🗑</button>
+      </div>
     </td>
   `;
   tbody.appendChild(row);
@@ -234,6 +238,20 @@ function removeIngredientRow(btn) {
     updateIngredientRowNumbers();
   }
 }
+
+// تحريك صف المكون لأعلى أو لأسفل
+window.moveIngredientRow = function(btn, direction) {
+  const row = btn.closest("tr");
+  if (!row) return;
+  const tbody = row.parentElement;
+  if (direction === -1 && row.previousElementSibling) {
+    tbody.insertBefore(row, row.previousElementSibling);
+    updateIngredientRowNumbers();
+  } else if (direction === 1 && row.nextElementSibling) {
+    tbody.insertBefore(row.nextElementSibling, row);
+    updateIngredientRowNumbers();
+  }
+};
 
 // إعادة ترقيم صفوف المكونات
 function updateIngredientRowNumbers() {

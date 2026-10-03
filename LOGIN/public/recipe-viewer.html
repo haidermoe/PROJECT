@@ -3,19 +3,42 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Standard Recipe Template</title>
+  <title>Standard Recipe Template | كرت الوصفة المعياري</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="recipe-viewer.css" />
 </head>
 
 <body>
+  <!-- شريط الإجراءات العلوي (لا يظهر في الطباعة) -->
+  <div class="viewer-top-toolbar no-print">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="toolbar-btn btn-back-nav" onclick="window.location.href='/recipes.html'">← رجوع للوصفات</button>
+      <span class="toolbar-title" id="toolbarRecipeTitle">كرت الوصفة القياسي</span>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="toolbar-btn btn-reorder" id="reorderModeBtn" onclick="toggleReorderMode()">
+        <span>↕️ إعادة ترتيب المكونات</span>
+      </button>
+      <button class="toolbar-btn btn-save-order" id="saveOrderBtn" style="display:none;" onclick="saveNewIngredientsOrder()">
+        <span>💾 حفظ الترتيب الجديد</span>
+      </button>
+      <button class="toolbar-btn btn-edit-recipe" id="editRecipeBtn" onclick="goToEditPage()">
+        <span>✏️ تعديل محتويات الوصفة والمكونات</span>
+      </button>
+      <button class="toolbar-btn btn-print-page" onclick="window.print()">
+        <span>🖨️ طباعة A4</span>
+      </button>
+    </div>
+  </div>
+
   <div class="recipe-container">
     <!-- Header -->
     <div class="recipe-header">
       <div class="header-left">
         <div class="company-logos">
-          <div class="logo">جامعة دجلة قسم علوم الحاسوب</div>
+          <div class="logo">🍽️ إدارة المطعم والمطبخ المركزي</div>
+          <div style="font-size:11px; color:#555; margin-top:2px;">Central Kitchen • Standard Formulation & Recipe Control</div>
         </div>
       </div>
       <div class="header-right">
@@ -45,12 +68,12 @@
     <div class="item-details">
       <div class="detail-row">
         <div class="detail-item">
-          <span class="detail-label">ITEM-:</span>
-          <span class="detail-value" id="recipeItemName">—</span>
+          <span class="detail-label">ITEM:</span>
+          <span class="detail-value" id="recipeItemName" style="font-weight:700; color:#000;">—</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">PRODUCTION:</span>
-          <span class="detail-value">CPU</span>
+          <span class="detail-value">CPU / Station</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">SERVICE PLATE:</span>
@@ -75,13 +98,20 @@
 
     <!-- Ingredients Section -->
     <div class="ingredients-section">
-      <h2>INGREDIENTS IN ORDER OF MIXING & QUANTITY</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 15px;">
+        <h2 style="border:none; margin:0; padding:0;">INGREDIENTS IN ORDER OF MIXING & QUANTITY</h2>
+        <span id="reorderHint" class="no-print" style="display:none; font-size:12px; color:#059669; font-weight:bold;">
+          ↕️ يمكنك استخدام أزرار (▲ / ▼) لتغيير أسبقية وترتيب خلط المواد
+        </span>
+      </div>
+
       <table class="ingredients-table">
         <thead>
           <tr>
-            <th style="width: 5%;">#</th>
-            <th style="width: 60%;">INGREDIENT</th>
-            <th style="width: 35%;">QUANTITY</th>
+            <th style="width: 6%;">#</th>
+            <th style="width: 54%;">INGREDIENT (المادة الخام)</th>
+            <th style="width: 25%;">QUANTITY (الكمية المعيارية)</th>
+            <th style="width: 15%; text-align:center;" class="order-col no-print">ترتيب الخلط</th>
           </tr>
         </thead>
         <tbody id="ingredientsTableBody">
@@ -92,22 +122,20 @@
 
     <!-- Procedures Section -->
     <div class="procedures-section">
-      <h2>PROCEDURES FOR PREPARATION</h2>
+      <h2>PROCEDURES FOR PREPARATION (طريقة وخطوات التحضير المعيارية)</h2>
       <div class="procedures-content" id="proceduresContent">
         <!-- سيتم ملؤها ديناميكياً -->
       </div>
     </div>
 
     <!-- Footer Actions -->
-    <div class="recipe-footer">
-      <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
-      <button class="btn-back" onclick="window.history.back()">← رجوع</button>
+    <div class="recipe-footer no-print">
+      <button class="btn-edit" onclick="goToEditPage()">✏️ تعديل كرت الوصفة</button>
+      <button class="btn-print" onclick="window.print()">🖨️ طباعة A4</button>
+      <button class="btn-back" onclick="window.location.href='/recipes.html'">← رجوع للوصفات</button>
     </div>
   </div>
 
-  <script src="common/auth-check.js"></script>
   <script src="recipe-viewer.js"></script>
 </body>
-
 </html>
-

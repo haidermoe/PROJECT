@@ -2,7 +2,7 @@
  * ======================================================
  * Recipe Viewer CSS - Standard Recipe Template Style
  * ======================================================
- * تصميم مطابق للورقة الأصلية - قابل للطباعة A4
+ * تصميم مطابق لكرت الوصفات القياسي العالمي A4
  */
 
 * {
@@ -12,19 +12,115 @@
 }
 
 body {
-  font-family: 'Arial', 'Helvetica', sans-serif;
-  background: #f5f5f5;
-  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #0b1120;
+  padding: 20px 20px 60px;
   direction: rtl;
   min-height: 100vh;
 }
 
+/* ===========================
+   TOP TOOLBAR (Screen only)
+=========================== */
+.viewer-top-toolbar {
+  max-width: 210mm;
+  margin: 0 auto 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.toolbar-title {
+  color: #00ff88;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.toolbar-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-back-nav {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.btn-back-nav:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.btn-edit-recipe {
+  background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+  color: #020617;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+}
+
+.btn-edit-recipe:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(0, 255, 136, 0.6);
+}
+
+.btn-reorder {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+}
+
+.btn-reorder:hover {
+  background: #38bdf8;
+  color: #020617;
+  font-weight: 700;
+}
+
+.btn-save-order {
+  background: #10b981;
+  color: #fff;
+  font-weight: 700;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.btn-print-page {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.btn-print-page:hover {
+  background: #475569;
+}
+
+/* ===========================
+   A4 RECIPE CONTAINER (Card)
+=========================== */
 .recipe-container {
   max-width: 210mm; /* A4 width */
   margin: 0 auto;
   background: white;
-  padding: 20mm;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: #111;
+  padding: 16mm 20mm;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
 }
 
 /* ===========================
@@ -34,8 +130,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 2px solid #000;
 }
 
@@ -46,39 +142,41 @@ body {
 .company-logos {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .logo {
-  font-weight: bold;
-  font-size: 14px;
-  color: #333;
+  font-weight: 800;
+  font-size: 15px;
+  color: #000;
 }
 
 .header-right {
   flex: 1;
   text-align: left;
+  direction: ltr;
 }
 
 .header-info {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .info-row {
   display: flex;
-  gap: 10px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 11px;
 }
 
 .info-row .label {
-  font-weight: bold;
+  font-weight: 800;
   min-width: 80px;
+  color: #444;
 }
 
 .info-row .value {
-  color: #333;
+  color: #000;
+  font-weight: 600;
 }
 
 /* ===========================
@@ -86,15 +184,15 @@ body {
 =========================== */
 .recipe-title {
   text-align: center;
-  margin: 20px 0;
-  padding: 10px 0;
+  margin: 14px 0;
+  padding: 8px 0;
   border-top: 2px solid #000;
   border-bottom: 2px solid #000;
 }
 
 .recipe-title h1 {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 17px;
+  font-weight: 800;
   letter-spacing: 2px;
   color: #000;
   text-transform: uppercase;
@@ -104,113 +202,132 @@ body {
    ITEM DETAILS
 =========================== */
 .item-details {
-  margin: 20px 0;
-  padding: 15px;
-  background: #f9f9f9;
-  border: 1px solid #ddd;
+  margin-bottom: 20px;
 }
 
 .detail-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 10px;
-}
-
-.detail-row:last-child {
-  margin-bottom: 0;
+  gap: 15px;
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd;
+  direction: ltr;
 }
 
 .detail-item {
   display: flex;
+  align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .detail-label {
-  font-weight: bold;
-  min-width: 100px;
-  color: #333;
+  font-weight: 800;
+  color: #444;
+  font-size: 11px;
 }
 
 .detail-value {
   color: #000;
-  flex: 1;
+  font-weight: 600;
 }
 
 /* ===========================
    INGREDIENTS SECTION
 =========================== */
 .ingredients-section {
-  margin: 25px 0;
+  margin-bottom: 20px;
 }
 
 .ingredients-section h2 {
-  font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
   color: #000;
   text-transform: uppercase;
-  border-bottom: 1px solid #000;
-  padding-bottom: 5px;
 }
 
 .ingredients-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
-}
-
-.ingredients-table thead {
-  background: #f0f0f0;
+  font-size: 12px;
 }
 
 .ingredients-table th {
-  padding: 10px 8px;
-  text-align: right;
-  font-size: 12px;
-  font-weight: bold;
+  background: #f0f0f0;
   border: 1px solid #000;
-  background: #e8e8e8;
+  padding: 8px 10px;
+  text-align: right;
+  font-weight: 800;
+  color: #000;
 }
 
 .ingredients-table td {
-  padding: 8px;
-  border: 1px solid #000;
-  font-size: 12px;
-  color: #333;
+  border: 1px solid #ccc;
+  padding: 8px 10px;
+  color: #111;
 }
 
-.ingredients-table tbody tr:nth-child(even) {
-  background: #f9f9f9;
+.ingredients-table tr:hover td {
+  background: #fdfdfd;
+}
+
+/* Order Buttons */
+.order-btn-group {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.btn-order-move {
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  border-radius: 4px;
+  width: 26px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.btn-order-move:hover {
+  background: #00ff88;
+  border-color: #00ff88;
+  color: #020617;
+  font-weight: bold;
 }
 
 /* ===========================
    PROCEDURES SECTION
 =========================== */
 .procedures-section {
-  margin: 25px 0;
+  margin-bottom: 25px;
 }
 
 .procedures-section h2 {
-  font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
   color: #000;
   text-transform: uppercase;
   border-bottom: 1px solid #000;
   padding-bottom: 5px;
+  margin-bottom: 10px;
 }
 
 .procedures-content {
-  padding: 15px;
-  background: #f9f9f9;
+  padding: 14px;
+  background: #fafafa;
   border: 1px solid #ddd;
   font-size: 12px;
   line-height: 1.8;
-  color: #333;
+  color: #222;
   white-space: pre-line;
-  font-family: 'Courier New', monospace;
+  font-family: inherit;
 }
 
 /* ===========================
@@ -218,28 +335,37 @@ body {
 =========================== */
 .recipe-footer {
   margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #ddd;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 12px;
 }
 
-.btn-print,
-.btn-back {
-  padding: 10px 20px;
+.btn-edit, .btn-print, .btn-back {
+  padding: 8px 18px;
   border: 1px solid #333;
   background: white;
-  color: #333;
+  color: #111;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   border-radius: 4px;
   transition: all 0.2s;
 }
 
-.btn-print:hover,
-.btn-back:hover {
-  background: #333;
+.btn-edit {
+  background: #00ff88;
+  border-color: #00ff88;
+  color: #020617;
+}
+
+.btn-edit:hover {
+  background: #00cc6a;
+}
+
+.btn-print:hover, .btn-back:hover {
+  background: #111;
   color: white;
 }
 
@@ -254,39 +380,16 @@ body {
 
   .recipe-container {
     box-shadow: none;
-    padding: 15mm;
+    padding: 10mm 15mm;
+    max-width: 100%;
   }
 
-  .recipe-footer {
-    display: none;
+  .no-print {
+    display: none !important;
   }
 
   @page {
     size: A4;
-    margin: 0;
+    margin: 10mm;
   }
 }
-
-/* ===========================
-   RESPONSIVE
-=========================== */
-@media (max-width: 768px) {
-  .recipe-container {
-    padding: 10mm;
-  }
-
-  .detail-row {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .recipe-header {
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .header-right {
-    text-align: right;
-  }
-}
-
