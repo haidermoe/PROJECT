@@ -65,8 +65,35 @@
         <div class="card">
           <h3 class="card-title">📝 بيانات الدفعة المراد تحضيرها</h3>
           <div class="form-grid">
+            <!-- اختيار السكشن / المحطة وتخصيص الوصفات -->
+            <div class="form-group station-selection-card" style="grid-column: span 2;">
+              <div class="station-selection-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:1.3rem;">🏢</span>
+                  <div>
+                    <label style="margin:0; font-weight:700; color:#38bdf8; font-size:1rem;">
+                      السكشن / محطة التحضير (المسؤول عن إعداد الوجبة):
+                    </label>
+                    <span id="currentStationBadge" class="station-active-badge">كل السكاشن</span>
+                  </div>
+                </div>
+                <button type="button" class="btn-station-customizer" onclick="openStationCustomizerModal()">
+                  <span>⚙️ تخصيص وتوزيع وصفات السكاشن</span>
+                </button>
+              </div>
+
+              <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
+                <select id="prepStationFilter" class="form-control station-filter-dropdown" onchange="onStationFilterChanged()">
+                  <option value="all">🌐 كل السكاشن (عرض كافة الوصفات)</option>
+                </select>
+              </div>
+              <div class="station-filter-note" id="stationFilterNote">
+                💡 اختر السكشن الخاص بك لعرض الوصفات التي يحضرها الشيف الواقف في هذا السكشن فقط.
+              </div>
+            </div>
+
             <div class="form-group" style="grid-column: span 2;">
-              <label>اختر الوصفة أو الصوص من كروت المطبخ:</label>
+              <label>اختر الوصفة أو الصوص من كروت السكشن:</label>
               <select id="prepRecipeSelect" class="form-control" onchange="onRecipeSelected()">
                 <option value="">-- جاري تحميل الوصفات... --</option>
               </select>
@@ -184,6 +211,54 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- نافذة تخصيص وتوزيع وصفات السكاشن (Modal) -->
+  <div id="stationCustomizerModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.4rem;">⚙️</span>
+          <div>
+            <h3 style="color:#00ff88; margin:0; font-size:1.15rem;">تخصيص وتوزيع الوصفات على السكاشن</h3>
+            <small style="color:#94a3b8; font-size:0.85rem;">حدد السكشن المسؤول عن تحضير كل وصفة أو صوص ليظهر لشيف المحطة فقط</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeStationCustomizerModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- شريط البحث والفلترة السريعة داخل النافذة -->
+        <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+          <input type="text" id="customizerSearchInput" class="form-control" placeholder="🔍 بحث عن وصفة أو صوص..." oninput="filterCustomizerList()" style="flex:1; min-width:200px;" />
+          <select id="customizerStationFilter" class="form-control" style="width:230px;" onchange="filterCustomizerList()">
+            <option value="all">🌐 جميع السكاشن</option>
+          </select>
+        </div>
+
+        <div class="customizer-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:35%;">اسم الوصفة / الصنف</th>
+                <th style="width:20%;">الحجم المعياري</th>
+                <th style="width:45%;">السكشن المسند إليه التحضير</th>
+              </tr>
+            </thead>
+            <tbody id="customizerTableBody">
+              <!-- يتم ملؤها ديناميكياً -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" onclick="closeStationCustomizerModal()">إلغاء</button>
+        <button type="button" class="btn-primary" id="btnSaveAssignments" onclick="saveStationAssignments()">
+          <span>💾 حفظ التوزيع واعتماد السكاشن</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <script src="common/sidebar.js"></script>

@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   }
 
+  // تحميل قائمة سكاشن المطبخ
+  await loadStationsList();
+
   // فحص ما إذا كنا في وضع التعديل (Edit Mode)
   const urlParams = new URLSearchParams(window.location.search);
   const editRecipeId = urlParams.get('id') || (urlParams.get('edit') !== 'true' ? urlParams.get('edit') : null);
@@ -136,6 +139,7 @@ async function loadRecipeForEdit(id) {
     if (document.getElementById("recipeShelfLife")) document.getElementById("recipeShelfLife").value = recipe.shelf_life || "";
     if (document.getElementById("recipeVersion")) document.getElementById("recipeVersion").value = recipe.version || "001";
     if (document.getElementById("recipeEdition")) document.getElementById("recipeEdition").value = recipe.edition || 1;
+    if (document.getElementById("recipeStationSelect")) document.getElementById("recipeStationSelect").value = recipe.station_id || "";
     if (document.getElementById("recipeProcedure")) document.getElementById("recipeProcedure").value = recipe.procedure || "";
 
     // تعبئة جدول المكونات
@@ -496,7 +500,8 @@ async function handleAddRecipe() {
         edition,
         procedure,
         ingredients,
-        is_sub_recipe: isSubRecipe
+        is_sub_recipe: isSubRecipe,
+        station_id: document.getElementById("recipeStationSelect")?.value || null
       })
     });
 
@@ -571,6 +576,27 @@ async function handleAddRecipe() {
       saveBtn.disabled = false;
       saveBtn.textContent = "💾 حفظ الوصفة";
     }
+  }
+}
+
+// تحميل قائمة السكاشن في صفحة إضافة/تعديل الوصفة
+async function loadStationsList() {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch('/api/pos-restaurant/stations', {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    const result = await res.json();
+    if (result.status === "success" && result.data) {
+      const stations = result.data.filter(s => s.station_type === 'kitchen' && s.is_active);
+      const sel = document.getElementById("recipeStationSelect");
+      if (sel) {
+        sel.innerHTML = '<option value="">-- اختر السكشن المسؤول عن التحضير --</option>' +
+          stations.map(s => `<option value="${s.id}">📍 [${s.station_code || 'ST'}] ${s.station_name}</option>`).join('');
+      }
+    }
+  } catch (e) {
+    console.warn("تعذر تحميل السكاشن:", e);
   }
 }
 

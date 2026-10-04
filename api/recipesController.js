@@ -57,7 +57,8 @@ async function ensureRecipeColumnsExist(connection) {
       { name: 'reference', sql: 'ALTER TABLE recipes ADD COLUMN reference VARCHAR(50) AFTER `procedure`' },
       { name: 'version', sql: 'ALTER TABLE recipes ADD COLUMN version VARCHAR(20) DEFAULT \'001\' AFTER reference' },
       { name: 'edition', sql: 'ALTER TABLE recipes ADD COLUMN edition INT DEFAULT 1 AFTER version' },
-      { name: 'status', sql: 'ALTER TABLE recipes ADD COLUMN status ENUM(\'draft\', \'active\', \'pending_approval\') DEFAULT \'active\' AFTER edition' }
+      { name: 'status', sql: 'ALTER TABLE recipes ADD COLUMN status ENUM(\'draft\', \'active\', \'pending_approval\') DEFAULT \'active\' AFTER edition' },
+      { name: 'station_id', sql: 'ALTER TABLE recipes ADD COLUMN station_id INT NULL AFTER edition' }
     ];
 
     for (const column of requiredColumns) {
@@ -108,12 +109,13 @@ async function ensureRecipeColumnsExist(connection) {
 }
 
 // ===============================
-//      جلب جميع الوصفات (مع الصلاحيات)
+//      جلب جميع الوصفات (مع الصلاحيات والسكاشن)
 // ===============================
 exports.getRecipes = async (req, res) => {
   try {
-    const userRole = req.user.role;
-    const userId = req.user.id;
+    const userRole = req.user?.role;
+    const userId = req.user?.id;
+    const stationIdFilter = req.query.station_id;
 
     // بناء الاستعلام مع حساب عدد المكونات من الجدول الجديد
     // ⚠️ procedure كلمة محجوزة في MySQL، يجب استخدام backticks
@@ -121,27 +123,34 @@ exports.getRecipes = async (req, res) => {
     const procedureCol = 'r.' + backtick + 'procedure' + backtick;
     let query = 'SELECT r.id, r.item_name, r.name, r.yield, r.portions, r.shelf_life, ' + procedureCol + ', ' +
                 'r.reference, r.version, r.edition, r.created_by, r.status, r.created_at, ' +
+                'r.station_id, s.station_name, s.station_code, ' +
                 '(SELECT COUNT(*) FROM recipe_ingredients_new WHERE recipe_id = r.id) AS ingredient_count ' +
-                'FROM recipes r';
+                'FROM recipes r ' +
+                'LEFT JOIN pos_stations s ON r.station_id = s.id ';
+
+    const conditions = [];
+    const params = [];
 
     // إذا كان موظف عادي، يرى فقط الوصفات المسموح له برؤيتها
     if (userRole === 'employee') {
-      query += `
-        LEFT JOIN recipe_employee_permissions rep ON r.id = rep.recipe_id AND rep.employee_id = ?
-        WHERE (r.visible_to_employees = 1 OR rep.can_view = 1)
-        AND r.status = 'active'
-      `;
-    } else {
-      // المدير والشيف يروا كل الوصفات
-      query += ` WHERE 1=1 `;
+      query += ` LEFT JOIN recipe_employee_permissions rep ON r.id = rep.recipe_id AND rep.employee_id = ? `;
+      params.push(userId);
+      conditions.push("(r.visible_to_employees = 1 OR rep.can_view = 1) AND r.status = 'active'");
+    }
+
+    // فلترة اختيارية حسب السكشن / المحطة
+    if (stationIdFilter && stationIdFilter !== 'all') {
+      conditions.push("r.station_id = ?");
+      params.push(parseInt(stationIdFilter));
+    }
+
+    if (conditions.length > 0) {
+      query += ` WHERE ` + conditions.join(' AND ');
     }
 
     query += ` ORDER BY r.id DESC `;
 
-    const [rows] = userRole === 'employee' 
-      ? await appPool.query(query, [userId])
-      : await appPool.query(query);
-
+    const [rows] = await appPool.query(query, params);
     res.json({ status: "success", data: rows });
   } catch (err) {
     res.json({ status: "error", message: err.message });
@@ -158,10 +167,13 @@ exports.getRecipe = async (req, res) => {
     
     // ⚠️ procedure كلمة محجوزة في MySQL، يجب استخدام backticks
     const backtick = String.fromCharCode(96);
-    const procedureCol = backtick + 'procedure' + backtick;
-    const selectQuery = 'SELECT id, item_name, name, yield, portions, shelf_life, ' + procedureCol + 
-                        ', reference, version, edition, created_by, status, created_at ' +
-                        'FROM recipes WHERE id = ?';
+    const procedureCol = 'r.' + backtick + 'procedure' + backtick;
+    const selectQuery = 'SELECT r.id, r.item_name, r.name, r.yield, r.portions, r.shelf_life, ' + procedureCol + 
+                        ', r.reference, r.version, r.edition, r.created_by, r.status, r.created_at, ' +
+                        'r.station_id, s.station_name, s.station_code ' +
+                        'FROM recipes r ' +
+                        'LEFT JOIN pos_stations s ON r.station_id = s.id ' +
+                        'WHERE r.id = ?';
     const [rows] = await appPool.query(selectQuery, [id]);
     
     if (rows.length === 0) {
@@ -331,10 +343,11 @@ exports.addRecipe = async (req, res) => {
       // استخدام String.fromCharCode لضمان ظهور backticks بشكل صحيح
       const backtick = String.fromCharCode(96);
       const procedureCol = backtick + 'procedure' + backtick;
+      const finalStationId = req.body.station_id ? parseInt(req.body.station_id) : null;
       const insertQuery = 'INSERT INTO recipes (' +
         'item_name, name, yield, portions, shelf_life, ' + procedureCol + ', ' +
-        'reference, version, edition, created_by, status' +
-        ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        'reference, version, edition, created_by, status, station_id' +
+        ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
       
       // ⚠️ مهم: userId يأتي من auth_db (قاعدة بيانات معزولة)
       // لا يمكن استخدام Foreign Key constraint لأن المستخدمين في قاعدة بيانات مختلفة
@@ -342,7 +355,7 @@ exports.addRecipe = async (req, res) => {
       // إذا كان userId غير موجود في kitchen_inventory.users، نستخدم NULL
       const finalUserId = userId || null;
       
-      console.log('🔵 addRecipe: محاولة إدراج الوصفة مع created_by:', finalUserId);
+      console.log('🔵 addRecipe: محاولة إدراج الوصفة مع created_by:', finalUserId, 'و station_id:', finalStationId);
       console.log('🔵 addRecipe: الاستعلام:', insertQuery);
       
       const [result] = await connection.execute(insertQuery,
@@ -357,12 +370,17 @@ exports.addRecipe = async (req, res) => {
           version || '001',
           edition || 1,
           finalUserId, // قد يكون NULL إذا كان المستخدم غير موجود في kitchen_inventory
-          'active'
+          'active',
+          finalStationId
         ]
       );
 
       const recipeId = result.insertId;
       console.log('✅ addRecipe: تم إدراج الوصفة بنجاح، ID:', recipeId);
+
+      if (finalStationId) {
+        await connection.query('UPDATE pos_items SET station_id = ? WHERE recipe_id = ?', [finalStationId, recipeId]);
+      }
 
       // إدراج المكونات
       console.log('🔵 addRecipe: جاري إدراج', ingredients.length, 'مكون...');
@@ -462,7 +480,8 @@ exports.editRecipe = async (req, res) => {
     description,
     visible_to_employees,
     ingredients,
-    is_sub_recipe
+    is_sub_recipe,
+    station_id
   } = req.body;
 
   const userRole = req.user?.role;
@@ -472,6 +491,8 @@ exports.editRecipe = async (req, res) => {
   if (!finalName) {
     return res.status(400).json({ status: "error", message: "اسم الوصفة مطلوب" });
   }
+
+  const finalStationId = station_id !== undefined ? (station_id ? parseInt(station_id) : null) : undefined;
 
   // المدير العام والمدراء ومدراء المطبخ يمكنهم التعديل المباشر
   const connection = await appPool.getConnection();
@@ -493,11 +514,12 @@ exports.editRecipe = async (req, res) => {
         edition = COALESCE(?, edition),
         ${procedureCol} = COALESCE(?, ${procedureCol}),
         description = COALESCE(?, description),
-        visible_to_employees = COALESCE(?, visible_to_employees)
+        visible_to_employees = COALESCE(?, visible_to_employees),
+        station_id = ${finalStationId !== undefined ? '?' : 'station_id'}
       WHERE id = ?
     `;
 
-    await connection.query(updateQuery, [
+    const updateParams = [
       finalName,
       finalName,
       recipeYield || null,
@@ -508,9 +530,19 @@ exports.editRecipe = async (req, res) => {
       edition ? parseInt(edition) : 1,
       procedure || null,
       description || null,
-      visible_to_employees !== undefined ? (visible_to_employees ? 1 : 0) : null,
-      id
-    ]);
+      visible_to_employees !== undefined ? (visible_to_employees ? 1 : 0) : null
+    ];
+
+    if (finalStationId !== undefined) {
+      updateParams.push(finalStationId);
+    }
+    updateParams.push(id);
+
+    await connection.query(updateQuery, updateParams);
+
+    if (finalStationId !== undefined && finalStationId !== null) {
+      await connection.query('UPDATE pos_items SET station_id = ? WHERE recipe_id = ?', [finalStationId, id]);
+    }
 
     // إذا تم تمرير مكونات جديدة لتحديث كرت الوصفة
     if (Array.isArray(ingredients) && ingredients.length > 0) {
@@ -1344,6 +1376,71 @@ exports.updateHeaderSettings = async (req, res) => {
     return res.status(500).json({ status: "error", message: err.message });
   }
 };
+
+// ===============================
+//   تعديل سكشن وصفة واحدة
+// ===============================
+exports.updateRecipeStation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { station_id } = req.body;
+    const stId = station_id ? parseInt(station_id) : null;
+
+    await appPool.query('UPDATE recipes SET station_id = ? WHERE id = ?', [stId, id]);
+    if (stId) {
+      await appPool.query('UPDATE pos_items SET station_id = ? WHERE recipe_id = ?', [stId, id]);
+    }
+
+    res.json({
+      status: 'success',
+      message: 'تم تحديث سكشن الوصفة بنجاح',
+      data: { id: parseInt(id), station_id: stId }
+    });
+  } catch (err) {
+    console.error('❌ خطأ في updateRecipeStation:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+// ===============================
+//   تخصيص وتوزيع الوصفات على السكاشن دفعة واحدة
+// ===============================
+exports.batchAssignStations = async (req, res) => {
+  const connection = await appPool.getConnection();
+  try {
+    const { assignments } = req.body; // مصفوفة [{ recipe_id, station_id }]
+    if (!Array.isArray(assignments)) {
+      return res.status(400).json({ status: 'error', message: 'قائمة التعيينات غير صحيحة' });
+    }
+
+    await connection.beginTransaction();
+
+    for (const item of assignments) {
+      const recId = parseInt(item.recipe_id);
+      const stId = item.station_id ? parseInt(item.station_id) : null;
+      if (recId) {
+        await connection.query('UPDATE recipes SET station_id = ? WHERE id = ?', [stId, recId]);
+        if (stId) {
+          await connection.query('UPDATE pos_items SET station_id = ? WHERE recipe_id = ?', [stId, recId]);
+        }
+      }
+    }
+
+    await connection.commit();
+    res.json({
+      status: 'success',
+      message: 'تم حفظ وتحديث توزيع وصفات السكاشن بنجاح',
+      count: assignments.length
+    });
+  } catch (err) {
+    await connection.rollback();
+    console.error('❌ خطأ في batchAssignStations:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  } finally {
+    connection.release();
+  }
+};
+
 
 
 

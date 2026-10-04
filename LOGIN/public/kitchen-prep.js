@@ -14,6 +14,7 @@ let allRecipes = [];
 let allStations = [];
 let currentPlanData = null;
 const scanHistory = [];
+let selectedStationId = localStorage.getItem('kitchen_prep_selected_station') || 'all';
 
 window.switchPrepTab = function(tabId) {
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -30,36 +31,134 @@ window.switchPrepTab = function(tabId) {
 };
 
 // ===============================
-// 1) تحميل الوصفات والسكاشن
+// 1) تحميل السكاشن والوصفات
 // ===============================
 async function initKitchenPrep() {
   try {
-    // 1. جلب الوصفات
+    // 1. جلب محطات وسكاشن المطبخ
+    const resSt = await fetch('/api/pos-restaurant/stations', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const dataSt = await resSt.json();
+    if (dataSt.status === 'success') {
+      allStations = (dataSt.data || []).filter(s => s.station_type === 'kitchen' && s.is_active);
+
+      // تعبئة قائمة فلترة السكاشن في قسم التحضير
+      const prepFilter = document.getElementById('prepStationFilter');
+      if (prepFilter) {
+        prepFilter.innerHTML = '<option value="all">🌐 كل السكاشن (عرض كافة الوصفات)</option>' +
+          allStations.map(s => `<option value="${s.id}">📍 [${s.station_code || 'ST'}] ${s.station_name}</option>`).join('');
+
+        // استرجاع السكشن المحفوظ مسبقاً للشيف
+        if (selectedStationId && (selectedStationId === 'all' || allStations.some(s => s.id === parseInt(selectedStationId)))) {
+          prepFilter.value = selectedStationId;
+        } else {
+          selectedStationId = 'all';
+          prepFilter.value = 'all';
+        }
+      }
+
+      // تعبئة السكشن في تبويب الماسح
+      const scanSel = document.getElementById('scanTargetStation');
+      if (scanSel) {
+        scanSel.innerHTML = allStations.map(s => `
+          <option value="${s.id}">📍 [${s.station_code || 'ST'}] ${s.station_name}</option>
+        `).join('');
+      }
+
+      // تحديث شارة السكشن الحالي
+      updateStationBadge();
+    }
+
+    // 2. جلب جميع الوصفات مع السكاشن المسندة إليها
+    await loadRecipesList();
+
+  } catch (err) {
+    console.error('خطأ في تهيئة التحضير والسكاشن:', err);
+  }
+}
+
+async function loadRecipesList() {
+  try {
     const resRec = await fetch('/api/recipes', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const dataRec = await resRec.json();
     if (dataRec.status === 'success') {
       allRecipes = dataRec.data || [];
-      const sel = document.getElementById('prepRecipeSelect');
-      sel.innerHTML = '<option value="">-- اختر الوصفة أو الصوص --</option>' +
-        allRecipes.map(r => `<option value="${r.id}">${r.item_name || r.name} (حجم الأساس: ${r.portions || 1} ${r.yield || 'وجبة'})</option>`).join('');
-    }
-
-    // 2. جلب محطات وسكاشن المطبخ
-    const resSt = await fetch('/api/pos-restaurant/stations', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const dataSt = await resSt.json();
-    if (dataSt.status === 'success') {
-      allStations = (dataSt.data || []).filter(s => s.station_type === 'kitchen');
-      const scanSel = document.getElementById('scanTargetStation');
-      scanSel.innerHTML = allStations.map(s => `
-        <option value="${s.id}">📍 [${s.station_code || 'ST'}] ${s.station_name}</option>
-      `).join('');
+      renderRecipesDropdown();
     }
   } catch (err) {
-    console.error('خطأ في تهيئة التحضير:', err);
+    console.error('خطأ في تحميل الوصفات:', err);
+  }
+}
+
+function updateStationBadge() {
+  const badge = document.getElementById('currentStationBadge');
+  if (!badge) return;
+
+  if (selectedStationId === 'all') {
+    badge.textContent = 'كل السكاشن (عرض الكل)';
+    badge.style.background = 'rgba(56, 189, 248, 0.15)';
+    badge.style.color = '#38bdf8';
+    badge.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+  } else {
+    const st = allStations.find(s => s.id === parseInt(selectedStationId));
+    if (st) {
+      badge.textContent = `📍 ${st.station_name}`;
+      badge.style.background = 'rgba(0, 255, 136, 0.15)';
+      badge.style.color = '#00ff88';
+      badge.style.borderColor = 'rgba(0, 255, 136, 0.3)';
+    }
+  }
+}
+
+window.onStationFilterChanged = function() {
+  const filterEl = document.getElementById('prepStationFilter');
+  selectedStationId = filterEl ? filterEl.value : 'all';
+  localStorage.setItem('kitchen_prep_selected_station', selectedStationId);
+
+  updateStationBadge();
+  renderRecipesDropdown();
+
+  // تصفير الخطة وحساب المقادير عند تغيير السكشن
+  const container = document.getElementById('ingredientsCheckContainer');
+  if (container) container.style.display = 'none';
+  const statusMsg = document.getElementById('planStatusMsg');
+  if (statusMsg) statusMsg.innerHTML = '';
+  const labelsCard = document.getElementById('labelsPrintCard');
+  if (labelsCard) labelsCard.style.display = 'none';
+};
+
+function renderRecipesDropdown() {
+  const sel = document.getElementById('prepRecipeSelect');
+  if (!sel) return;
+
+  const currentVal = parseInt(sel.value);
+  let filtered = allRecipes;
+
+  if (selectedStationId !== 'all') {
+    const targetStId = parseInt(selectedStationId);
+    filtered = allRecipes.filter(r => r.station_id === targetStId);
+  }
+
+  if (filtered.length === 0) {
+    sel.innerHTML = '<option value="">-- لا توجد وصفات مسندة لهذا السكشن حالياً (اضغط "تخصيص وتوزيع وصفات السكاشن" أعلاه) --</option>';
+    return;
+  }
+
+  const stObj = allStations.find(s => s.id === parseInt(selectedStationId));
+  const stLabel = stObj ? stObj.station_name.split('(')[0].trim() : 'كل السكاشن';
+
+  sel.innerHTML = `<option value="">-- اختر الوصفة من كروت ${stLabel} (${filtered.length} صنف متاح) --</option>` +
+    filtered.map(r => {
+      const sName = r.station_name ? r.station_name.split('(')[0].trim() : 'غير محدد';
+      return `<option value="${r.id}">[${sName}] ${r.item_name || r.name} (أساس: ${r.portions || 1} ${r.yield || 'وجبة'})</option>`;
+    }).join('');
+
+  // إذا كانت الوصفة المختارة مسبقاً لا تزال ضمن القائمة المفلترة، احتفظ بها
+  if (currentVal && filtered.some(r => r.id === currentVal)) {
+    sel.value = currentVal;
   }
 }
 
@@ -156,6 +255,12 @@ window.confirmProduceBatch = async function() {
     return;
   }
 
+  const selectedStationFilter = document.getElementById('prepStationFilter')?.value;
+  const currentRecipeObj = allRecipes.find(r => r.id === recipeId);
+  const stationId = (selectedStationFilter && selectedStationFilter !== 'all')
+    ? parseInt(selectedStationFilter)
+    : (currentRecipeObj ? currentRecipeObj.station_id : null);
+
   try {
     const res = await fetch('/api/kitchen-ops/prep/produce', {
       method: 'POST',
@@ -165,6 +270,7 @@ window.confirmProduceBatch = async function() {
       },
       body: JSON.stringify({
         recipe_id: recipeId,
+        station_id: stationId,
         planned_portions: portions,
         portion_size: size,
         shelf_life_days: shelfLife
@@ -303,5 +409,135 @@ function renderScanHistory() {
   `).join('');
 }
 
+// ======================================================
+// 5) نافذة تخصيص وتوزيع الوصفات على السكاشن (Modal Logic)
+// ======================================================
+window.openStationCustomizerModal = function() {
+  const modal = document.getElementById('stationCustomizerModal');
+  if (!modal) return;
+
+  // تعبئة قائمة فلترة السكاشن داخل المودال
+  const filterSel = document.getElementById('customizerStationFilter');
+  if (filterSel) {
+    filterSel.innerHTML = '<option value="all">🌐 جميع السكاشن</option>' +
+      allStations.map(s => `<option value="${s.id}">📍 ${s.station_name}</option>`).join('') +
+      '<option value="unassigned">⚠️ وصفات غير مسندة لسكشن</option>';
+  }
+
+  // تفريغ حقل البحث
+  const searchInput = document.getElementById('customizerSearchInput');
+  if (searchInput) searchInput.value = '';
+
+  renderCustomizerTable();
+  modal.style.display = 'flex';
+};
+
+window.closeStationCustomizerModal = function() {
+  const modal = document.getElementById('stationCustomizerModal');
+  if (modal) modal.style.display = 'none';
+};
+
+function renderCustomizerTable() {
+  const tbody = document.getElementById('customizerTableBody');
+  if (!tbody) return;
+
+  const searchKeyword = (document.getElementById('customizerSearchInput')?.value || '').trim().toLowerCase();
+  const stationFilterVal = document.getElementById('customizerStationFilter')?.value || 'all';
+
+  let list = allRecipes;
+
+  if (searchKeyword) {
+    list = list.filter(r => (r.item_name || r.name || '').toLowerCase().includes(searchKeyword));
+  }
+
+  if (stationFilterVal !== 'all') {
+    if (stationFilterVal === 'unassigned') {
+      list = list.filter(r => !r.station_id);
+    } else {
+      const targetId = parseInt(stationFilterVal);
+      list = list.filter(r => r.station_id === targetId);
+    }
+  }
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:#94a3b8; padding:24px;">لا توجد وصفات تطابق خيارات البحث</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(r => {
+    const optionsHtml = [
+      '<option value="">-- غير مسند لسكشن --</option>',
+      ...allStations.map(s => `<option value="${s.id}" ${r.station_id === s.id ? 'selected' : ''}>📍 [${s.station_code || 'ST'}] ${s.station_name}</option>`)
+    ].join('');
+
+    return `
+      <tr>
+        <td>
+          <strong style="color:#f8fafc; font-size:0.95rem;">${r.item_name || r.name}</strong>
+        </td>
+        <td style="color:#38bdf8; font-weight:600;">
+          ${r.portions || 1} ${r.yield || 'وجبة'}
+        </td>
+        <td>
+          <select class="customizer-station-select" data-recipe-id="${r.id}">
+            ${optionsHtml}
+          </select>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+window.filterCustomizerList = function() {
+  renderCustomizerTable();
+};
+
+window.saveStationAssignments = async function() {
+  const saveBtn = document.getElementById('btnSaveAssignments');
+  const selects = document.querySelectorAll('.customizer-station-select');
+
+  const assignments = Array.from(selects).map(sel => ({
+    recipe_id: parseInt(sel.dataset.recipeId),
+    station_id: sel.value ? parseInt(sel.value) : null
+  }));
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span>⏳ جاري الحفظ...</span>';
+  }
+
+  try {
+    const res = await fetch('/api/recipes/batch-assign-stations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ assignments })
+    });
+
+    const result = await res.json();
+    if (result.status !== 'success') {
+      throw new Error(result.message || 'فشل حفظ توزيع الوصفات');
+    }
+
+    alert('✅ تم حفظ وتحديث توزيع وصفات السكاشن بنجاح! سيتم تطبيقها فوراً.');
+
+    // إعادة تحميل الوصفات لتحديث القوائم والشارات
+    await loadRecipesList();
+    closeStationCustomizerModal();
+
+  } catch (err) {
+    console.error('خطأ في حفظ السكاشن:', err);
+    alert(`❌ خطأ: ${err.message}`);
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<span>💾 حفظ التوزيع واعتماد السكاشن</span>';
+    }
+  }
+};
+
 // بدء التشغيل
 initKitchenPrep();
+

@@ -26,6 +26,10 @@ router.delete("/delete/:id", authMiddleware, requireRole('admin', 'manager', 'ki
 router.get("/template-header/settings", authMiddleware, recipes.getHeaderSettings);
 router.post("/template-header/settings", authMiddleware, requireRole('admin', 'manager', 'kitchen_manager'), recipes.updateHeaderSettings);
 
+// تخصيص وتوزيع وصفات السكاشن
+router.post("/batch-assign-stations", authMiddleware, requireRole('admin', 'manager', 'kitchen_manager'), recipes.batchAssignStations);
+router.put("/:id/station", authMiddleware, requireRole('admin', 'manager', 'kitchen_manager'), recipes.updateRecipeStation);
+
 // Route جلب وصفة واحدة (يجب أن يكون في النهاية)
 router.get("/:id", authMiddleware, recipes.getRecipe);
 

@@ -40,8 +40,13 @@ exports.calculatePrepPlan = async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'يرجى اختيار الوصفة المراد تحضيرها' });
     }
 
-    // جلب الوصفة
-    const [recipes] = await appPool.query('SELECT * FROM recipes WHERE id = ?', [recipe_id]);
+    // جلب الوصفة مع السكشن
+    const [recipes] = await appPool.query(`
+      SELECT r.*, s.station_name, s.station_code 
+      FROM recipes r 
+      LEFT JOIN pos_stations s ON r.station_id = s.id 
+      WHERE r.id = ?
+    `, [recipe_id]);
     if (!recipes.length) {
       return res.status(404).json({ status: 'error', message: 'الوصفة غير موجودة' });
     }
@@ -197,12 +202,13 @@ exports.producePrepBatch = async (req, res) => {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + parseInt(shelf_life_days));
 
-    // إدراج الدفعة في prep_batches
+    // إدراج الدفعة في prep_batches مع السكشن
+    const batchStationId = req.body.station_id || recipe.station_id || null;
     const [batchResult] = await connection.query(
       `INSERT INTO prep_batches 
-       (batch_number, recipe_id, ingredient_id, planned_portions, portion_size, total_yield, unit, prepared_by, branch_id, shelf_life_days, expiry_date, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
-      [batchNumber, recipe_id, targetIngredientId, portions, size, totalYield, unit, userId, branchId, shelf_life_days, expiryDate, notes]
+       (batch_number, recipe_id, station_id, ingredient_id, planned_portions, portion_size, total_yield, unit, prepared_by, branch_id, shelf_life_days, expiry_date, notes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+      [batchNumber, recipe_id, batchStationId, targetIngredientId, portions, size, totalYield, unit, userId, branchId, shelf_life_days, expiryDate, notes]
     );
     const batchId = batchResult.insertId;
 
