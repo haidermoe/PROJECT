@@ -2,237 +2,391 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>إدارة وتخطيط الصالات وتحليلات الأداء | Odoo POS Floor Management</title>
+  <title>إدارة الصالات، الطاولات والمنيو | Floor & Menu Management</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link rel="stylesheet" href="accounting.css" />
+  <link rel="stylesheet" href="common/sidebar.css" />
   <link rel="stylesheet" href="floor-management.css" />
 </head>
 <body>
 
   <div class="layout">
-    <!-- الشريط الجانبي الموحد -->
+    <!-- الشريط الجانبي الموحد عبر sidebar.js -->
     <aside class="sidebar"></aside>
 
     <!-- المحتوى الرئيسي -->
     <main class="main-content">
       <header class="topbar">
-        <div class="topbar-title-group">
-          <h1 class="page-title">🍽️ إدارة ومخطط الصالات وتحليلات الأداء</h1>
-          <span class="badge-odoo">Odoo Floor Plan & Table Analytics</span>
+        <div>
+          <h1 class="page-title">🏢 إدارة الصالات، الطاولات والمنيو (POS Setup)</h1>
+          <small class="page-subtitle">تهيئة وتخصيص صالات المطعم، المخطط التفاعلي 2D، تحليلات دوران الطاولات، وربط الأطباق بكروت الوصفات</small>
         </div>
-        <div class="topbar-actions">
-          <button class="btn-primary" id="btnToggleDesigner" onclick="toggleDesignerMode()">
+        <div style="display:flex; gap: 10px; align-items:center;">
+          <button class="btn-primary" id="btnToggleDesigner" onclick="toggleDesignerMode()" style="display:none;">
             <i class="fa-solid fa-pen-ruler"></i> وضع تصميم المخطط
           </button>
-          <button class="btn-success" id="btnSaveLayout" onclick="saveCurrentFloorLayout()" style="display:none;">
+          <button class="btn-success" id="btnSaveLayout" onclick="saveCurrentFloorLayout()" style="display:none; background:#10b981; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:700; cursor:pointer;">
             <i class="fa-solid fa-floppy-disk"></i> حفظ المخطط المعماري
           </button>
-          <button class="btn-primary" onclick="openNewTableModal()">
-            <i class="fa-solid fa-plus"></i> إضافة طاولة
-          </button>
+          <a href="/waiter.html" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+            <span>📱 شاشة الويتر الحية</span>
+          </a>
         </div>
       </header>
 
-      <!-- شريط التنقل بين العرض الرسومي والتحليلات -->
-      <nav class="nav-tabs" style="margin-bottom: 15px;">
-        <button class="tab-btn active" id="tabBtnMap" onclick="switchMainTab('map')">
-          <i class="fa-solid fa-map-location-dot"></i> المخطط الرسومي للصالة (Visual Floor)
-        </button>
-        <button class="tab-btn" id="tabBtnAnalytics" onclick="switchMainTab('analytics')">
-          <i class="fa-solid fa-chart-pie"></i> تحليلات دوران الطاولات والإشغال (Analytics)
-        </button>
-      </nav>
+      <!-- شريط المؤشرات السريعة KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <span class="kpi-label">🏢 عدد الصالات والسكشنات</span>
+          <div class="kpi-value" id="kpiFloorsCount">0</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">🍽️ إجمالي عدد الطاولات</span>
+          <div class="kpi-value" id="kpiTablesCount">0</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">🔄 معدل دوران الطاولات (Turnover)</span>
+          <div class="kpi-value" id="kpiTurnoverRate">0 دورة/طاولة</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">🍔 عدد أطباق المنيو النشطة</span>
+          <div class="kpi-value" id="kpiDishesCount">0</div>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">⚡ الملاحظات السريعة الفعالة</span>
+          <div class="kpi-value" id="kpiNotesCount">0</div>
+        </div>
+      </div>
 
-      <!-- تبويب 1: المخطط الرسومي للصالة -->
-      <section class="tab-content active" id="secMap">
+      <!-- ألسنة التبويب -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" id="tabBtn-floors" onclick="switchTab('floors')">🏢 1. الصالات والسكشنات</button>
+        <button class="tab-btn" id="tabBtn-map" onclick="switchTab('map')">🗺️ 2. المخطط الرسومي للصالة (2D Map)</button>
+        <button class="tab-btn" id="tabBtn-tables" onclick="switchTab('tables')">🍽️ 3. قائمة وتوزيع الطاولات</button>
+        <button class="tab-btn" id="tabBtn-analytics" onclick="switchTab('analytics')">📊 4. تحليلات أداء الصالة</button>
+        <button class="tab-btn" id="tabBtn-menu" onclick="switchTab('menu')">🍔 5. المنيو وربط الوصفات</button>
+        <button class="tab-btn" id="tabBtn-notes" onclick="switchTab('notes')">⚡ 6. ملاحظات المطبخ السريعة</button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 1: إدارة الصالات والسكشنات -->
+      <!-- ============================================== -->
+      <div id="tab-floors" class="tab-pane active">
+        <div class="content-split">
+          <div class="form-card">
+            <h3 class="card-title">➕ إضافة صالة / سكشن جديد</h3>
+            <form id="createFloorForm">
+              <div class="form-group">
+                <label>اسم الصالة / القسم *</label>
+                <input type="text" id="floorNameInput" placeholder="مثلاً: الصالة العائلية، التراس الخارجي، VIP..." required />
+              </div>
+              <div class="form-group">
+                <label>ترتيب الظهور (Sequence)</label>
+                <input type="number" id="floorSeqInput" value="1" min="1" />
+              </div>
+              <button type="submit" class="btn-submit">💾 حفظ الصالة</button>
+            </form>
+          </div>
+
+          <div class="list-card">
+            <h3 class="card-title">📋 الصالات الحالية في النظام</h3>
+            <div id="floorsGrid" class="cards-grid">
+              <!-- بطاقات الصالات -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 2: المخطط الرسومي للصالة 2D (Visual Canvas & Designer) -->
+      <!-- ============================================== -->
+      <div id="tab-map" class="tab-pane">
         <!-- شريط اختيار الصالات -->
-        <div class="floors-tabs-bar" id="floorsTabsBar">
+        <div class="floors-tabs-bar" id="floorsTabsBar" style="margin-bottom:15px;">
           <!-- ألسنة الصالات تولد برمجياً -->
         </div>
 
         <!-- تنبيه وضع التصميم -->
-        <div class="designer-banner" id="designerBanner" style="display: none;">
-          <div style="display:flex; align-items:center; gap:8px;">
+        <div class="designer-banner" id="designerBanner" style="display: none; background: rgba(0, 255, 136, 0.1); border: 1px dashed #00ff88; padding: 12px 18px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display:flex; align-items:center; gap:8px; color:#00ff88;">
             <i class="fa-solid fa-hand-pointer"></i>
-            <span><strong>وضع التصميم مفعّل:</strong> اسحب الطاولات لتغيير أماكنها في الصالة، أو اضغط على أي طاولة لتعديل شكلها أو عدد كراسيها.</span>
+            <span><strong>وضع التصميم مفعّل:</strong> اسحب الطاولات لتغيير أماكنها في الصالة، أو انقر عليها لتعديل أبعادها وكراسيها.</span>
           </div>
-          <button class="btn-sm btn-success" onclick="saveCurrentFloorLayout()">
-            <i class="fa-solid fa-check"></i> حفظ التغييرات الآن
+          <button class="btn-sm btn-success" onclick="saveCurrentFloorLayout()" style="background:#00ff88; color:#030712; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">
+            <i class="fa-solid fa-check"></i> حفظ المخطط الآن
           </button>
         </div>
 
         <!-- مساحة رسم وتوزيع الصالة 2D Canvas -->
-        <div class="floor-canvas-wrapper">
-          <div class="floor-canvas" id="floorCanvas">
+        <div class="floor-canvas-wrapper" style="position:relative; width:100%; min-height:550px; background:radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px) 0 0 / 24px 24px, #0b111e; border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;">
+          <div class="floor-canvas" id="floorCanvas" style="position:relative; width:100%; min-height:550px;">
             <!-- الطاولات مع الكراسي تولد هنا برمجياً -->
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- تبويب 2: لوحة تحليلات أداء الصالة ودوران الطاولات -->
-      <section class="tab-content" id="secAnalytics">
-        <!-- مؤشرات الأداء الحية -->
+      <!-- ============================================== -->
+      <!-- تبويب 3: قائمة وتوزيع الطاولات -->
+      <!-- ============================================== -->
+      <div id="tab-tables" class="tab-pane">
+        <div class="content-split">
+          <div class="form-card">
+            <h3 class="card-title">➕ إضافة طاولة جديدة</h3>
+            <form id="createTableForm">
+              <div class="form-group">
+                <label>اختر الصالة / القسم *</label>
+                <select id="tableFloorSelect" required>
+                  <option value="">-- جارِ التحميل --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>رقم أو اسم الطاولة *</label>
+                <input type="text" id="tableNumberInput" placeholder="مثلاً: T1, طاولة 5, كابينة VIP 1" required />
+              </div>
+              <div class="form-group">
+                <label>عدد المقاعد (Seats)</label>
+                <input type="number" id="tableSeatsInput" value="4" min="1" max="50" required />
+              </div>
+              <button type="submit" class="btn-submit">💾 إضافة الطاولة</button>
+            </form>
+          </div>
+
+          <div class="list-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 class="card-title" style="margin-bottom:0;">📋 الطاولات الموزعة في الصالات</h3>
+              <select id="filterFloorSelect" style="max-width:200px;" onchange="renderTablesList()">
+                <option value="all">كل الصالات</option>
+              </select>
+            </div>
+            <div id="tablesGrid" class="cards-grid">
+              <!-- بطاقات الطاولات -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 4: لوحة تحليلات أداء الصالة ودوران الطاولات -->
+      <!-- ============================================== -->
+      <div id="tab-analytics" class="tab-pane">
         <div class="kpi-grid">
           <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
-              <i class="fa-solid fa-rotate"></i>
-            </div>
-            <div>
-              <div class="kpi-label">معدل دوران الطاولات (Turnover)</div>
-              <div class="kpi-value" id="kpiTurnoverRate">0 دورة/طاولة</div>
-            </div>
+            <span class="kpi-label">معدل دوران الطاولات (Turnover)</span>
+            <div class="kpi-value" id="analyticsTurnoverRate">0 دورة/طاولة</div>
           </div>
-
           <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
-              <i class="fa-solid fa-stopwatch"></i>
-            </div>
-            <div>
-              <div class="kpi-label">متوسط وقت الجلوس والخدمة</div>
-              <div class="kpi-value" id="kpiAvgDuration">0 دقيقة</div>
-            </div>
+            <span class="kpi-label">متوسط وقت الجلسة والخدمة</span>
+            <div class="kpi-value" id="kpiAvgDuration">0 دقيقة</div>
           </div>
-
           <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
-              <i class="fa-solid fa-chair"></i>
-            </div>
-            <div>
-              <div class="kpi-label">نسبة إشغال المقاعد الفورية</div>
-              <div class="kpi-value" id="kpiOccupancyRate">0%</div>
-            </div>
+            <span class="kpi-label">نسبة إشغال المقاعد الفورية</span>
+            <div class="kpi-value" id="kpiOccupancyRate">0%</div>
           </div>
-
           <div class="kpi-card">
-            <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">
-              <i class="fa-solid fa-people-group"></i>
-            </div>
-            <div>
-              <div class="kpi-label">متوسط الضيوف في كل طاولة</div>
-              <div class="kpi-value" id="kpiAvgGuests">0 زبائن</div>
-            </div>
+            <span class="kpi-label">متوسط الضيوف في كل طاولة</span>
+            <div class="kpi-value" id="kpiAvgGuests">0 زبائن</div>
           </div>
         </div>
 
-        <!-- جدول تفصيلي لكل طاولة -->
-        <div class="table-container" style="margin-top:20px;">
-          <div class="table-header-bar">
-            <h3>📊 تقرير كفاءة ودوران الطاولات الفردية</h3>
-            <div style="font-size:0.85rem; color:#94a3b8;">مقارنة معدل الاستخدام والمبيعات لكل طاولة في المطعم</div>
+        <div class="list-card" style="margin-top:20px;">
+          <h3 class="card-title">📊 تقرير كفاءة ودوران الطاولات الفردية</h3>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>رقم الطاولة</th>
+                  <th>الصالة</th>
+                  <th>عدد الكراسي</th>
+                  <th>الشكل الهندسي</th>
+                  <th>مرات الجلوس</th>
+                  <th>متوسط وقت الجلسة</th>
+                  <th>متوسط الضيوف</th>
+                  <th>إجمالي المبيعات</th>
+                  <th>الحالة الحالية</th>
+                </tr>
+              </thead>
+              <tbody id="analyticsTableBody">
+                <tr><td colspan="9" style="text-align:center; color:#94a3b8;">جاري التحميل...</td></tr>
+              </tbody>
+            </table>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>رقم الطاولة</th>
-                <th>الصالة</th>
-                <th>عدد الكراسي</th>
-                <th>الشكل الهندسي</th>
-                <th>معدل الدوران (مرات الجلوس)</th>
-                <th>متوسط وقت الجلسة</th>
-                <th>متوسط عدد الزبائن</th>
-                <th>إجمالي الدخل المحقق</th>
-                <th>الحالة الحالية</th>
-              </tr>
-            </thead>
-            <tbody id="analyticsTableBody">
-              <tr><td colspan="9" style="text-align:center; color:#94a3b8;">جاري التحميل...</td></tr>
-            </tbody>
-          </table>
         </div>
-      </section>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 5: إدارة المنيو وربط الوصفات -->
+      <!-- ============================================== -->
+      <div id="tab-menu" class="tab-pane">
+        <div class="sync-banner">
+          <div class="sync-icon">🔗</div>
+          <div class="sync-text">
+            <strong>الربط التلقائي بين المنيو والمخزن:</strong>
+            عند ربط أي طبق بـ <em>كرت الوصفة (Recipe Card)</em>، يقوم النظام تلقائياً بخصم كميات المواد الأولية من <em>رصيد السكشن في المطبخ</em> لحظة إرسال الويتر للطلب، وتسجيل حركة خروج مبيعات فورية دون أي تدخل يدوي!
+          </div>
+        </div>
+
+        <div class="content-split">
+          <div class="form-card">
+            <h3 class="card-title" id="dishFormTitle">➕ إضافة طبق جديد للمنيو</h3>
+            <form id="dishForm">
+              <input type="hidden" id="editDishId" value="" />
+              <div class="form-group">
+                <label>اسم الطبق / المشروب *</label>
+                <input type="text" id="dishNameInput" placeholder="مثلاً: برجر كلاسيك لحم" required />
+              </div>
+              <div class="form-group">
+                <label>التصنيف (Category) *</label>
+                <input type="text" id="dishCategoryInput" list="categoriesList" placeholder="برجر، مقبلات، مشروبات..." required />
+                <datalist id="categoriesList">
+                  <option value="🍔 برجر وسندويشات"></option>
+                  <option value="🍟 مقبلات وبطاطا"></option>
+                  <option value="🥗 صوصات وإضافات"></option>
+                  <option value="🥤 مشروبات وبار"></option>
+                  <option value="🥩 مشويات ووجبات"></option>
+                  <option value="🍰 حلويات"></option>
+                </datalist>
+              </div>
+              <div class="form-group">
+                <label>السعر للزبون (د.ع) *</label>
+                <input type="number" id="dishPriceInput" placeholder="مثلاً: 7500" step="250" required />
+              </div>
+              <div class="form-group">
+                <label>سكشن المطبخ المسؤول عن التحضير والطباعة *</label>
+                <select id="dishStationSelect" required>
+                  <option value="">-- جارِ تحميل السكاشن --</option>
+                </select>
+                <small class="field-hint">يحدد الطابعة التي يطبع عليها بون الطلب، والسكشن الذي يُخصم منه المخزون.</small>
+              </div>
+              <div class="form-group">
+                <label>ربط بكرت الوصفة المعيارية (Recipe Card)</label>
+                <select id="dishRecipeSelect">
+                  <option value="">-- بدون ربط (صنف جاهز / بدون تكلفة خامات) --</option>
+                </select>
+                <small class="field-hint">عند اختياره يتم ربط الطبق بالمكونات المعيارية للخصم الآلي.</small>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button type="submit" class="btn-submit" style="flex:1;">💾 حفظ الطبق</button>
+                <button type="button" class="btn-cancel" id="cancelEditDishBtn" style="display:none;" onclick="cancelDishEdit()">إلغاء</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="list-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h3 class="card-title" style="margin-bottom:0;">🍔 قائمة الأطباق الحالية</h3>
+              <input type="text" id="searchMenuInput" placeholder="🔍 بحث في المنيو..." style="max-width:220px;" oninput="filterMenuItems()" />
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>الطبق</th>
+                    <th>التصنيف</th>
+                    <th>السعر</th>
+                    <th>السكشن المسؤول</th>
+                    <th>كرت الوصفة المرتبط</th>
+                    <th>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="menuItemsTableBody">
+                  <!-- بيانات المنيو -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 6: إدارة الملاحظات السريعة (Quick Notes) -->
+      <!-- ============================================== -->
+      <div id="tab-notes" class="tab-pane">
+        <div class="content-split">
+          <div class="form-card">
+            <h3 class="card-title">➕ إضافة ملاحظة سريعة للويتر</h3>
+            <form id="createNoteForm">
+              <div class="form-group">
+                <label>نص الملاحظة السريعة *</label>
+                <input type="text" id="noteTextInput" placeholder="مثلاً: بدون بصل، زيادة صوص، سفري..." required />
+              </div>
+              <div class="form-group">
+                <label>التصنيف</label>
+                <select id="noteCategorySelect">
+                  <option value="عام">عام</option>
+                  <option value="لحوم">لحوم واستواء</option>
+                  <option value="دايت">دايت وحمية</option>
+                  <option value="خدمة">خدمة وتقديم</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-submit">💾 إضافة الملاحظة للويتر</button>
+            </form>
+          </div>
+
+          <div class="list-card">
+            <h3 class="card-title">⚡ شرائح الملاحظات السريعة المتاحة للويترية</h3>
+            <p style="color:#94a3b8; font-size:13px; margin-bottom:16px;">
+              هذه الملاحظات تظهر كأزرار سريعة بنقرة واحدة عند طلب الويتر لأي طبق في شاشة الـ POS، وتُطبع مباشرة على بون المطبخ.
+            </p>
+            <div id="quickNotesChipsGrid" class="chips-management-grid">
+              <!-- شرائح الملاحظات -->
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
-  <!-- Modal 1: إضافة طاولة جديدة -->
-  <div class="modal" id="modalNewTable">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h2>➕ إضافة طاولة جديدة للمخطط</h2>
-        <button class="close-btn" onclick="closeModal('modalNewTable')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>الصالة التابعة لها *</label>
-          <select id="newTableFloorSelect" required></select>
-        </div>
-        <div class="form-group">
-          <label>رقم أو اسم الطاولة *</label>
-          <input type="text" id="newTableNumberInput" placeholder="مثلاً: طاولة 6 أو VIP-2" required />
-        </div>
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label>عدد الكراسي (المقاعد) *</label>
-            <input type="number" id="newTableSeatsInput" value="4" min="1" max="24" required />
-          </div>
-          <div class="form-group flex-1">
-            <label>شكل الطاولة الهندسي</label>
-            <select id="newTableShapeSelect">
-              <option value="square">مربعة (Square) 🟦</option>
-              <option value="round">دائرية (Round) 🟢</option>
-              <option value="rectangle">مستطيلة (Rectangle) ▭</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modalNewTable')">إلغاء</button>
-        <button class="btn-primary" onclick="submitCreateTable()">إضافة الطاولة للمخطط</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 2: تعديل خصائص طاولة موجودة -->
-  <div class="modal" id="modalEditTable">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <h2>⚙️ تعديل خصائص الطاولة</h2>
-        <button class="close-btn" onclick="closeModal('modalEditTable')">&times;</button>
+  <!-- Modal: تعديل أبعاد وشكل الطاولة بالمخطط -->
+  <div class="modal" id="modalEditTable" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+    <div class="modal-dialog" style="background:#0f172a; border:1px solid #1e293b; border-radius:12px; width:90%; max-width:480px; padding:20px; box-shadow:0 20px 40px rgba(0,0,0,0.8);">
+      <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="font-size:1.15rem; color:#f8fafc; margin:0;">✏️ تخصيص وتعديل أبعاد الطاولة</h2>
+        <button class="close-btn" onclick="closeEditTableModal()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;">&times;</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="editTableId" />
-        <div class="form-group">
-          <label>رقم أو اسم الطاولة</label>
-          <input type="text" id="editTableNumber" required />
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="display:block; color:#94a3b8; margin-bottom:4px;">رقم / اسم الطاولة</label>
+          <input type="text" id="editTableNumber" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" required />
         </div>
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label>عدد الكراسي</label>
-            <input type="number" id="editTableSeats" min="1" max="24" required />
+        <div style="display:flex; gap:12px; margin-bottom:12px;">
+          <div style="flex:1;">
+            <label style="display:block; color:#94a3b8; margin-bottom:4px;">عدد الكراسي</label>
+            <input type="number" id="editTableSeats" min="1" max="50" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" required />
           </div>
-          <div class="form-group flex-1">
-            <label>شكل الطاولة</label>
-            <select id="editTableShape">
+          <div style="flex:1;">
+            <label style="display:block; color:#94a3b8; margin-bottom:4px;">شكل الطاولة</label>
+            <select id="editTableShape" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;">
               <option value="square">مربعة 🟦</option>
               <option value="round">دائرية 🟢</option>
               <option value="rectangle">مستطيلة ▭</option>
             </select>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group flex-1">
-            <label>العرض (px)</label>
-            <input type="number" id="editTableWidth" min="70" max="300" step="10" />
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label style="display:block; color:#94a3b8; margin-bottom:4px;">العرض (px)</label>
+            <input type="number" id="editTableWidth" min="60" max="300" step="10" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" />
           </div>
-          <div class="form-group flex-1">
-            <label>الارتفاع (px)</label>
-            <input type="number" id="editTableHeight" min="70" max="300" step="10" />
+          <div style="flex:1;">
+            <label style="display:block; color:#94a3b8; margin-bottom:4px;">الارتفاع (px)</label>
+            <input type="number" id="editTableHeight" min="60" max="300" step="10" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" />
           </div>
         </div>
       </div>
-      <div class="modal-footer" style="justify-content: space-between;">
-        <button class="btn-cancel" onclick="submitDeleteTable()" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4);">
-          <i class="fa-solid fa-trash"></i> حذف الطاولة
+      <div class="modal-footer" style="display:flex; justify-content:space-between; margin-top:20px;">
+        <button onclick="submitDeleteTableFromModal()" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); padding:8px 14px; border-radius:6px; cursor:pointer;">
+          <i class="fa-solid fa-trash"></i> حذف
         </button>
         <div style="display:flex; gap:10px;">
-          <button class="btn-secondary" onclick="closeModal('modalEditTable')">إلغاء</button>
-          <button class="btn-primary" onclick="submitUpdateTable()">حفظ التعديل</button>
+          <button onclick="closeEditTableModal()" style="background:#334155; color:#fff; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;">إلغاء</button>
+          <button onclick="submitUpdateTableModal()" style="background:#00ff88; color:#030712; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">حفظ التعديل</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Scripts -->
   <script src="common/auth-check.js"></script>
   <script src="common/sidebar.js"></script>
   <script src="floor-management.js"></script>

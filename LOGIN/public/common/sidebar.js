@@ -1,5 +1,6 @@
 /* ======================================================
-   Sidebar Common Script - يعمل في جميع الصفحات
+   Sidebar Common Script - مخصص لجميع الأدوار الوظيفية
+   Enterprise RBAC Adaptive Sidebar Menu
 ====================================================== */
 
 function getVisibleSidebarRoot() {
@@ -42,7 +43,7 @@ function injectSidebarStyles() {
     }
     .sidebar {
       position: fixed;
-      top: 85px; /* Lowered so it doesn't cover topbar */
+      top: 85px;
       bottom: 0;
       right: -260px;
       height: 100vh;
@@ -50,7 +51,7 @@ function injectSidebarStyles() {
       transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: none;
       z-index: 9999;
-      background: #11141a; /* Ensure it has a background so it covers content */
+      background: #11141a;
       border-left: 1px solid rgba(255,255,255,0.05);
     }
     .sidebar.slide-open {
@@ -67,25 +68,188 @@ function injectSidebarStyles() {
   document.head.appendChild(style);
 }
 
+// قائمة عناصر القائمة المخصصة لكل دور
+const ROLE_MENUS = {
+  admin: [
+    { title: '🏠 الصفحة الرئيسية (Hub)', href: '/dashboard/dashboard.html' },
+    { title: '📈 لوحة التحليلات الكلاسيكية', href: '/dashboard/classic-dashboard.html' },
+    { title: '📊 تحليلات المدير (Insights)', href: '/manager-insights.html' },
+    { title: '👨‍🍳 تحضير الوصفات والباركود', href: '/kitchen-prep.html' },
+    { title: '⚖️ جرد ومطابقة السكاشن', href: '/kitchen-audit.html' },
+    { title: '📦 المخزن', href: '/inventory.html' },
+    { title: '🍳 كروت الوصفات', href: '/recipes.html' },
+    { title: '📱 شاشة طلبات الويترية (POS)', href: '/waiter.html' },
+    { title: '🏢 إدارة الصالات والمنيو', href: '/floor-management.html' },
+    { title: '🏢 الفروع والتحويلات', href: '/branches.html' },
+    { title: '🛍️ المشتريات والموردين (P2P)', href: '/purchases.html' },
+    { title: '💰 شجرة الحسابات والمالية', href: '/accounting.html' },
+    { title: '👥 إدارة الموظفين', href: '/employees.html' },
+    { title: '🛡️ الصلاحيات والأدوار (RBAC)', href: '/rbac.html' },
+    { title: '🔄 سحوبات المواد', href: '/withdrawals.html' },
+    { title: '🗑️ الهدر والتالف', href: '/waste.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '⏱️ تقرير ساعات العمل', href: '/work-hours.html' },
+    { title: '📅 جداول الدوام', href: '/shifts.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' },
+    { title: '⚙️ الإعدادات', href: '/settings.html' }
+  ],
+
+  manager: [
+    { title: '🏠 الصفحة الرئيسية (Hub)', href: '/dashboard/dashboard.html' },
+    { title: '📊 تحليلات المدير (Insights)', href: '/manager-insights.html' },
+    { title: '👨‍🍳 تحضير الوصفات والباركود', href: '/kitchen-prep.html' },
+    { title: '⚖️ جرد ومطابقة السكاشن', href: '/kitchen-audit.html' },
+    { title: '📦 المخزن', href: '/inventory.html' },
+    { title: '🍳 كروت الوصفات', href: '/recipes.html' },
+    { title: '📱 شاشة طلبات الويترية (POS)', href: '/waiter.html' },
+    { title: '🏢 إدارة الصالات والمنيو', href: '/floor-management.html' },
+    { title: '🏢 الفروع والتحويلات', href: '/branches.html' },
+    { title: '🛍️ المشتريات والموردين', href: '/purchases.html' },
+    { title: '💰 شجرة الحسابات والمالية', href: '/accounting.html' },
+    { title: '👥 إدارة الموظفين', href: '/employees.html' },
+    { title: '🔄 سحوبات المواد', href: '/withdrawals.html' },
+    { title: '🗑️ الهدر والتالف', href: '/waste.html' },
+    { title: '📅 جداول الدوام', href: '/shifts.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  accountant: [
+    { title: '💰 شجرة الحسابات والمالية', href: '/accounting.html' },
+    { title: '🛍️ فواتير المشتريات والموردين', href: '/purchases.html' },
+    { title: '📦 تكاليف وحركات المخزن', href: '/inventory.html' },
+    { title: '🔄 تقرير السحوبات', href: '/withdrawals.html' },
+    { title: '🗑️ تقرير الهدر والتالف', href: '/waste.html' },
+    { title: '🏢 الفروع والمناقلات', href: '/branches.html' },
+    { title: '💵 مسير الرواتب', href: '/payroll.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '⏱️ تقرير ساعات العمل', href: '/work-hours.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  cashier: [
+    { title: '📱 شاشة الصالة والطلبات (POS)', href: '/waiter.html' },
+    { title: '🏢 إدارة الصالات والمنيو', href: '/floor-management.html' },
+    { title: '💰 شاشة اليومية والمدفوعات', href: '/accounting.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  hall_manager: [
+    { title: '📱 شاشة الطاولات والطلبات (POS)', href: '/waiter.html' },
+    { title: '🏢 إدارة الصالات والمنيو', href: '/floor-management.html' },
+    { title: '💰 مبيعات اليومية', href: '/accounting.html' },
+    { title: '👥 موظفي الصالة والويترية', href: '/employees.html' },
+    { title: '📅 جداول دوام الصالة', href: '/shifts.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  kitchen_manager: [
+    { title: '👨‍🍳 تحضير الوصفات والباركود', href: '/kitchen-prep.html' },
+    { title: '⚖️ جرد ومطابقة السكاشن', href: '/kitchen-audit.html' },
+    { title: '🍳 كروت الوصفات', href: '/recipes.html' },
+    { title: '📦 المخزن', href: '/inventory.html' },
+    { title: '🔄 سحوبات المطبخ', href: '/withdrawals.html' },
+    { title: '🗑️ الهدر والتالف', href: '/waste.html' },
+    { title: '📱 شاشة طلبات المطبخ', href: '/waiter.html' },
+    { title: '📅 جداول دوام المطبخ', href: '/shifts.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  station_chef: [
+    { title: '👨‍🍳 تحضير الوصفات والباركود للسكشن', href: '/kitchen-prep.html' },
+    { title: '⚖️ جرد ومطابقة السكشن', href: '/kitchen-audit.html' },
+    { title: '🍳 كروت الوصفات', href: '/recipes.html' },
+    { title: '🔄 سحوبات السكشن', href: '/withdrawals.html' },
+    { title: '🗑️ الهدر والتالف', href: '/waste.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  waiter: [
+    { title: '📱 شاشة طلبات الويترية (POS)', href: '/waiter.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  inventory_keeper: [
+    { title: '📦 المخزن والأرصدة', href: '/inventory.html' },
+    { title: '🔄 سحوبات وصرف المواد', href: '/withdrawals.html' },
+    { title: '🏢 تحويلات الفروع والمخازن', href: '/branches.html' },
+    { title: '🛍️ فواتير واستلام المشتريات', href: '/purchases.html' },
+    { title: '🗑️ الهدر والتالف', href: '/waste.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  hr: [
+    { title: '🏠 لوحة الموارد البشرية', href: '/hr-dashboard.html' },
+    { title: '💰 مسير الرواتب', href: '/payroll.html' },
+    { title: '📋 سجلات البصمة', href: '/hr-attendance.html' },
+    { title: '👥 إدارة الموظفين والحسابات', href: '/employees.html' },
+    { title: '📅 جداول الدوام', href: '/shifts.html' },
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '⏱️ تقرير ساعات العمل', href: '/work-hours.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ],
+
+  employee: [
+    { title: '⏰ البصمة والحضور', href: '/attendance.html' },
+    { title: '⏱️ تقرير ساعات العمل', href: '/work-hours.html' },
+    { title: '📅 طلبات الإجازات', href: '/leaves.html' },
+    { title: '🔔 الإشعارات', href: '/notifications.html' }
+  ]
+};
+
+// مرادفات الأدوار لتسهيل الربط
+ROLE_MENUS.captain = ROLE_MENUS.waiter;
+ROLE_MENUS.hall_captain = ROLE_MENUS.waiter;
+ROLE_MENUS.kitchen_employee = ROLE_MENUS.station_chef;
+ROLE_MENUS.cleaner = ROLE_MENUS.employee;
+ROLE_MENUS.receptionist = ROLE_MENUS.employee;
+ROLE_MENUS.garage_employee = ROLE_MENUS.employee;
+ROLE_MENUS.garage_manager = ROLE_MENUS.employee;
+
+// أسماء الرتب بالعربية مع الإيموجي المناسب
+const ROLE_DISPLAY_NAMES = {
+  'admin': '👑 المدير العام (Admin)',
+  'manager': '👔 مدير الفرع (Manager)',
+  'accountant': '💰 مدير الحسابات والمالية',
+  'cashier': '💵 كاشير المطعم (Cashier)',
+  'hall_manager': '🏢 مدير الصالة ومسؤول الخدمة',
+  'kitchen_manager': '👨‍🍳 مدير المطبخ / الشيف التنفيذي',
+  'station_chef': '🍳 شيف سكشن / مسؤول خط الطهي',
+  'kitchen_employee': '👨‍🍳 موظف مطبخ',
+  'waiter': '🍽️ ويتر / كابتن صالة',
+  'captain': '👔 كابتن صالة',
+  'hall_captain': '👔 كابتن صالة',
+  'inventory_keeper': '📦 أمين المخزن',
+  'hr': '👥 مسؤول الموارد البشرية (HR)',
+  'employee': '👤 موظف عام',
+  'cleaner': '🧹 خدمات ونظافة',
+  'receptionist': '📞 موظف استقبال',
+  'garage_employee': '🚗 موظف كراج',
+  'garage_manager': '🚗 مسؤول كراج'
+};
+
 // تهيئة السايدبار المشترك
 function initSidebar() {
   injectSidebarStyles();
   
   let root = getVisibleSidebarRoot();
-  
-  // If there's no sidebar element at all, we could theoretically create one,
-  // but we assume <aside class="sidebar"></aside> exists.
   if (!root) return;
-
-  // Inject HTML structure if empty
-  if (root.innerHTML.trim() === '') {
-    root.innerHTML = `
-      <div class="menu" style="margin-top: 40px;">
-      <div class="menu">
-          <!-- Links will be injected here -->
-      </div>
-    `;
-  }
 
   // Inject Mobile Menu Button if missing
   let mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -98,7 +262,6 @@ function initSidebar() {
       mobileMenuBtn.innerHTML = '☰';
       mobileMenuBtn.style.cssText = 'background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); color: #00ff88; border-radius: 8px; padding: 4px 12px; font-size: 1.5rem; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; margin-left: 15px; z-index: 10000;';
       
-      // Also inject user-box into Topbar right next to Hamburger menu
       const topbarUserBox = document.createElement('div');
       topbarUserBox.className = 'user-box';
       topbarUserBox.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-left: 20px;';
@@ -107,8 +270,6 @@ function initSidebar() {
           <div class="username" id="topbarUsername" style="font-weight: 600; color: #fff; font-size: 0.95rem;">جاري التحميل...</div>
       `;
 
-      // Insert Hamburger first, then UserBox, then title.
-      // Since it's RTL and we want them on the far right (start of the topbar flex container)
       topbar.insertBefore(topbarUserBox, topbar.firstChild);
       topbar.insertBefore(mobileMenuBtn, topbar.firstChild);
     }
@@ -126,7 +287,7 @@ function initSidebar() {
         topIcons.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-right: auto;';
         topbar.appendChild(topIcons);
       } else {
-        topIcons.style.marginRight = 'auto'; // ensure it's pushed to the left
+        topIcons.style.marginRight = 'auto';
       }
       
       quickLogoutBtn = document.createElement('button');
@@ -145,6 +306,7 @@ function initSidebar() {
         e.preventDefault();
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('user_permissions');
         window.location.href = '/index.html';
       };
       
@@ -169,318 +331,135 @@ function initSidebar() {
     }
   });
 
-  const currentPath = window.location.pathname;
-  const menuItems = root.querySelectorAll('.menu-item');
-  
-  menuItems.forEach(item => {
-    // إزالة active من جميع العناصر
-    item.classList.remove('active');
-    
-    // إضافة active للعنصر المطابق للصفحة الحالية
-    const href = item.getAttribute('href');
-    if (href) {
-      // مطابقة دقيقة للصفحة
-      if (currentPath === href || currentPath.endsWith(href)) {
-        item.classList.add('active');
-      } else if (href === '/dashboard/dashboard.html' && currentPath.includes('/dashboard')) {
-        item.classList.add('active');
-      } else if (href === '/inventory.html' && currentPath.includes('/inventory')) {
-        item.classList.add('active');
-      } else if (href === '/recipes.html' && currentPath.includes('/recipes')) {
-        item.classList.add('active');
-      } else if (href === '/employees.html' && currentPath.includes('/employees')) {
-        item.classList.add('active');
-      } else if (href === '/settings.html' && (currentPath === '/settings.html' || currentPath.includes('/settings'))) {
-        item.classList.add('active');
-      } else if (href === '/purchases.html' && (currentPath === '/purchases.html' || currentPath.includes('/purchases'))) {
-        item.classList.add('active');
-      } else if (href === '/shifts.html' && (currentPath === '/shifts.html' || currentPath.includes('/shifts'))) {
-        item.classList.add('active');
-      } else if (href === '/manager-insights.html' && currentPath.includes('/manager-insights')) {
-        item.classList.add('active');
-      }
-    }
-  });
-
-  const logoutBtn = root.querySelector('.menu-item.logout');
-  if (logoutBtn) {
-    logoutBtn.onclick = (e) => {
-      e.preventDefault();
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/index.html';
-    };
+  // Inject HTML structure if empty
+  if (root.innerHTML.trim() === '') {
+    root.innerHTML = `
+      <div class="user-box" style="padding: 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+        <img src="/chef_pic1.jpg" class="avatar" alt="Avatar" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #00ff88; object-fit: cover;">
+        <div class="username" style="line-height: 1.3;">
+          <div style="font-weight: 700; font-size: 0.95rem; color: #f8fafc;">المستخدم</div>
+          <div style="font-size: 0.75rem; color: #00ff88; font-weight: 600;">موظف</div>
+        </div>
+      </div>
+      <div class="menu" style="padding: 10px 0; overflow-y: auto; max-height: calc(100vh - 120px);">
+          <!-- Links will be injected here -->
+      </div>
+    `;
   }
 
-      // إظهار/إخفاء رابط الإعدادات وجداول الدوام بناءً على الرتبة
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        try {
-          const user = JSON.parse(userData);
-          const settingsLink = root.querySelector('.menu-item[href="/settings.html"]');
-          if (settingsLink) {
-            if (user.role === 'admin') {
-              settingsLink.style.display = 'block';
-            } else {
-              settingsLink.style.display = 'none';
-            }
-          }
-          
-          const shiftsLink = root.querySelector('.menu-item[href="/shifts.html"]');
-          if (shiftsLink) {
-            const adminRoles = ['admin', 'manager', 'kitchen_manager', 'hr'];
-            if (adminRoles.includes(user.role)) {
-              shiftsLink.style.display = 'block';
-            } else {
-              shiftsLink.style.display = 'none';
-            }
-          }
+  const currentPath = window.location.pathname;
+  const userData = localStorage.getItem('user');
+  let user = null;
 
-          // Inject Manager Insights link dynamically
-          if (user.role === 'manager' || user.role === 'admin') {
-            const menu = root.querySelector('.menu');
-            if (menu && !menu.querySelector('a[href="/manager-insights.html"]')) {
-              const insightsLink = document.createElement('a');
-              insightsLink.className = 'menu-item';
-              insightsLink.href = '/manager-insights.html';
-              insightsLink.innerHTML = '📊 Manager Insights';
-              
-              // Find settings or logout to insert before
-              const settingsItem = menu.querySelector('a[href="/settings.html"]');
-              if (settingsItem) {
-                menu.insertBefore(insightsLink, settingsItem);
-              } else {
-                menu.appendChild(insightsLink);
-              }
-            }
-          }
-      
-      const usernameElement = root.querySelector('.user-box .username');
-      
-      // أسماء الرتب بالعربية
-      const roleNames = {
-        'admin': '👑 مدير عام',
-        'hr': '👥 موارد بشرية',
-        'manager': '👔 مدير',
-        'kitchen_manager': '👨‍🍳 مدير مطبخ',
-        'kitchen_employee': '👨‍🍳 موظف مطبخ',
-        'employee': '👤 موظف',
-        'waiter': '🍽️ ويتر',
-        'captain': '👔 كابتن',
-        'cleaner': '🧹 عامل نظافة',
-        'hall_manager': '🏢 مسؤول صالة',
-        'hall_captain': '👔 كابتن صالة',
-        'receptionist': '📞 موظف استقبال',
-        'garage_employee': '🚗 موظف كراج',
-        'garage_manager': '🚗 مسؤول كراج'
-      };
-      
-      // تحديث بيانات المستخدم في Topbar
-      const usernameEl = document.querySelector('#topbarUsername');
-      if (usernameEl) {
-        const displayName = user.username || 'مدير النظام';
-        const roleText = roleNames[user.role] || user.role;
-        usernameEl.innerHTML = `
-          <div style="font-weight: 600;">${displayName}</div>
-          <div style="font-size: 0.75rem; color: #00ff88; margin-top: 2px;">${roleText}</div>
-        `;
-      }
-
-      // بناء القائمة ديناميكياً بناءً على الرتبة لضمان عدم ظهور صفحات غير مصرح بها
-      const menuContainer = root.querySelector('.menu');
-      if (menuContainer) {
-        // تحديد البوابة النشطة بناءً على مسار الصفحة الحالية
-        const currentPath = window.location.pathname.replace(/\\/g, '/');
-        let currentPortal = 'kitchen';
-
-        if (currentPath.includes('/waiter.html') || currentPath.includes('/floor-management.html')) {
-          currentPortal = 'floor';
-        } else if (currentPath.includes('/accounting.html') || currentPath.includes('/purchases.html')) {
-          currentPortal = 'finance';
-        } else if (
-          currentPath.includes('/hr-dashboard.html') || 
-          currentPath.includes('/employees.html') || 
-          currentPath.includes('/payroll.html') || 
-          currentPath.includes('/hr-attendance.html') || 
-          currentPath.includes('/shifts.html') || 
-          currentPath.includes('/leaves.html') || 
-          currentPath.includes('/work-hours.html')
-        ) {
-          currentPortal = 'hr';
-        } else if (currentPath.includes('/settings.html') || currentPath.includes('/notifications.html') || currentPath.includes('/manager-insights.html')) {
-          currentPortal = 'settings';
-        } else if (currentPath.includes('/dashboard/') || currentPath.includes('/hub.html')) {
-          currentPortal = 'hub';
-        }
-
-        const isSuperUser = ['admin', 'manager'].includes(user.role);
-
-        // شريط معلومات البوابة الحالية ومبدل التطبيقات للمدير
-        const portalMeta = {
-          kitchen: { title: '👨‍🍳 بوابة المطبخ والإنتاج', icon: 'fa-utensils', color: '#f59e0b' },
-          floor: { title: '🍽️ بوابة الصالة ونقاط البيع', icon: 'fa-chair', color: '#3b82f6' },
-          finance: { title: '💰 بوابة المالية والمشتريات', icon: 'fa-calculator', color: '#10b981' },
-          hr: { title: '👥 بوابة الموارد البشرية', icon: 'fa-users', color: '#a78bfa' },
-          settings: { title: '⚙️ إعدادات النظام والأجهزة', icon: 'fa-cog', color: '#06b6d4' },
-          hub: { title: '🎛️ مركز التحكم الرئيسي', icon: 'fa-cubes', color: '#00ff88' }
-        };
-
-        const activeMeta = portalMeta[currentPortal] || portalMeta.hub;
-
-        let portalHeaderHtml = '';
-        if (isSuperUser) {
-          portalHeaderHtml = `
-            <div style="padding:10px 14px; margin-bottom:15px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:10px;">
-              <div style="font-size:0.75rem; color:#94a3b8; display:flex; justify-content:space-between; align-items:center;">
-                <span>القسم النشط:</span>
-                <a href="/dashboard/dashboard.html" style="color:#00ff88; text-decoration:none; font-weight:bold; font-size:0.75rem;">
-                  🎛️ المبدل العام
-                </a>
-              </div>
-              <div style="font-weight:bold; color:${activeMeta.color}; font-size:0.95rem; margin-top:4px;">
-                ${activeMeta.title}
-              </div>
-            </div>
-          `;
-        }
-
-        // أزرار التنقل السريع بين الأقسام للمدير في أسفل القائمة
-        let quickSwitcherHtml = '';
-        if (isSuperUser && currentPortal !== 'hub') {
-          quickSwitcherHtml = `
-            <div style="margin-top:20px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.08);">
-              <div style="font-size:0.75rem; color:#64748b; margin-bottom:8px; font-weight:600;">تنقل سريع بين الأقسام:</div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-                ${currentPortal !== 'kitchen' ? '<a href="/inventory.html" class="menu-item" style="padding:6px 10px; font-size:0.8rem; background:rgba(255,255,255,0.02);">👨‍🍳 المطبخ</a>' : ''}
-                ${currentPortal !== 'floor' ? '<a href="/waiter.html" class="menu-item" style="padding:6px 10px; font-size:0.8rem; background:rgba(255,255,255,0.02);">🍽️ الصالة</a>' : ''}
-                ${currentPortal !== 'finance' ? '<a href="/accounting.html" class="menu-item" style="padding:6px 10px; font-size:0.8rem; background:rgba(255,255,255,0.02);">💰 المالية</a>' : ''}
-                ${currentPortal !== 'hr' ? '<a href="/hr-dashboard.html" class="menu-item" style="padding:6px 10px; font-size:0.8rem; background:rgba(255,255,255,0.02);">👥 الموظفين</a>' : ''}
-              </div>
-            </div>
-          `;
-        }
-
-        // 1) بوابة المطبخ
-        if (currentPortal === 'kitchen' || user.role === 'kitchen_manager' || user.role === 'kitchen_employee') {
-          menuContainer.innerHTML = `
-            ${portalHeaderHtml}
-            <a class="menu-item" href="/inventory.html">📦 المخزن والمواد الأولية</a>
-            <a class="menu-item" href="/recipes.html">🍲 الوصفات وتكاليف الوجبات</a>
-            <a class="menu-item" href="/withdrawals.html">🔄 سحوبات المطبخ</a>
-            <a class="menu-item" href="/waste.html">🗑️ تسجيل الهدر والتوالف</a>
-            <a class="menu-item" href="/attendance.html">⏰ البصمة الشخصية</a>
-            <a class="menu-item" href="/leaves.html">📅 الإجازات</a>
-            ${quickSwitcherHtml}
-            <a class="menu-item logout" id="logoutBtn" style="margin-top:15px;">🚪 تسجيل الخروج</a>
-          `;
-        }
-        // 2) بوابة الصالة والويترية
-        else if (currentPortal === 'floor' || ['waiter', 'captain', 'hall_manager', 'hall_captain'].includes(user.role)) {
-          menuContainer.innerHTML = `
-            ${portalHeaderHtml}
-            <a class="menu-item" href="/floor-management.html">🗺️ مخطط وتحليلات الصالة (2D)</a>
-            <a class="menu-item" href="/waiter.html">📱 شاشة طلبات الويترية وإشغال الطاولات</a>
-            <a class="menu-item" href="/attendance.html">⏰ البصمة الشخصية</a>
-            <a class="menu-item" href="/leaves.html">📅 طلب إجازة</a>
-            ${isSuperUser ? '<a class="menu-item" href="/settings.html">🖨️ إعدادات الطابعات والمحطات</a>' : ''}
-            ${quickSwitcherHtml}
-            <a class="menu-item logout" id="logoutBtn" style="margin-top:15px;">🚪 تسجيل الخروج</a>
-          `;
-        }
-        // 3) بوابة المالية والمحاسبة والمشتريات
-        else if (currentPortal === 'finance' || user.role === 'accountant') {
-          menuContainer.innerHTML = `
-            ${portalHeaderHtml}
-            <a class="menu-item" href="/accounting.html">📊 شجرة الحسابات والقيود والتقارير</a>
-            <a class="menu-item" href="/purchases.html">🛍️ المشتريات وفواتير الموردين (P2P)</a>
-            ${isSuperUser ? '<a class="menu-item" href="/payroll.html">💰 مسيرات الرواتب</a>' : ''}
-            <a class="menu-item" href="/attendance.html">⏰ البصمة الشخصية</a>
-            ${quickSwitcherHtml}
-            <a class="menu-item logout" id="logoutBtn" style="margin-top:15px;">🚪 تسجيل الخروج</a>
-          `;
-        }
-        // 4) بوابة الموارد البشرية
-        else if (currentPortal === 'hr' || user.role === 'hr') {
-          menuContainer.innerHTML = `
-            ${portalHeaderHtml}
-            <a class="menu-item" href="/hr-dashboard.html">🏠 لوحة تحكم الموارد البشرية</a>
-            <a class="menu-item" href="/employees.html">👥 سجل وحسابات الموظفين</a>
-            <a class="menu-item" href="/payroll.html">💰 مسيرات الرواتب والسلف</a>
-            <a class="menu-item" href="/hr-attendance.html">📋 تقرير البصمات وساعات العمل</a>
-            <a class="menu-item" href="/shifts.html">📅 جداول الورديات والشفتات</a>
-            <a class="menu-item" href="/leaves.html">📅 سجل الإجازات والمغادريات</a>
-            <a class="menu-item" href="/attendance.html">⏰ البصمة الشخصية</a>
-            ${quickSwitcherHtml}
-            <a class="menu-item logout" id="logoutBtn" style="margin-top:15px;">🚪 تسجيل الخروج</a>
-          `;
-        }
-        // 5) بوابة الإعدادات
-        else if (currentPortal === 'settings') {
-          menuContainer.innerHTML = `
-            ${portalHeaderHtml}
-            <a class="menu-item" href="/settings.html">⚙️ إعدادات النظام وطابعات POS</a>
-            <a class="menu-item" href="/notifications.html">🔔 مركز الإشعارات والتنبيهات</a>
-            ${isSuperUser ? '<a class="menu-item" href="/manager-insights.html">📊 تحليلات المدير (Insights)</a>' : ''}
-            ${quickSwitcherHtml}
-            <a class="menu-item logout" id="logoutBtn" style="margin-top:15px;">🚪 تسجيل الخروج</a>
-          `;
-        }
-        // 6) مركز التحكم العام (Hub)
-        else {
-          menuContainer.innerHTML = `
-            <a class="menu-item active" href="/dashboard/dashboard.html" style="background:rgba(0,255,136,0.1); border:1px solid #00ff88;">🗂️ مركز التحكم الرئيسي (Bento)</a>
-            <div style="font-size:0.75rem; color:#64748b; margin:15px 0 5px 0; font-weight:bold;">البوابات التشغيلية:</div>
-            <a class="menu-item" href="/inventory.html">👨‍🍳 1. إدارة المطبخ والإنتاج</a>
-            <a class="menu-item" href="/waiter.html">🍽️ 2. إدارة الصالة ونقاط البيع</a>
-            <a class="menu-item" href="/accounting.html">💰 3. المالية والمشتريات</a>
-            <a class="menu-item" href="/hr-dashboard.html">👥 4. الموارد البشرية والرواتب</a>
-            <div style="font-size:0.75rem; color:#64748b; margin:15px 0 5px 0; font-weight:bold;">النظام:</div>
-            <a class="menu-item" href="/settings.html">⚙️ إعدادات النظام والطابعات</a>
-            <a class="menu-item logout" id="logoutBtn" style="margin-top:20px;">🚪 تسجيل الخروج</a>
-          `;
-        }
-
-        // Re-attach active class correctly after re-rendering
-        const currentPathForActive = window.location.pathname;
-        menuContainer.querySelectorAll('.menu-item').forEach(item => {
-            const href = item.getAttribute('href');
-            if (href && (currentPathForActive === href || currentPathForActive.endsWith(href))) {
-                item.classList.add('active');
-            }
-        });
-
-        // Re-attach logout handler
-        const logoutBtnRe = menuContainer.querySelector('.logout');
-        if (logoutBtnRe) {
-          logoutBtnRe.onclick = (e) => {
-            e.preventDefault();
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/index.html';
-          };
-        }
-      }
-      
-      // طباعة معلومات المستخدم في Console للمساعدة في التشخيص
-      console.log('👤 معلومات المستخدم الحالي:', {
-        username: user.username,
-        role: user.role,
-        roleName: roleNames[user.role] || user.role,
-        isAdmin: user.role === 'admin'
-      });
-      
+  if (userData) {
+    try {
+      user = JSON.parse(userData);
     } catch (e) {
       console.error('خطأ في قراءة بيانات المستخدم:', e);
+    }
+  }
+
+  // 1) تحديث اسم المستخدم والرتبة في رأس السايدبار والتوب بار
+  const usernameElement = root.querySelector('.user-box .username');
+  if (usernameElement && user) {
+    const roleTitle = ROLE_DISPLAY_NAMES[user.role] || user.role;
+    usernameElement.innerHTML = `
+      <div style="font-weight: 700; font-size: 0.95rem; color: #f8fafc;">${user.username}</div>
+      <div style="font-size: 0.75rem; color: #00ff88; margin-top: 3px; font-weight: 600;">${roleTitle}</div>
+    `;
+  }
+
+  const topbarUsername = document.getElementById('topbarUsername');
+  if (topbarUsername && user) {
+    const roleTitle = ROLE_DISPLAY_NAMES[user.role] || user.role;
+    topbarUsername.innerHTML = `${user.username} <span style="font-size:0.75rem; color:#00ff88; margin-right:6px;">(${roleTitle})</span>`;
+  }
+
+  // 2) تخصيص القائمة ديناميكياً حسب دور المستخدم
+  const menuContainer = root.querySelector('.menu');
+  if (menuContainer && user) {
+    const roleItems = ROLE_MENUS[user.role] || ROLE_MENUS.employee;
+    
+    let menuHtml = roleItems.map(item => {
+      return `<a class="menu-item" href="${item.href}">${item.title}</a>`;
+    }).join('\n');
+
+    // زر تسجيل الخروج الثابت دائماً
+    menuHtml += '\n<a class="menu-item logout" id="logoutBtn">🚪 تسجيل الخروج</a>';
+    menuContainer.innerHTML = menuHtml;
+
+    // تمييز العنصر النشط (Active Link) بدقة
+    menuContainer.querySelectorAll('.menu-item').forEach(item => {
+      const href = item.getAttribute('href');
+      if (href) {
+        const cleanHref = href.split('?')[0];
+        if (currentPath === cleanHref || 
+            (cleanHref.endsWith('.html') && currentPath.endsWith(cleanHref)) ||
+            (cleanHref === '/dashboard/dashboard.html' && (currentPath === '/' || currentPath.includes('/dashboard')))) {
+          item.classList.add('active');
+        }
+      }
+    });
+
+    // ربط حدث تسجيل الخروج
+    const logoutBtn = menuContainer.querySelector('.logout');
+    if (logoutBtn) {
+      logoutBtn.onclick = (e) => {
+        e.preventDefault();
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('user_permissions');
+        window.location.href = '/index.html';
+      };
+    }
+
+    // 3) إضافة محول الفروع (Global Branch Switcher) للإدارات العليا
+    const managerialRoles = ['admin', 'manager', 'accountant', 'kitchen_manager', 'inventory_keeper'];
+    if (managerialRoles.includes(user.role)) {
+      let existingSwitcher = root.querySelector('.sidebar-branch-switcher');
+      if (!existingSwitcher) {
+        const switcherDiv = document.createElement('div');
+        switcherDiv.className = 'sidebar-branch-switcher';
+        switcherDiv.style.cssText = 'padding: 10px 12px; margin: 8px 12px 14px; background: #090d16; border: 1px solid #1e293b; border-radius: 8px; font-size: 0.82rem;';
+        switcherDiv.innerHTML = `
+          <div style="color: #94a3b8; margin-bottom: 6px; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+            <span>🏢 نطاق الفرع:</span>
+            <a href="/branches.html" style="color:#38bdf8; text-decoration:none; font-size:0.75rem;">إدارة الفروع</a>
+          </div>
+          <select id="globalSidebarBranchSelect" style="width:100%; background:#1e293b; color:#f8fafc; border:1px solid #475569; border-radius:6px; padding:6px 8px; font-size:0.82rem; outline:none; cursor:pointer;">
+            <option value="all">🌐 كل الفروع (موحد)</option>
+          </select>
+        `;
+        menuContainer.insertBefore(switcherDiv, menuContainer.firstChild);
+
+        const token = localStorage.getItem('token');
+        if (token) {
+          fetch('/api/branches', { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(res => {
+              if (res.status === 'success' && res.data) {
+                const sel = switcherDiv.querySelector('#globalSidebarBranchSelect');
+                if (sel) {
+                  sel.innerHTML = '<option value="all">🌐 كل الفروع (موحد)</option>' +
+                    res.data.map(b => `<option value="${b.id}">🏢 ${b.name}</option>`).join('');
+                  sel.value = localStorage.getItem('selected_branch_id') || 'all';
+                  sel.onchange = () => {
+                    localStorage.setItem('selected_branch_id', sel.value);
+                    window.location.reload();
+                  };
+                }
+              }
+            }).catch(e => console.warn('لم يتم جلب الفروع للسايدبار:', e.message));
+        }
+      }
     }
   }
 }
 
 window.initSidebar = initSidebar;
 
-// تشغيل تهيئة السايدبار عند تحميل الصفحة
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initSidebar);
 } else {
   initSidebar();
 }
-

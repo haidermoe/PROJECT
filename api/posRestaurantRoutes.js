@@ -9,6 +9,7 @@ router.use(authMiddleware);
 // الصالات والطاولات
 router.get('/floors-and-tables', controller.getFloorsAndTables);
 router.post('/floors', controller.createFloor);
+router.delete('/floors/:id', controller.deleteFloor);
 router.post('/floors/:floorId/layout', controller.saveFloorLayout);
 router.post('/tables', controller.createTable);
 router.put('/tables/:id', controller.updateTable);
@@ -17,8 +18,28 @@ router.delete('/tables/:id', controller.deleteTable);
 // تحليلات وإحصائيات أداء الصالة ومعدل الدوران
 router.get('/analytics', controller.getFloorAnalytics);
 
-// قائمة الطعام المتاحة
+// قائمة الطعام المتاحة وإدارتها
 router.get('/menu', controller.getMenu);
+router.post('/items', controller.createMenuItem);
+router.put('/items/:id', controller.updateMenuItem);
+router.delete('/items/:id', controller.deleteMenuItem);
+
+// جلب السكاشن والوصفات لربط المنيو
+router.get('/stations-and-recipes', controller.getStationsAndRecipes);
+router.get('/stations', async (req, res) => {
+  try {
+    const { appPool } = require('../database/appConnection');
+    const [stations] = await appPool.query('SELECT * FROM pos_stations WHERE is_active = 1');
+    res.json({ status: 'success', data: stations });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+// إدارة الملاحظات السريعة
+router.get('/quick-notes', controller.getQuickNotes);
+router.post('/quick-notes', controller.createQuickNote);
+router.delete('/quick-notes/:id', controller.deleteQuickNote);
 
 // طلب الطاولة الفعلي
 router.get('/tables/:tableId/order', controller.getTableOrder);

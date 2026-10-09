@@ -9,6 +9,7 @@ const {
   getNotifications,
   markAsRead,
   deleteNotification,
+  clearAllNotifications,
   getUnreadCount
 } = require('./notificationsController');
 const { authMiddleware } = require('../auth/authMiddleware');
@@ -17,6 +18,9 @@ const router = express.Router();
 
 // جلب جميع الإشعارات
 router.get('/', authMiddleware, getNotifications);
+
+// مسح كافة الإشعارات
+router.delete('/clear-all', authMiddleware, clearAllNotifications);
 
 // جلب عدد الإشعارات غير المقروءة
 router.get('/unread-count', authMiddleware, getUnreadCount);

@@ -145,6 +145,15 @@ app.use('/api/purchase', require('./api/purchaseRoutes'));
 // مسارات المدير
 app.use('/api/manager', require('./api/managerRoutes'));
 
+// مسارات تعدد الشركات والفروع والمخازن واللوجستيات المجمعة
+app.use('/api/branches', require('./api/branchesRoutes'));
+
+// مسارات التحضير والباركودات وجرد ومطابقة سكاشن المطبخ
+app.use('/api/kitchen-ops', require('./api/kitchenOperationsRoutes'));
+
+// مسارات إدارة الأدوار والصلاحيات المتقدمة (Enterprise RBAC)
+app.use('/api/rbac', require('./api/rbacRoutes'));
+
 // استيراد middleware للتحقق من التوكن
 const { authMiddleware } = require('./auth/authMiddleware');
 
@@ -181,6 +190,37 @@ app.get('/accounting.html', (req, res) => {
 });
 app.get('/accounting', (req, res) => {
   res.redirect('/accounting.html');
+});
+
+// Explicitly serve branches.html
+app.get('/branches.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/branches.html'));
+});
+app.get('/branches', (req, res) => {
+  res.redirect('/branches.html');
+});
+
+// Explicitly serve kitchen prep and audit
+app.get('/kitchen-prep.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/kitchen-prep.html'));
+});
+app.get('/kitchen-prep', (req, res) => {
+  res.redirect('/kitchen-prep.html');
+});
+
+app.get('/kitchen-audit.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/kitchen-audit.html'));
+});
+app.get('/kitchen-audit', (req, res) => {
+  res.redirect('/kitchen-audit.html');
+});
+
+// Explicitly serve rbac.html
+app.get('/rbac.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'LOGIN/public/rbac.html'));
+});
+app.get('/rbac', (req, res) => {
+  res.redirect('/rbac.html');
 });
 
 // Health check endpoint (required by Render and other hosting providers)

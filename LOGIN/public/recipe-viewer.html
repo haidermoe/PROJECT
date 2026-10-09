@@ -3,19 +3,48 @@
 
 <head>
   <meta charset="UTF-8" />
-  <title>Standard Recipe Template</title>
+  <title>Standard Recipe Template | كرت الوصفة المعياري</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/design-system.css" />
   <link rel="stylesheet" href="recipe-viewer.css" />
 </head>
 
 <body>
+  <!-- شريط الإجراءات العلوي (لا يظهر في الطباعة) -->
+  <div class="viewer-top-toolbar no-print">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="toolbar-btn btn-back-nav" onclick="window.location.href='/recipes.html'">← رجوع للوصفات</button>
+      <span class="toolbar-title" id="toolbarRecipeTitle">كرت الوصفة القياسي</span>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <button class="toolbar-btn btn-customize-header" onclick="openCustomizeModal()">
+        <span>⚙️ تخصيص الترويسة والشعار</span>
+      </button>
+      <button class="toolbar-btn btn-reorder" id="reorderModeBtn" onclick="toggleReorderMode()">
+        <span>↕️ إعادة ترتيب المكونات</span>
+      </button>
+      <button class="toolbar-btn btn-save-order" id="saveOrderBtn" style="display:none;" onclick="saveNewIngredientsOrder()">
+        <span>💾 حفظ الترتيب الجديد</span>
+      </button>
+      <button class="toolbar-btn btn-edit-recipe" id="editRecipeBtn" onclick="goToEditPage()">
+        <span>✏️ تعديل محتويات الوصفة والمكونات</span>
+      </button>
+      <button class="toolbar-btn btn-print-page" onclick="window.print()">
+        <span>🖨️ طباعة A4</span>
+      </button>
+    </div>
+  </div>
+
   <div class="recipe-container">
     <!-- Header -->
     <div class="recipe-header">
       <div class="header-left">
         <div class="company-logos">
-          <div class="logo">جامعة دجلة قسم علوم الحاسوب</div>
+          <div id="recipeCardLogoWrapper" style="display:none; margin-bottom: 6px;">
+            <img id="recipeCardLogoImg" src="" alt="شعار المنشأة" style="max-height: 48px; max-width: 160px; object-fit: contain; display: block;" />
+          </div>
+          <div class="logo" id="recipeCardBrandName">🍽️ إدارة المطعم والمطبخ المركزي</div>
+          <div style="font-size:11px; color:#555; margin-top:2px;" id="recipeCardSubHeader">Central Kitchen • Standard Formulation & Recipe Control</div>
         </div>
       </div>
       <div class="header-right">
@@ -45,12 +74,12 @@
     <div class="item-details">
       <div class="detail-row">
         <div class="detail-item">
-          <span class="detail-label">ITEM-:</span>
-          <span class="detail-value" id="recipeItemName">—</span>
+          <span class="detail-label">ITEM:</span>
+          <span class="detail-value" id="recipeItemName" style="font-weight:700; color:#000;">—</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">PRODUCTION:</span>
-          <span class="detail-value">CPU</span>
+          <span class="detail-value">CPU / Station</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">SERVICE PLATE:</span>
@@ -75,13 +104,20 @@
 
     <!-- Ingredients Section -->
     <div class="ingredients-section">
-      <h2>INGREDIENTS IN ORDER OF MIXING & QUANTITY</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 15px;">
+        <h2 style="border:none; margin:0; padding:0;">INGREDIENTS IN ORDER OF MIXING & QUANTITY</h2>
+        <span id="reorderHint" class="no-print" style="display:none; font-size:12px; color:#059669; font-weight:bold;">
+          ↕️ يمكنك استخدام أزرار (▲ / ▼) لتغيير أسبقية وترتيب خلط المواد
+        </span>
+      </div>
+
       <table class="ingredients-table">
         <thead>
           <tr>
-            <th style="width: 5%;">#</th>
-            <th style="width: 60%;">INGREDIENT</th>
-            <th style="width: 35%;">QUANTITY</th>
+            <th style="width: 6%;">#</th>
+            <th style="width: 54%;">INGREDIENT (المادة الخام)</th>
+            <th style="width: 25%;">QUANTITY (الكمية المعيارية)</th>
+            <th style="width: 15%; text-align:center;" class="order-col no-print">ترتيب الخلط</th>
           </tr>
         </thead>
         <tbody id="ingredientsTableBody">
@@ -92,22 +128,78 @@
 
     <!-- Procedures Section -->
     <div class="procedures-section">
-      <h2>PROCEDURES FOR PREPARATION</h2>
+      <h2>PROCEDURES FOR PREPARATION (طريقة وخطوات التحضير المعيارية)</h2>
       <div class="procedures-content" id="proceduresContent">
         <!-- سيتم ملؤها ديناميكياً -->
       </div>
     </div>
 
     <!-- Footer Actions -->
-    <div class="recipe-footer">
-      <button class="btn-print" onclick="window.print()">🖨️ طباعة</button>
-      <button class="btn-back" onclick="window.history.back()">← رجوع</button>
+    <div class="recipe-footer no-print">
+      <button class="btn-edit" onclick="goToEditPage()">✏️ تعديل كرت الوصفة</button>
+      <button class="btn-print" onclick="window.print()">🖨️ طباعة A4</button>
+      <button class="btn-back" onclick="window.location.href='/recipes.html'">← رجوع للوصفات</button>
     </div>
   </div>
 
-  <script src="common/auth-check.js"></script>
+  <!-- نافذة تخصيص الترويسة والشعار (Modal) -->
+  <div id="customizeHeaderModal" class="modal-backdrop no-print" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>⚙️ تخصيص ترويسة وشعار كرت الوصفة</h3>
+        <button type="button" class="btn-close-modal" onclick="closeCustomizeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="custBrandName">اسم المنشأة / المطعم (Brand Name):</label>
+          <input type="text" id="custBrandName" class="modal-input" placeholder="مثال: أركاف سبيشالتي كافيه ومطعم" />
+        </div>
+
+        <div class="form-group">
+          <label for="custSubHeader">الترويسة الفرعية / اسم القسم (Sub-Header):</label>
+          <input type="text" id="custSubHeader" class="modal-input" placeholder="مثال: Central Kitchen • Standard Formulation & Recipe Control" />
+        </div>
+
+        <div class="form-group">
+          <label>شعار المطعم (Logo):</label>
+          <div class="logo-actions-row">
+            <input type="file" id="custLogoFileInput" accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml" style="display:none;" onchange="handleLogoFileUpload(event)" />
+            <button type="button" class="btn-upload-file" onclick="document.getElementById('custLogoFileInput').click()">
+              📁 اختيار صورة من الجهاز (PNG / JPG / SVG)
+            </button>
+          </div>
+          <div style="margin-top: 8px;">
+            <input type="text" id="custLogoUrl" class="modal-input" placeholder="أو الصق رابط صورة الشعار (URL) مباشرةً" oninput="previewLogoFromUrl(this.value)" />
+          </div>
+        </div>
+
+        <div class="form-group-checkbox">
+          <label class="checkbox-container">
+            <input type="checkbox" id="custShowLogo" checked />
+            <span class="checkmark"></span>
+            <span>إظهار الشعار في كرت الوصفة المطبوع</span>
+          </label>
+        </div>
+
+        <!-- Preview Box -->
+        <div class="logo-preview-box">
+          <span class="preview-title">معاينة الشعار الحالية:</span>
+          <div id="modalLogoPreviewContainer" class="logo-preview-inner">
+            <img id="modalLogoPreviewImg" src="" alt="شعار المنشأة" style="max-height:55px; max-width:180px; object-fit:contain; display:none;" />
+            <span id="modalNoLogoText" style="font-size:12px; color:#64748b;">لم يتم تعيين شعار بعد</span>
+          </div>
+          <button type="button" class="btn-remove-logo" id="btnRemoveLogo" style="display:none;" onclick="removeCustomLogo()">
+            🗑️ إزالة الشعار
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-modal-cancel" onclick="closeCustomizeModal()">إلغاء</button>
+        <button type="button" class="btn-modal-save" onclick="saveHeaderCustomization()">💾 حفظ التغييرات والاعتماد</button>
+      </div>
+    </div>
+  </div>
+
   <script src="recipe-viewer.js"></script>
 </body>
-
 </html>
-

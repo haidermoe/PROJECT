@@ -11,6 +11,8 @@ const bentoCategories = {
     links: [
       { url: '/inventory.html', name: 'المخزن وإدارة المواد الأولية', icon: 'fa-boxes-stacked' },
       { url: '/recipes.html', name: 'بطاقات الوصفات وتكاليف الوجبات', icon: 'fa-utensils' },
+      { url: '/kitchen-prep.html', name: 'تحضير الوصفات وطباعة الباركود', icon: 'fa-barcode' },
+      { url: '/kitchen-audit.html', name: 'جرد ومطابقة سكاشن المطبخ', icon: 'fa-scale-balanced' },
       { url: '/withdrawals.html', name: 'سحوبات المطبخ والمحطات', icon: 'fa-dolly' },
       { url: '/waste.html', name: 'تسجيل وإدارة الهدر والتوالف', icon: 'fa-trash-can' }
     ]
@@ -27,7 +29,8 @@ const bentoCategories = {
     title: '💰 المالية والمحاسبة والمشتريات (Finance & P2P)',
     links: [
       { url: '/accounting.html', name: 'شجرة الحسابات والقيود اليومية والتقارير', icon: 'fa-calculator' },
-      { url: '/purchases.html', name: 'المشتريات وفواتير الموردين (Odoo P2P)', icon: 'fa-cart-shopping' }
+      { url: '/purchases.html', name: 'المشتريات وفواتير الموردين (Odoo P2P)', icon: 'fa-cart-shopping' },
+      { url: '/branches.html', name: 'إدارة الفروع والتحويلات المخزنية', icon: 'fa-building' }
     ]
   },
   hr: {
@@ -44,6 +47,8 @@ const bentoCategories = {
   settings: {
     title: '⚙️ إعدادات النظام والأجهزة',
     links: [
+      { url: '/rbac.html', name: 'إدارة الأدوار ومصفوفة الصلاحيات (RBAC)', icon: 'fa-shield-halved' },
+      { url: '/dashboard/classic-dashboard.html', name: 'لوحة التحليلات والإحصائيات الكلاسيكية', icon: 'fa-chart-line' },
       { url: '/settings.html', name: 'إعدادات النظام وصيانة الطابعات', icon: 'fa-cog' },
       { url: '/notifications.html', name: 'مركز الإشعارات والتنبيهات', icon: 'fa-bell' }
     ]

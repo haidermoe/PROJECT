@@ -459,6 +459,12 @@ async function createOrderAndRoutePrint(orderPayload, userId) {
         stationName: task.station.station_name,
         stationCode: task.station.station_code,
         ticketType: task.ticketType,
+        itemsCount: task.items.length,
+        items: task.items.map(it => ({
+          name: it.item_name,
+          quantity: it.quantity,
+          notes: it.notes || ''
+        })),
         status: isSuccess ? 'success' : 'failed_queued',
         error: errorMessage
       });
@@ -471,6 +477,14 @@ async function createOrderAndRoutePrint(orderPayload, userId) {
       tableNo: order.table_no,
       guestCount: order.guest_count,
       totalAmount: order.total_amount,
+      items: normalizedItems.map(it => ({
+        itemId: it.item_id,
+        itemName: it.item_name,
+        quantity: it.quantity,
+        unitPrice: it.unit_price,
+        notes: it.notes || '',
+        stationId: it.station_id
+      })),
       printResults: mappedResults
     };
   } catch (error) {

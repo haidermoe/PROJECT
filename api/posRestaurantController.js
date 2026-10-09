@@ -8,6 +8,7 @@
 const { appPool } = require('../database/appConnection');
 const { createOrderAndRoutePrint } = require('./printRoutingService');
 const { depleteOrderFromStation } = require('./stationStockService');
+const cacheService = require('./cacheService');
 
 // ===============================
 // 1) جلب الصالات والطاولات وحالتها
@@ -68,14 +69,18 @@ exports.getMenu = async (req, res) => {
       SELECT 
         i.id,
         i.item_name,
+        i.category,
         i.price,
         i.station_id,
+        i.recipe_id,
+        r.name AS recipe_name,
         s.station_name,
         s.station_type
       FROM pos_items i
       LEFT JOIN pos_stations s ON i.station_id = s.id
+      LEFT JOIN recipes r ON i.recipe_id = r.id
       WHERE i.is_active = 1
-      ORDER BY s.station_name ASC, i.item_name ASC
+      ORDER BY i.category ASC, i.item_name ASC
     `);
 
     // إذا لم تكن هناك أصناف في pos_items بعد، نقوم بجلب الوصفات كأصناف منيو افتراضية
@@ -159,7 +164,8 @@ exports.sendWaiterOrder = async (req, res) => {
     const printResult = await createOrderAndRoutePrint(orderPayload, waiterId);
     const orderId = printResult.orderId;
 
-    // 2. تحديث بيانات إضافية للطلب (الويتر، الصالة، الحالة)
+    // 2. تحديث بيانات إضافية للطلب (الويتر، الصالة، الحالة، والفرع)
+    const branchId = req.headers['x-branch-id'] || req.body.branchId || 1;
     await appPool.query(`
       UPDATE pos_orders 
       SET status = 'ordered',
@@ -168,10 +174,11 @@ exports.sendWaiterOrder = async (req, res) => {
           waiter_id = ?,
           waiter_name = ?,
           notes = ?,
+          branch_id = ?,
           guest_count = ?,
           seated_at = COALESCE(seated_at, NOW())
       WHERE id = ?
-    `, [floorId || null, tableId || null, waiterId, waiterName, notes || null, Number(guestCount) || 2, orderId]);
+    `, [floorId || null, tableId || null, waiterId, waiterName, notes || null, branchId, Number(guestCount) || 2, orderId]);
 
     // 3. تحديث حالة الطاولة في الخريطة إلى 'مشغولة'
     if (tableId) {
@@ -183,6 +190,13 @@ exports.sendWaiterOrder = async (req, res) => {
       `, [orderId, tableId]);
     }
 
+    // 4. خصم مكونات الوجبات فورياً من رصيد السكشن المسؤول (مخزون الشفت التشغيلي)
+    try {
+      await depleteOrderFromStation(orderId);
+    } catch (depleteErr) {
+      console.warn('⚠️ [Deplete on Send Order]:', depleteErr.message);
+    }
+
     res.json({
       status: 'success',
       message: `تم إرسال الطلب بنجاح إلى المطبخ وطباعة كبونات التحضير (طلب رقم #${orderId})`,
@@ -190,6 +204,7 @@ exports.sendWaiterOrder = async (req, res) => {
         orderId,
         tableNo,
         totalAmount: printResult.totalAmount,
+        items: printResult.items,
         printResults: printResult.printResults
       }
     });
@@ -258,15 +273,16 @@ exports.payAndCloseOrder = async (req, res) => {
         const moveName = `POS/${year}/${String(orderId).padStart(4, '0')}`;
 
         const [moveRes] = await connection.query(`
-          INSERT INTO account_move (name, date, ref, journal_id, state, total_amount, created_by)
-          VALUES (?, ?, ?, ?, 'posted', ?, ?)
+          INSERT INTO account_move (name, date, ref, journal_id, state, total_amount, created_by, branch_id)
+          VALUES (?, ?, ?, ?, 'posted', ?, ?, ?)
         `, [
           moveName,
           todayStr,
           `مبيعات طاولة ${order.table_no} - طلب #${orderId} (${paymentMethod === 'card' ? 'بطاقة/شبكة' : 'نقداً'})`,
           posJournal[0].id,
           totalAmount,
-          req.user?.id || null
+          req.user?.id || null,
+          order.branch_id || 1
         ]);
 
         const moveId = moveRes.insertId;
@@ -293,6 +309,9 @@ exports.payAndCloseOrder = async (req, res) => {
     }
 
     await connection.commit();
+
+    // إبطال كاش الحسابات والفروع فورياً لتحديث الإيرادات والمبيعات الموحدة
+    cacheService.invalidate(['accounting', 'branches']);
 
     res.json({
       status: 'success',
@@ -398,6 +417,24 @@ exports.updateTable = async (req, res) => {
   }
 };
 
+exports.deleteFloor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [occupied] = await appPool.query(
+      `SELECT id FROM pos_tables WHERE floor_id = ? AND status = 'occupied'`,
+      [id]
+    );
+    if (occupied.length > 0) {
+      return res.status(400).json({ status: 'error', message: 'لا يمكن حذف الصالة لأنها تحتوي على طاولات مشغولة حالياً' });
+    }
+    await appPool.query(`DELETE FROM pos_tables WHERE floor_id = ?`, [id]);
+    await appPool.query(`DELETE FROM pos_floors WHERE id = ?`, [id]);
+    res.json({ status: 'success', message: 'تم حذف الصالة وجميع طاولاتها بنجاح' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
 exports.deleteTable = async (req, res) => {
   try {
     const { id } = req.params;
@@ -464,7 +501,48 @@ exports.saveFloorLayout = async (req, res) => {
 };
 
 // ===============================
-// 8) محرك تحليلات أداء الصالة ودوران الطاولات (Floor Analytics & KPIs)
+// 8) إدارة الملاحظات السريعة (Quick Notes)
+// ===============================
+exports.getQuickNotes = async (req, res) => {
+  try {
+    const [notes] = await appPool.query(
+      `SELECT * FROM pos_quick_notes WHERE is_active = 1 ORDER BY category ASC, id ASC`
+    );
+    res.json({ status: 'success', data: notes });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+exports.createQuickNote = async (req, res) => {
+  try {
+    const { note_text, category = 'عام' } = req.body;
+    if (!note_text || !note_text.trim()) {
+      return res.status(400).json({ status: 'error', message: 'نص الملاحظة مطلوب' });
+    }
+    const [result] = await appPool.query(
+      `INSERT INTO pos_quick_notes (note_text, category, is_active) VALUES (?, ?, 1)
+       ON DUPLICATE KEY UPDATE is_active = 1, category = VALUES(category)`,
+      [note_text.trim(), category.trim()]
+    );
+    res.json({ status: 'success', message: 'تمت إضافة الملاحظة السريعة بنجاح', noteId: result.insertId });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+exports.deleteQuickNote = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await appPool.query(`DELETE FROM pos_quick_notes WHERE id = ?`, [id]);
+    res.json({ status: 'success', message: 'تم حذف الملاحظة السريعة بنجاح' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+// ===============================
+// 9) محرك تحليلات أداء الصالة ودوران الطاولات (Floor Analytics & KPIs)
 // ===============================
 exports.getFloorAnalytics = async (req, res) => {
   try {
@@ -551,6 +629,78 @@ exports.getFloorAnalytics = async (req, res) => {
     });
   } catch (err) {
     console.error('❌ خطأ في getFloorAnalytics:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+// ===============================
+// 10) إدارة أطباق المنيو (Dishes / pos_items)
+// ===============================
+exports.createMenuItem = async (req, res) => {
+  try {
+    const { item_name, category, price, station_id, recipe_id } = req.body;
+    if (!item_name || !price || !station_id) {
+      return res.status(400).json({ status: 'error', message: 'اسم الطبق، السعر، والسكشن مطلوبة' });
+    }
+    const [result] = await appPool.query(
+      `INSERT INTO pos_items (item_name, category, price, station_id, recipe_id, is_active)
+       VALUES (?, ?, ?, ?, ?, 1)`,
+      [item_name.trim(), category || 'أطباق رئيسية', parseFloat(price), station_id, recipe_id || null]
+    );
+    res.json({ status: 'success', message: 'تمت إضافة الطبق لقائمة الطعام بنجاح', itemId: result.insertId });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+exports.updateMenuItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { item_name, category, price, station_id, recipe_id, is_active } = req.body;
+    await appPool.query(
+      `UPDATE pos_items 
+       SET item_name = COALESCE(?, item_name),
+           category = COALESCE(?, category),
+           price = COALESCE(?, price),
+           station_id = COALESCE(?, station_id),
+           recipe_id = ?,
+           is_active = COALESCE(?, is_active),
+           updated_at = NOW()
+       WHERE id = ?`,
+      [item_name, category, price, station_id, recipe_id || null, is_active, id]
+    );
+    res.json({ status: 'success', message: 'تم تحديث بيانات الطبق بنجاح' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+exports.deleteMenuItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await appPool.query(`UPDATE pos_items SET is_active = 0 WHERE id = ?`, [id]);
+    res.json({ status: 'success', message: 'تم إيقاف/حذف الطبق من قائمة الطعام' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+// ===============================
+// 11) جلب خيارات السكاشن والوصفات لربط المنيو
+// ===============================
+exports.getStationsAndRecipes = async (req, res) => {
+  try {
+    const [stations] = await appPool.query(
+      `SELECT id, station_code, station_name, station_type FROM pos_stations WHERE is_active = 1`
+    );
+    const [recipes] = await appPool.query(
+      `SELECT id, name, item_name, status FROM recipes ORDER BY name ASC`
+    );
+    res.json({
+      status: 'success',
+      data: { stations, recipes }
+    });
+  } catch (err) {
     res.status(500).json({ status: 'error', message: err.message });
   }
 };

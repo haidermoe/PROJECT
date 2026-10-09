@@ -32,9 +32,9 @@ document.addEventListener('DOMContentLoaded', async function() {
       const user = JSON.parse(userData);
       const userRole = user.role;
 
-      // فقط المدير والشيف يمكنهم إضافة وصفات
+      // فقط المدير والشيف يمكنهم إضافة أو تعديل الوصفات
       if (userRole !== 'admin' && userRole !== 'kitchen_manager') {
-        alert("⚠️ ليس لديك صلاحية لإضافة وصفات");
+        alert("⚠️ ليس لديك صلاحية لإضافة أو تعديل الوصفات");
         window.location.href = "/recipes.html";
         return;
       }
@@ -45,16 +45,24 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   }
 
-  // إضافة صف مكون فارغ عند تحميل الصفحة
-  addIngredientRow();
+  // تحميل قائمة سكاشن المطبخ
+  await loadStationsList();
 
-  // التركيز على حقل اسم الوصفة
-  setTimeout(() => {
-    const itemNameInput = document.getElementById("recipeItemName");
-    if (itemNameInput) {
-      itemNameInput.focus();
-    }
-  }, 100);
+  // فحص ما إذا كنا في وضع التعديل (Edit Mode)
+  const urlParams = new URLSearchParams(window.location.search);
+  const editRecipeId = urlParams.get('id') || (urlParams.get('edit') !== 'true' ? urlParams.get('edit') : null);
+
+  if (editRecipeId) {
+    console.log('✏️ وضع تعديل الوصفة رقم:', editRecipeId);
+    await loadRecipeForEdit(editRecipeId);
+  } else {
+    // إضافة صف مكون فارغ عند تحميل الصفحة في وضع الإضافة الجديد
+    addIngredientRow();
+    setTimeout(() => {
+      const itemNameInput = document.getElementById("recipeItemName");
+      if (itemNameInput) itemNameInput.focus();
+    }, 100);
+  }
 
   // Event Listeners
   // زر إضافة مكون
@@ -95,42 +103,115 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 });
 
+// تحميل بيانات الوصفة في وضع التعديل
+async function loadRecipeForEdit(id) {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`/api/recipes/${id}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    const result = await res.json();
+    if (result.status !== "success" || !result.data) {
+      alert("تعذر جلب بيانات الوصفة المراد تعديلها");
+      window.location.href = "/recipes.html";
+      return;
+    }
+
+    const { recipe, ingredients } = result.data;
+
+    // تحديث عناوين الصفحة
+    document.title = `تعديل وصفة: ${recipe.item_name || recipe.name}`;
+    const headerTitle = document.querySelector(".page-header h2");
+    if (headerTitle) {
+      headerTitle.innerHTML = `✏️ تعديل كرت الوصفة: <span style="color:#00ff88;">${recipe.item_name || recipe.name}</span>`;
+    }
+
+    const saveBtn = document.getElementById("saveBtn");
+    if (saveBtn) {
+      saveBtn.textContent = "💾 حفظ تعديلات الوصفة";
+    }
+
+    // ملء بيانات الحقول
+    document.getElementById("recipeItemName").value = recipe.item_name || recipe.name || "";
+    if (document.getElementById("recipeReference")) document.getElementById("recipeReference").value = recipe.reference || "";
+    if (document.getElementById("recipeYield")) document.getElementById("recipeYield").value = recipe.yield || "";
+    if (document.getElementById("recipePortions")) document.getElementById("recipePortions").value = recipe.portions || 1;
+    if (document.getElementById("recipeShelfLife")) document.getElementById("recipeShelfLife").value = recipe.shelf_life || "";
+    if (document.getElementById("recipeVersion")) document.getElementById("recipeVersion").value = recipe.version || "001";
+    if (document.getElementById("recipeEdition")) document.getElementById("recipeEdition").value = recipe.edition || 1;
+    if (document.getElementById("recipeStationSelect")) document.getElementById("recipeStationSelect").value = recipe.station_id || "";
+    if (document.getElementById("recipeProcedure")) document.getElementById("recipeProcedure").value = recipe.procedure || "";
+
+    // تعبئة جدول المكونات
+    const tbody = document.getElementById("ingredientsTableBody");
+    if (tbody) {
+      tbody.innerHTML = "";
+      if (Array.isArray(ingredients) && ingredients.length > 0) {
+        ingredients.forEach(ing => {
+          addIngredientRow({
+            name: ing.ingredient_name,
+            quantity: ing.quantity,
+            unit: ing.unit
+          });
+        });
+      } else {
+        addIngredientRow();
+      }
+    }
+  } catch (err) {
+    console.error("❌ خطأ في loadRecipeForEdit:", err);
+    alert("حدث خطأ في تحميل بيانات الوصفة");
+  }
+}
+
 // إضافة صف مكون جديد
-function addIngredientRow() {
+function addIngredientRow(data = null) {
   const tbody = document.getElementById("ingredientsTableBody");
   if (!tbody) return;
 
   const rowCount = tbody.children.length;
   const row = document.createElement("tr");
+
+  const nameVal = data?.name || data?.ingredient_name || "";
+  const qtyVal = data?.quantity || "";
+  let unitVal = (data?.unit || "").toString().trim().toUpperCase();
+
+  const standardUnits = ["ML", "L", "GR", "KG", "PC", "PCS", "CUP", "TBSP", "TSP", "OZ", "LB", "UNIT"];
+  const isCustomUnit = unitVal && !standardUnits.includes(unitVal);
+
   row.innerHTML = `
     <td>${rowCount + 1}</td>
     <td>
-      <input type="text" class="ingredient-name" placeholder="اسم المكون" autocomplete="off" />
+      <input type="text" class="ingredient-name" placeholder="اسم المكون" value="${nameVal}" autocomplete="off" />
     </td>
     <td>
-      <input type="text" class="ingredient-quantity" placeholder="الكمية" autocomplete="off" />
+      <input type="text" class="ingredient-quantity" placeholder="الكمية" value="${qtyVal}" autocomplete="off" />
     </td>
     <td>
       <select class="ingredient-unit" autocomplete="off">
         <option value="">اختر الوحدة</option>
-        <option value="ML">ML</option>
-        <option value="L">L</option>
-        <option value="GR">GR</option>
-        <option value="KG">KG</option>
-        <option value="PC">PC</option>
-        <option value="PCS">PCS</option>
-        <option value="CUP">CUP</option>
-        <option value="TBSP">TBSP</option>
-        <option value="TSP">TSP</option>
-        <option value="OZ">OZ</option>
-        <option value="LB">LB</option>
-        <option value="UNIT">UNIT</option>
-        <option value="OTHER">أخرى</option>
+        <option value="ML" ${unitVal === "ML" ? "selected" : ""}>ML</option>
+        <option value="L" ${unitVal === "L" ? "selected" : ""}>L</option>
+        <option value="GR" ${unitVal === "GR" ? "selected" : ""}>GR</option>
+        <option value="KG" ${unitVal === "KG" ? "selected" : ""}>KG</option>
+        <option value="PC" ${unitVal === "PC" ? "selected" : ""}>PC</option>
+        <option value="PCS" ${unitVal === "PCS" ? "selected" : ""}>PCS</option>
+        <option value="CUP" ${unitVal === "CUP" ? "selected" : ""}>CUP</option>
+        <option value="TBSP" ${unitVal === "TBSP" ? "selected" : ""}>TBSP</option>
+        <option value="TSP" ${unitVal === "TSP" ? "selected" : ""}>TSP</option>
+        <option value="OZ" ${unitVal === "OZ" ? "selected" : ""}>OZ</option>
+        <option value="LB" ${unitVal === "LB" ? "selected" : ""}>LB</option>
+        <option value="UNIT" ${unitVal === "UNIT" ? "selected" : ""}>UNIT</option>
+        <option value="OTHER" ${isCustomUnit ? "selected" : ""}>أخرى</option>
       </select>
-      <input type="text" class="ingredient-unit-custom" placeholder="أدخل الوحدة" style="display:none; margin-top:5px;" autocomplete="off" />
+      <input type="text" class="ingredient-unit-custom" placeholder="أدخل الوحدة" value="${isCustomUnit ? (data.unit || '') : ''}" style="${isCustomUnit ? 'display:block; margin-top:5px;' : 'display:none; margin-top:5px;'}" autocomplete="off" />
     </td>
-    <td>
-      <button type="button" class="btn-delete" onclick="removeIngredientRow(this)">🗑</button>
+    <td style="white-space:nowrap;">
+      <div style="display:flex; gap:4px; align-items:center; justify-content:center;">
+        <button type="button" class="btn-order-move" onclick="moveIngredientRow(this, -1)" title="تحريك لأعلى" style="padding:2px 6px; cursor:pointer; background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px;">▲</button>
+        <button type="button" class="btn-order-move" onclick="moveIngredientRow(this, 1)" title="تحريك لأسفل" style="padding:2px 6px; cursor:pointer; background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:4px;">▼</button>
+        <button type="button" class="btn-delete" onclick="removeIngredientRow(this)" title="حذف">🗑</button>
+      </div>
     </td>
   `;
   tbody.appendChild(row);
@@ -161,6 +242,20 @@ function removeIngredientRow(btn) {
     updateIngredientRowNumbers();
   }
 }
+
+// تحريك صف المكون لأعلى أو لأسفل
+window.moveIngredientRow = function(btn, direction) {
+  const row = btn.closest("tr");
+  if (!row) return;
+  const tbody = row.parentElement;
+  if (direction === -1 && row.previousElementSibling) {
+    tbody.insertBefore(row, row.previousElementSibling);
+    updateIngredientRowNumbers();
+  } else if (direction === 1 && row.nextElementSibling) {
+    tbody.insertBefore(row.nextElementSibling, row);
+    updateIngredientRowNumbers();
+  }
+};
 
 // إعادة ترقيم صفوف المكونات
 function updateIngredientRowNumbers() {
@@ -380,15 +475,23 @@ async function handleAddRecipe() {
 
     const isSubRecipe = document.getElementById("recipeIsSubRecipe")?.checked || false;
 
-    console.log("📤 إرسال طلب إلى /api/recipes/add");
-    const response = await fetch("/api/recipes/add", {
-      method: "POST",
+    const urlParams = new URLSearchParams(window.location.search);
+    const editRecipeId = urlParams.get('id') || (urlParams.get('edit') !== 'true' ? urlParams.get('edit') : null);
+    const isEditing = !!editRecipeId;
+
+    const apiUrl = isEditing ? `/api/recipes/edit/${editRecipeId}` : "/api/recipes/add";
+    const apiMethod = isEditing ? "PUT" : "POST";
+
+    console.log(`📤 إرسال طلب إلى ${apiUrl} (${apiMethod})`);
+    const response = await fetch(apiUrl, {
+      method: apiMethod,
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
         item_name: itemName,
+        name: itemName,
         yield,
         portions,
         shelf_life: shelfLife,
@@ -397,7 +500,8 @@ async function handleAddRecipe() {
         edition,
         procedure,
         ingredients,
-        is_sub_recipe: isSubRecipe
+        is_sub_recipe: isSubRecipe,
+        station_id: document.getElementById("recipeStationSelect")?.value || null
       })
     });
 
@@ -422,6 +526,12 @@ async function handleAddRecipe() {
     console.log("📥 استجابة السيرفر (JSON):", res);
 
     if (res.status === "success") {
+      if (isEditing) {
+        alert("✅ تم تحديث كرت الوصفة ومقاديرها بنجاح!");
+        window.location.href = "/recipes.html";
+        return;
+      }
+
       console.log("✅ تم إضافة الوصفة بنجاح! ID:", res.data?.id);
       
       // مسح جميع الحقول لإضافة وصفة جديدة
@@ -466,6 +576,27 @@ async function handleAddRecipe() {
       saveBtn.disabled = false;
       saveBtn.textContent = "💾 حفظ الوصفة";
     }
+  }
+}
+
+// تحميل قائمة السكاشن في صفحة إضافة/تعديل الوصفة
+async function loadStationsList() {
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch('/api/pos-restaurant/stations', {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    const result = await res.json();
+    if (result.status === "success" && result.data) {
+      const stations = result.data.filter(s => s.station_type === 'kitchen' && s.is_active);
+      const sel = document.getElementById("recipeStationSelect");
+      if (sel) {
+        sel.innerHTML = '<option value="">-- اختر السكشن المسؤول عن التحضير --</option>' +
+          stations.map(s => `<option value="${s.id}">📍 [${s.station_code || 'ST'}] ${s.station_name}</option>`).join('');
+      }
+    }
+  } catch (e) {
+    console.warn("تعذر تحميل السكاشن:", e);
   }
 }
 
