@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>الخريطة المعمارية والمخطط الانسيابي الشامل | System Blueprint & Flowchart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="common/sidebar.css" />
+  <style>
+    :root {
+      --bg-dark: #070b14;
+      --bg-card: rgba(13, 20, 36, 0.85);
+      --bg-card-hover: rgba(19, 31, 56, 0.95);
+      --neon-green: #00ff88;
+      --neon-green-glow: rgba(0, 255, 136, 0.25);
+      --neon-blue: #38bdf8;
+      --neon-amber: #f59e0b;
+      --neon-purple: #c084fc;
+      --neon-rose: #fb7185;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Tajawal', sans-serif;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 24px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Header */
+    .blueprint-header {
+      background: linear-gradient(135deg, rgba(13, 22, 41, 0.9) 0%, rgba(9, 14, 26, 0.95) 100%);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .header-title-group h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-title-group p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 6px;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-pill.green { color: var(--neon-green); border-color: rgba(0, 255, 136, 0.3); background: rgba(0, 255, 136, 0.08); }
+    .badge-pill.blue { color: var(--neon-blue); border-color: rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.08); }
+    .badge-pill.purple { color: var(--neon-purple); border-color: rgba(192, 132, 252, 0.3); background: rgba(192, 132, 252, 0.08); }
+
+    /* Navigation Tabs */
+    .flow-tabs-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .flow-tab-btn {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      transition: all 0.25s ease;
+    }
+
+    .flow-tab-btn:hover {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .flow-tab-btn.active {
+      background: rgba(0, 255, 136, 0.12);
+      border-color: var(--neon-green);
+      color: var(--neon-green);
+      box-shadow: 0 0 15px var(--neon-green-glow);
+    }
+
+    /* Content Pane */
+    .flow-pane {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    .flow-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Section Card */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .section-card-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-card-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    /* Process Pipeline Steps Grid */
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .step-node {
+      background: rgba(10, 16, 30, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .step-node:hover {
+      border-color: var(--neon-green);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 255, 136, 0.15);
+    }
+
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(0, 255, 136, 0.15);
+      border: 1px solid var(--neon-green);
+      color: var(--neon-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .step-route-badge {
+      font-size: 0.72rem;
+      font-family: monospace;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--neon-blue);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .step-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .step-func {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: var(--neon-green);
+      background: rgba(0, 255, 136, 0.05);
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      display: inline-block;
+      direction: ltr;
+    }
+
+    .step-details-summary {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Technical Box */
+    .tech-box {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border-subtle);
+      font-size: 0.78rem;
+      color: #94a3b8;
+    }
+
+    .tech-box span {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .tech-tag {
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    /* Mermaid Render Box */
+    .mermaid-box {
+      background: rgba(9, 13, 24, 0.95);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 20px;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    /* Search & Table */
+    .search-bar-wrap {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 250px;
+      background: #0f172a;
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .search-input:focus {
+      border-color: var(--neon-green);
+    }
+
+    .filter-btn {
+      background: #0f172a;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .filter-btn.active {
+      background: var(--neon-green);
+      color: #030712;
+      border-color: var(--neon-green);
+    }
+
+    .master-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+    }
+
+    .master-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+      text-align: right;
+    }
+
+    .master-table th {
+      background: #0c1220;
+      padding: 12px 16px;
+      color: var(--neon-green);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
+    }
+
+    .master-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: #e2e8f0;
+      vertical-align: top;
+    }
+
+    .master-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .func-name {
+      font-family: monospace;
+      font-weight: 700;
+      color: var(--neon-green);
+      direction: ltr;
+      display: inline-block;
+    }
+
+    .file-tag {
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: var(--neon-blue);
+      direction: ltr;
+      display: inline-block;
+    }
+
+    .table-tag {
+      display: inline-block;
+      background: rgba(148, 163, 184, 0.1);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      color: #cbd5e1;
+      margin: 2px;
+      direction: ltr;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="layout">
+    <!-- الشريط الجانبي الموحد -->
+    <aside class="sidebar"></aside>
+
+    <main class="main-content">
+      <!-- Header -->
+      <div class="blueprint-header">
+        <div class="header-title-group">
+          <h1>
+            <i class="fa-solid fa-network-wired" style="color:var(--neon-green);"></i>
+            الخريطة المعمارية والمخطط الانسيابي الهندسي للنظام
+          </h1>
+          <p>خريطة تفصيلية تدفقية شاملة لكل خطوة، دالة برمجية، استعلام قاعدة بيانات، وحساب مالي/مخزني في النظام</p>
+        </div>
+        <div class="header-badges">
+          <div class="badge-pill green"><i class="fa-solid fa-diagram-project"></i> 7 دورات تشغيلية</div>
+          <div class="badge-pill blue"><i class="fa-solid fa-code"></i> 28 دالة موثقة</div>
+          <div class="badge-pill purple"><i class="fa-solid fa-database"></i> 18 جدولاً مرتبطاً</div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flow-tabs-nav">
+        <button class="flow-tab-btn active" onclick="switchFlowTab('master')">
+          <i class="fa-solid fa-sitemap"></i> 1. المعمارية والتدفق العام
+        </button>
+        <button class="flow-tab-btn" onclick="switchFlowTab('order')">
+          <i class="fa-solid fa-utensils"></i> 2. دورة طلب الويتر والطباعة
+        </button>
+        <button class="flow-tab-btn" onclick="switchFlowTab('payment')">
+          <i class="fa-solid fa-cash-register"></i> 3. التحصيل والقيود الآلية
+        </button>
+        <button class="flow-tab-btn" onclick="switchFlowTab('kitchen')">
+          <i class="fa-solid fa-kitchen-set"></i> 4. تحضير المطبخ والباركود
+        </button>
+        <button class="flow-tab-btn" onclick="switchFlowTab('purchase')">
+          <i class="fa-solid fa-cart-flatbed"></i> 5. المشتريات والتوريد (P2P)
+        </button>
+        <button class="flow-tab-btn" onclick="switchFlowTab('branches')">
+          <i class="fa-solid fa-truck-ramp-box"></i> 6. مناقلات الفروع اللوجستية
+        </button>
+        <button class="flow-tab-btn" onclick="switchFlowTab('rbac')">
+          <i class="fa-solid fa-shield-halved"></i> 7. مصفوفة الصلاحيات (RBAC)
+        </button>
+        <button class="flow-tab-btn" onclick="switchFlowTab('directory')">
+          <i class="fa-solid fa-table-list"></i> 8. الفهرس الهندسي ومحرك البحث
+        </button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 1: MASTER ARCHITECTURE -->
+      <!-- ============================================== -->
+      <div id="pane-master" class="flow-pane active">
+        <div class="section-card">
+          <div class="section-card-title">
+            <i class="fa-solid fa-compass" style="color:var(--neon-green);"></i>
+            الهيكل العام للنظام والترابط المتوازي بين الأجنحة
+          </div>
+          <div class="section-card-desc">
+            يوضح هذا المخطط كيفية تدفق البيانات بين واجهات العميل (Frontend UI) وطبقة معالجة الـ API وسير العمليات في قواعد البيانات الثلاث المستقلة مع نظام الكاش اللحظي (In-Memory OrmCache).
+          </div>
+
+          <div class="mermaid-box">
+            <pre class="mermaid">
+flowchart TD
+    subgraph UI["طبقة الواجهات الأمامية (Frontend)"]
+        W_UI["📱 شاشة الويتر /waiter.html"]
+        F_UI["🗺️ مخطط الصالة /floor-management.html"]
+        K_UI["👨‍🍳 التحضير والمطابقة /kitchen-prep.html"]
+        P_UI["🛍️ المشتريات والموردين /purchases.html"]
+        A_UI["💰 شجرة الحسابات /accounting.html"]
+        B_UI["🏢 الفروع واللوجستيات /branches.html"]
+    end
+
+    subgraph API["طبقة المحركات البرمجية (Controllers & Services)"]
+        AUTH_MW["🔒 authMiddleware (JWT Check)"]
+        POS_C["posRestaurantController.js"]
+        PRINT_S["printRoutingService.js (ESC/POS)"]
+        STOCK_S["stationStockService.js (Depletion)"]
+        KITCH_C["kitchenOperationsController.js"]
+        PURCH_C["purchaseController.js (WAC Engine)"]
+        ACC_C["accountingController.js (GL Engine)"]
+        BRANCH_C["branchesController.js (Transfers)"]
+        CACHE["⚡ OrmCache In-Memory"]
+    end
+
+    subgraph DB["طبقة قواعد البيانات (MySQL Pools)"]
+        APP_DB[("appPool (المخزون والعمليات)")]
+        AUTH_DB[("authPool (المستخدمين والأدوار)")]
+        HR_DB[("hrPool (الموارد البشرية)")]
+    end
+
+    W_UI --> AUTH_MW
+    F_UI --> AUTH_MW
+    K_UI --> AUTH_MW
+    P_UI --> AUTH_MW
+    A_UI --> AUTH_MW
+    B_UI --> AUTH_MW
+
+    AUTH_MW --> POS_C
+    AUTH_MW --> KITCH_C
+    AUTH_MW --> PURCH_C
+    AUTH_MW --> ACC_C
+    AUTH_MW --> BRANCH_C
+
+    POS_C --> PRINT_S
+    POS_C --> STOCK_S
+    POS_C --> CACHE
+
+    POS_C --> APP_DB
+    STOCK_S --> APP_DB
+    KITCH_C --> APP_DB
+    PURCH_C --> APP_DB
+    ACC_C --> APP_DB
+    BRANCH_C --> APP_DB
+    AUTH_MW --> AUTH_DB
+            </pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: ORDER LIFECYCLE -->
+      <!-- ============================================== -->
+      <div id="pane-order" class="flow-pane">
+        <div class="section-card">
+          <div class="section-card-title">
+            <i class="fa-solid fa-utensils" style="color:var(--neon-green);"></i>
+            دورة حياة طلب الويتر، توجيه الطباعة المتوازية، والخصم اللحظي للوصفات
+          </div>
+          <div class="section-card-desc">
+            تبدأ الدورة عند إرسال الويتر للطلب، حيث يقوم النظام بثلاث عمليات ذرية (Atomic Operations) متزامنة: تسجيل الطلب وتحديث حالة الطاولة، إرسال مهام الطباعة المتوازية لسكاشن المطبخ، وخصم مكونات الوصفة لحظياً من رصيد عهدة السكشن المسؤول.
+          </div>
+
+          <div class="pipeline-grid">
+            <!-- Step 1 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-route-badge">POST /api/pos-restaurant/orders</div>
+              </div>
+              <div class="step-title">استقبال الطلب والتحقق</div>
+              <div class="step-func">sendWaiterOrder(req, res)</div>
+              <div class="step-details-summary">
+                التحقق من رقم الطاولة ووجود أصناف صالحة، وتجهيز مصفوفة الـ Payload لكل طبق مع ملاحظاته الخاصة ورتبة الويتر.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الملف:</span> api/posRestaurantController.js</span>
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">pos_orders</span> <span class="table-tag">pos_tables</span></span>
+                <span><span class="tech-tag">التأثير:</span> تغيير حالة الطاولة إلى 'occupied'</span>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-route-badge">Internal Service Call</div>
+              </div>
+              <div class="step-title">توجيه وحقن الطباعة المتوازية</div>
+              <div class="step-func">createOrderAndRoutePrint(orderPayload)</div>
+              <div class="step-details-summary">
+                إدراج أصناف الطلب في <span class="table-tag">pos_order_items</span>، وفرز الأصناف حسب <span class="table-tag">station_id</span>، وتوجيه مهام طباعة متوازية عبر <span class="func-name">executePrintJob()</span> للكاشير والأكسبو وسكاشن الطهي عبر بروتوكول ESC/POS.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الملف:</span> api/printRoutingService.js</span>
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">pos_print_jobs</span> <span class="table-tag">pos_stations</span></span>
+                <span><span class="tech-tag">العتاد:</span> طابعات الشبكة 9100 الحرارية</span>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-route-badge">Internal Service Call</div>
+              </div>
+              <div class="step-title">الخصم المعياري من رصيد السكشن</div>
+              <div class="step-func">depleteOrderFromStation(orderId)</div>
+              <div class="step-details-summary">
+                الربط بين الصنف وكرت الوصفة <span class="table-tag">recipe_ingredients</span>، واحتساب: <em>الكمية المستهلكة = الكمية المعيارية × كمية الطلب</em>، وخصمها فورياً من <span class="table-tag">station_inventory</span> وتوثيق الحركة كـ 'order_consumption'.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الملف:</span> api/stationStockService.js</span>
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">station_inventory</span> <span class="table-tag">station_stock_moves</span></span>
+                <span><span class="tech-tag">ميزة ذكية:</span> إنشاء مسودة وصفة آلياً وتنبيه الشيف إذا لم تكن مسجلة</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 3: PAYMENT & AUTO-JOURNAL -->
+      <!-- ============================================== -->
+      <div id="pane-payment" class="flow-pane">
+        <div class="section-card">
+          <div class="section-card-title">
+            <i class="fa-solid fa-receipt" style="color:var(--neon-green);"></i>
+            دورة تحصيل الحساب، إخلاء الطاولة، وإنشاء القيد المحاسبي المزدوج الآلي
+          </div>
+          <div class="section-card-desc">
+            عند سداد الزبون للفاتورة، يطبق النظام معايير أودو (Odoo Accounting Standards) حيث يُقفل الطلب وتُخلى الطاولة، ويُنشأ قيد يومية متوازن آلياً في شجرة الحسابات (شامل طرف مدين وطرف دائن)، وتُحسب مدة الجلوس الدقيقة للتحليلات.
+          </div>
+
+          <div class="pipeline-grid">
+            <!-- Step 1 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-route-badge">POST /api/pos-restaurant/pay-order</div>
+              </div>
+              <div class="step-title">إقفال الطلب وتوثيق مدة الجلوس</div>
+              <div class="step-func">payAndCloseOrder(req, res)</div>
+              <div class="step-details-summary">
+                تحديث حالة الطلب إلى 'paid' وتوثيق مدة الجلوس بالدقائق: <br/>
+                <code>duration_minutes = TIMESTAMPDIFF(MINUTE, seated_at, NOW())</code>
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الملف:</span> api/posRestaurantController.js</span>
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">pos_orders</span></span>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-route-badge">DB Atomic Update</div>
+              </div>
+              <div class="step-title">إخلاء الطاولة اللحظي</div>
+              <div class="step-func">UPDATE pos_tables</div>
+              <div class="step-details-summary">
+                إرجاع حالة الطاولة فورياً إلى 'available' وتصفير <span class="table-tag">current_order_id = NULL</span> لتظهر شاغرة بلون أخضر على خريطة الصالة وشاشات الويترية.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">pos_tables</span></span>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-route-badge">Odoo Auto-Journal Entry</div>
+              </div>
+              <div class="step-title">توليد القيد المحاسبي المزدوج</div>
+              <div class="step-func">account_move & account_move_line</div>
+              <div class="step-details-summary">
+                إنشاء قيد برقم تسلسلي <span class="tech-tag">POS/YEAR/XXXX</span> في دفتر المبيعات:
+                <ul style="margin: 6px 16px 0 0; font-size: 0.8rem; color: #cbd5e1;">
+                  <li><strong>الطرف المدين:</strong> الصندوق 101000 (نقداً) أو البنك 102000 (بطاقة)</li>
+                  <li><strong>الطرف الدائن:</strong> إيرادات مبيعات الأطعمة 401000</li>
+                </ul>
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">account_move</span> <span class="table-tag">account_move_line</span></span>
+                <span><span class="tech-tag">الكاش:</span> إبطال كاش الحسابات والفروع فورياً</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 4: KITCHEN OPERATIONS & AUDIT -->
+      <!-- ============================================== -->
+      <div id="pane-kitchen" class="flow-pane">
+        <div class="section-card">
+          <div class="section-card-title">
+            <i class="fa-solid fa-kitchen-set" style="color:var(--neon-green);"></i>
+            دورة تحضير وجبات المطبخ، طباعة الباركود الفردي، ومطابقة وجرد الشفتات
+          </div>
+          <div class="section-card-desc">
+            تضمن هذه الدورة الرقابة الصارمة على حركة المواد داخل المطبخ من خلال حساب مقادير التحضير مسبقاً، طباعة ملصقات باركود لكل علبة منتجة، ومسحها ضوئياً لإيداعها في عهدة السكشن، ثم مطابقة الرصيد النظري مع الجرد الفعلي وكشف مبيعات الويترية بنهاية الشفت.
+          </div>
+
+          <div class="pipeline-grid">
+            <!-- Step 1 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-route-badge">POST /api/kitchen-ops/prep-plan</div>
+              </div>
+              <div class="step-title">خطة التحضير المسبق</div>
+              <div class="step-func">calculatePrepPlan(req, res)</div>
+              <div class="step-details-summary">
+                حساب كميات الخامات المطلوبة طبقاً لمعامل التحضير:
+                <code>Required = standard_qty × (portions / base_portions)</code>
+                ومقارنتها بالرصيد الحالي بالمخزن لكشف أي عجز (hasShortage) مسبقاً.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الملف:</span> api/kitchenOperationsController.js</span>
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">recipes</span> <span class="table-tag">recipe_ingredients</span> <span class="table-tag">ingredients</span></span>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-route-badge">POST /api/kitchen-ops/prep-batch</div>
+              </div>
+              <div class="step-title">تأكيد الإنتاج وتوليد ملصقات الباركود</div>
+              <div class="step-func">producePrepBatch(req, res)</div>
+              <div class="step-details-summary">
+                خصم الخامات المستهلكة من المخزن الرئيسي، تسجيل الدفعة في <span class="table-tag">prep_batches</span>، وتوليد باركودات مشفرة فردية لكل بورشن/علبة في <span class="table-tag">prep_portion_labels</span> مع تاريخ انتهاء الصلاحية.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">prep_batches</span> <span class="table-tag">prep_portion_labels</span></span>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-route-badge">POST /api/kitchen-ops/scan-barcode</div>
+              </div>
+              <div class="step-title">مسح الباركود وإيداع العهدة بالسكشن</div>
+              <div class="step-func">scanItemToStation(req, res)</div>
+              <div class="step-details-summary">
+                التحقق من عدم تكرار مسح الباركود، وتحديث حالته إلى 'consumed'، وإيداع كمية البورشن فورياً في رصيد السكشن في <span class="table-tag">station_inventory</span> مع توثيق حركة 'transfer_in'.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">station_inventory</span> <span class="table-tag">station_stock_moves</span></span>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">4</div>
+                <div class="step-route-badge">GET/POST /api/kitchen-ops/audit/*</div>
+              </div>
+              <div class="step-title">مطابقة الشفت وجرد السكشن التلقائي</div>
+              <div class="step-func">getStationAuditSummary() & submitStationAudit()</div>
+              <div class="step-details-summary">
+                حساب الرصيد الدفتري النظري:
+                <code>Theoretical = Opening + In - Consumed - Waste</code>
+                وتفصيل مبيعات كل ويتر، وحساب الفارق (Variance). في حال وجود عجز يُرسل تنبيه فوري للإدارة.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">station_audits</span> <span class="table-tag">station_audit_items</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 5: PURCHASES P2P -->
+      <!-- ============================================== -->
+      <div id="pane-purchase" class="flow-pane">
+        <div class="section-card">
+          <div class="section-card-title">
+            <i class="fa-solid fa-cart-shopping" style="color:var(--neon-green);"></i>
+            دورة المشتريات والتوريد ومعادلة متوسط التكلفة المرجح (Odoo P2P)
+          </div>
+          <div class="section-card-desc">
+            دورة كاملة من الشراء حتى السداد المالي (Procure-to-Pay) تضمن التوافق التام مع المعايير المحاسبية وإعادة تقييم تكلفة المخزون تلقائياً بمتوسط التكلفة المرجح (WAC).
+          </div>
+
+          <div class="pipeline-grid">
+            <!-- Step 1 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-route-badge">POST /api/purchase/orders</div>
+              </div>
+              <div class="step-title">إنشاء طلب تسعير (RFQ)</div>
+              <div class="step-func">createOrder(req, res)</div>
+              <div class="step-details-summary">
+                إنشاء أمر الشراء بحالة 'draft' برقم تسلسلي <span class="tech-tag">PO/YEAR/XXXX</span> وإدراج سطور المواد وأسعار الشراء المستهدفة.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الملف:</span> api/purchaseController.js</span>
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">purchase_order</span> <span class="table-tag">purchase_order_line</span></span>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-route-badge">POST /api/purchase/orders/:id/confirm</div>
+              </div>
+              <div class="step-title">تأكيد أمر الشراء وتوليد إذن الاستلام</div>
+              <div class="step-func">confirmOrder(req, res)</div>
+              <div class="step-details-summary">
+                تحويل الحالة إلى 'purchase'، وتوليد إذن استلام مخزني معلق في <span class="table-tag">stock_picking</span> برقم تسلسلي <span class="tech-tag">WH/IN/XXXX</span> وحركات المخزون المعلقة <span class="table-tag">stock_move</span>.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">stock_picking</span> <span class="table-tag">stock_move</span></span>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-route-badge">POST /api/purchase/orders/:id/receive</div>
+              </div>
+              <div class="step-title">استلام البضاعة وإعادة حساب التكلفة (WAC)</div>
+              <div class="step-func">receiveOrder(req, res)</div>
+              <div class="step-details-summary">
+                إيداع الكميات في <span class="table-tag">ingredients</span>، وإعادة حساب التكلفة فورياً:
+                <code>NewCost = (OldStock*OldCost + NewQty*NewPrice) / (OldStock + NewQty)</code>
+                وتحديث إذن الاستلام إلى 'done'.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">ingredients</span> <span class="table-tag">transactions</span></span>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">4</div>
+                <div class="step-route-badge">POST /api/purchase/orders/:id/create-bill</div>
+              </div>
+              <div class="step-title">إنشاء فاتورة المورد والقيد المحاسبي</div>
+              <div class="step-func">createVendorBill() & payBill()</div>
+              <div class="step-details-summary">
+                إنشاء فاتورة المورد برقم تسلسلي <span class="tech-tag">BILL/YEAR/XXXX</span> وترحيل القيد:
+                <ul style="margin: 4px 16px 0 0; font-size: 0.8rem; color: #cbd5e1;">
+                  <li><strong>مدين:</strong> 103000 مخزون الخامات والمشتريات</li>
+                  <li><strong>دائن:</strong> 201000 حسابات الموردين (ذمم دائنة)</li>
+                </ul>
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">account_move</span> <span class="table-tag">account_move_line</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 6: INTER-BRANCH TRANSFERS -->
+      <!-- ============================================== -->
+      <div id="pane-branches" class="flow-pane">
+        <div class="section-card">
+          <div class="section-card-title">
+            <i class="fa-solid fa-truck-ramp-box" style="color:var(--neon-green);"></i>
+            دورة المناقلات اللوجستية بين الفروع والقيود الجارية التبادلية
+          </div>
+          <div class="section-card-desc">
+            إدارة تدفق الخامات بين الفروع والمستودعات المركزية (Inter-Branch Transfers) مع حماية ضد السحب الزائد وربط الحسابات الجارية التبادلية.
+          </div>
+
+          <div class="pipeline-grid">
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-route-badge">POST /api/branches/transfers</div>
+              </div>
+              <div class="step-title">إنشاء مناقلة وشحن المواد</div>
+              <div class="step-func">createInterBranchTransfer(req, res)</div>
+              <div class="step-details-summary">
+                التحقق من كفاية الرصيد في فرع المصدر، خصم الكمية، وتوليد شحنة بحالة 'in_transit' مع رقم تسلسلي <span class="tech-tag">TRF/YEAR/XXXX</span>.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الملف:</span> api/branchesController.js</span>
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">stock_inter_branch_transfers</span> <span class="table-tag">ingredients</span></span>
+              </div>
+            </div>
+
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-route-badge">POST /api/branches/transfers/:id/receive</div>
+              </div>
+              <div class="step-title">استلام البضاعة في فرع المقصد</div>
+              <div class="step-func">receiveInterBranchTransfer(req, res)</div>
+              <div class="step-details-summary">
+                إيداع الكميات في مستودع فرع المقصد، تغيير حالة الشحنة إلى 'received'، وترحيل قيود الحسابات الجارية التبادلية بين الفرعين.
+              </div>
+              <div class="tech-box">
+                <span><span class="tech-tag">الجداول:</span> <span class="table-tag">stock_inter_branch_transfers</span> <span class="table-tag">account_move</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 7: RBAC SECURITY -->
+      <!-- ============================================== -->
+      <div id="pane-rbac" class="flow-pane">
+        <div class="section-card">
+          <div class="section-card-title">
+            <i class="fa-solid fa-shield-halved" style="color:var(--neon-green);"></i>
+            نظام الصلاحيات المتقدم (Enterprise RBAC) ومصفوفة الأمان
+          </div>
+          <div class="section-card-desc">
+            يوفر النظام نموذج حوكمة متقدم يفصل بين الأدوار القيادية والتشغيلية عبر التحقق في جهة الخادم (Server-side middleware) وتكييف السايدبار ديناميكياً في جهة المتصفح.
+          </div>
+
+          <div class="pipeline-grid">
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">1</div>
+                <div class="step-route-badge">Auth Middleware</div>
+              </div>
+              <div class="step-title">فحص التوكن الرقمي (JWT)</div>
+              <div class="step-func">authMiddleware(req, res, next)</div>
+              <div class="step-details-summary">
+                التحقق من توكن المصادقة، فك التشفير، وحقن بيانات المستخدم ودوره وفرعه في كائن الطلب: <code>req.user</code>.
+              </div>
+            </div>
+
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">2</div>
+                <div class="step-route-badge">RBAC Controller</div>
+              </div>
+              <div class="step-title">التحقق من مصفوفة الصلاحيات</div>
+              <div class="step-func">checkUserHasPermission(userId, perm)</div>
+              <div class="step-details-summary">
+                مطابقة الصلاحية المطلوبة (مثل: pos.order.create أو kitchen.audit.submit) مع مصفوفة الصلاحيات الممنوحة للدور الوظيفي في <span class="table-tag">role_permissions</span>.
+              </div>
+            </div>
+
+            <div class="step-node">
+              <div class="step-header">
+                <div class="step-number">3</div>
+                <div class="step-route-badge">Client Adaptive UI</div>
+              </div>
+              <div class="step-title">تكييف السايدبار التلقائي</div>
+              <div class="step-func">initSidebar() in sidebar.js</div>
+              <div class="step-details-summary">
+                قراءة رتبة المستخدم وعرض القوائم المصرح له بها فقط وحجب بقية الأقسام مع مبدل الفروع للمديرين.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 8: MASTER DIRECTORY & LIVE SEARCH -->
+      <!-- ============================================== -->
+      <div id="pane-directory" class="flow-pane">
+        <div class="section-card">
+          <div class="section-card-title">
+            <i class="fa-solid fa-table-list" style="color:var(--neon-green);"></i>
+            الفهرس الهندسي الشامل لجميع دوال ومسارات النظام (Master Function Directory)
+          </div>
+          <div class="section-card-desc">
+            ابحث بالاسم البرمجي للدالة، مسار الـ API، الملف المصدري، أو اسم جدول قاعدة البيانات.
+          </div>
+
+          <div class="search-bar-wrap">
+            <input type="text" id="funcSearchInput" class="search-input" placeholder="🔍 بحث في الدوال، المسارات، الجداول، أو الملفات..." oninput="filterDirectoryTable()" />
+            <button class="filter-btn active" onclick="setDirFilter('all', this)">الكل</button>
+            <button class="filter-btn" onclick="setDirFilter('pos', this)">نقاط البيع والصالة</button>
+            <button class="filter-btn" onclick="setDirFilter('kitchen', this)">المطبخ والإنتاج</button>
+            <button class="filter-btn" onclick="setDirFilter('purchases', this)">المشتريات</button>
+            <button class="filter-btn" onclick="setDirFilter('accounting', this)">المالية والحسابات</button>
+            <button class="filter-btn" onclick="setDirFilter('branches', this)">الفروع واللوجستيات</button>
+          </div>
+
+          <div class="master-table-wrap">
+            <table class="master-table" id="masterDirTable">
+              <thead>
+                <tr>
+                  <th>الدالة البرمجية (Function)</th>
+                  <th>الملف المصدري (File)</th>
+                  <th>المسار / المشغل (Route / Trigger)</th>
+                  <th>الوصف والعملية خطوة بخطوة</th>
+                  <th>الجداول المتأثرة (Database Tables)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- POS -->
+                <tr data-cat="pos">
+                  <td><span class="func-name">sendWaiterOrder</span></td>
+                  <td><span class="file-tag">api/posRestaurantController.js</span></td>
+                  <td><code>POST /api/pos-restaurant/orders</code></td>
+                  <td>تستلم طلب الويتر، تستدعي محرك الطباعة المتوازية، تحديث حالة الطاولة، وخصم مكونات الوصفة لحظياً.</td>
+                  <td><span class="table-tag">pos_orders</span> <span class="table-tag">pos_tables</span> <span class="table-tag">pos_order_items</span></td>
+                </tr>
+                <tr data-cat="pos">
+                  <td><span class="func-name">payAndCloseOrder</span></td>
+                  <td><span class="file-tag">api/posRestaurantController.js</span></td>
+                  <td><code>POST /api/pos-restaurant/pay-order</code></td>
+                  <td>إقفال الطلب، إخلاء الطاولة، إنشاء القيد المحاسبي المزدوج الآلي، وإبطال كاش المالية.</td>
+                  <td><span class="table-tag">pos_orders</span> <span class="table-tag">pos_tables</span> <span class="table-tag">account_move</span> <span class="table-tag">account_move_line</span></td>
+                </tr>
+                <tr data-cat="pos">
+                  <td><span class="func-name">createOrderAndRoutePrint</span></td>
+                  <td><span class="file-tag">api/printRoutingService.js</span></td>
+                  <td><code>Internal Async Service Call</code></td>
+                  <td>فرز الأصناف لكل سكشن، توليد كبونات التحضير، وتوجيه الطباعة المتوازية عبر شبكة ESC/POS.</td>
+                  <td><span class="table-tag">pos_print_jobs</span> <span class="table-tag">pos_stations</span></td>
+                </tr>
+                <tr data-cat="pos">
+                  <td><span class="func-name">depleteOrderFromStation</span></td>
+                  <td><span class="file-tag">api/stationStockService.js</span></td>
+                  <td><code>Internal Async Service Call</code></td>
+                  <td>مطابقة الوجبة بكرت الوصفة، وخصم كميات الخامات من رصيد عهدة السكشن في station_inventory.</td>
+                  <td><span class="table-tag">station_inventory</span> <span class="table-tag">station_stock_moves</span> <span class="table-tag">recipes</span></td>
+                </tr>
+                <tr data-cat="pos">
+                  <td><span class="func-name">saveFloorLayout</span></td>
+                  <td><span class="file-tag">api/posRestaurantController.js</span></td>
+                  <td><code>POST /api/pos-restaurant/floors/:id/layout</code></td>
+                  <td>حفظ إحداثيات وأبعاد وأشكال الطاولات في المخطط المعماري التفاعلي 2D.</td>
+                  <td><span class="table-tag">pos_tables</span></td>
+                </tr>
+                <tr data-cat="pos">
+                  <td><span class="func-name">getFloorAnalytics</span></td>
+                  <td><span class="file-tag">api/posRestaurantController.js</span></td>
+                  <td><code>GET /api/pos-restaurant/analytics</code></td>
+                  <td>احتساب معدل دوران الطاولات (Turnover)، متوسط وقت الخدمة، ونسبة إشغال المقاعد الفورية.</td>
+                  <td><span class="table-tag">pos_tables</span> <span class="table-tag">pos_orders</span></td>
+                </tr>
+
+                <!-- Kitchen -->
+                <tr data-cat="kitchen">
+                  <td><span class="func-name">calculatePrepPlan</span></td>
+                  <td><span class="file-tag">api/kitchenOperationsController.js</span></td>
+                  <td><code>POST /api/kitchen-ops/prep-plan</code></td>
+                  <td>حساب الخامات المطلوبة للتحضير الدفعي مقارنة بالرصيد المتوفر وكشف أي نقص مسبقاً.</td>
+                  <td><span class="table-tag">recipes</span> <span class="table-tag">recipe_ingredients</span> <span class="table-tag">ingredients</span></td>
+                </tr>
+                <tr data-cat="kitchen">
+                  <td><span class="func-name">producePrepBatch</span></td>
+                  <td><span class="file-tag">api/kitchenOperationsController.js</span></td>
+                  <td><code>POST /api/kitchen-ops/prep-batch</code></td>
+                  <td>تأكيد الإنتاج، خصم الخامات من المخزن، وتوليد كودات الباركود الفردية لكل علبة.</td>
+                  <td><span class="table-tag">prep_batches</span> <span class="table-tag">prep_portion_labels</span> <span class="table-tag">ingredients</span></td>
+                </tr>
+                <tr data-cat="kitchen">
+                  <td><span class="func-name">scanItemToStation</span></td>
+                  <td><span class="file-tag">api/kitchenOperationsController.js</span></td>
+                  <td><code>POST /api/kitchen-ops/scan-barcode</code></td>
+                  <td>مسح الباركود، التحقق من عدم تكراره، وإيداع وزن العلبة في رصيد سكشن المطبخ.</td>
+                  <td><span class="table-tag">prep_portion_labels</span> <span class="table-tag">station_inventory</span> <span class="table-tag">station_stock_moves</span></td>
+                </tr>
+                <tr data-cat="kitchen">
+                  <td><span class="func-name">getStationAuditSummary</span></td>
+                  <td><span class="file-tag">api/kitchenOperationsController.js</span></td>
+                  <td><code>GET /api/kitchen-ops/audit/summary</code></td>
+                  <td>تجميع الحركات اليومية (وارد، مبيعات، هدر)، استخراج مبيعات كل ويتر، وحساب الرصيد الدفتري.</td>
+                  <td><span class="table-tag">station_stock_moves</span> <span class="table-tag">pos_orders</span></td>
+                </tr>
+                <tr data-cat="kitchen">
+                  <td><span class="func-name">submitStationAudit</span></td>
+                  <td><span class="file-tag">api/kitchenOperationsController.js</span></td>
+                  <td><code>POST /api/kitchen-ops/audit/submit</code></td>
+                  <td>مطابقة الجرد الفعلي بالدفتري، توثيق العجز، وإرسال تنبيهات فورية للإدارة في حال وجود عجز.</td>
+                  <td><span class="table-tag">station_audits</span> <span class="table-tag">station_audit_items</span> <span class="table-tag">notifications</span></td>
+                </tr>
+
+                <!-- Purchases -->
+                <tr data-cat="purchases">
+                  <td><span class="func-name">createOrder</span></td>
+                  <td><span class="file-tag">api/purchaseController.js</span></td>
+                  <td><code>POST /api/purchase/orders</code></td>
+                  <td>إنشاء طلب تسعير (RFQ) برقم PO/YEAR/XXXX وإدراج سطور الأصناف.</td>
+                  <td><span class="table-tag">purchase_order</span> <span class="table-tag">purchase_order_line</span></td>
+                </tr>
+                <tr data-cat="purchases">
+                  <td><span class="func-name">confirmOrder</span></td>
+                  <td><span class="file-tag">api/purchaseController.js</span></td>
+                  <td><code>POST /api/purchase/orders/:id/confirm</code></td>
+                  <td>تأكيد أمر الشراء وتوليد إذن الاستلام المخزني المعلق (WH/IN/XXXX).</td>
+                  <td><span class="table-tag">purchase_order</span> <span class="table-tag">stock_picking</span> <span class="table-tag">stock_move</span></td>
+                </tr>
+                <tr data-cat="purchases">
+                  <td><span class="func-name">receiveOrder</span></td>
+                  <td><span class="file-tag">api/purchaseController.js</span></td>
+                  <td><code>POST /api/purchase/orders/:id/receive</code></td>
+                  <td>استلام المواد بالمستودع، زيادة الأرصدة، وإعادة احتساب متوسط التكلفة المرجح (WAC).</td>
+                  <td><span class="table-tag">ingredients</span> <span class="table-tag">stock_picking</span> <span class="table-tag">transactions</span></td>
+                </tr>
+                <tr data-cat="purchases">
+                  <td><span class="func-name">createVendorBill</span></td>
+                  <td><span class="file-tag">api/purchaseController.js</span></td>
+                  <td><code>POST /api/purchase/orders/:id/create-bill</code></td>
+                  <td>إنشاء فاتورة المورد في المحاسبة وترحيل القيد (مدين: المخزون، دائن: الموردين).</td>
+                  <td><span class="table-tag">account_move</span> <span class="table-tag">account_move_line</span></td>
+                </tr>
+                <tr data-cat="purchases">
+                  <td><span class="func-name">payBill</span></td>
+                  <td><span class="file-tag">api/purchaseController.js</span></td>
+                  <td><code>POST /api/purchase/bills/:id/pay</code></td>
+                  <td>تسجيل سداد الفاتورة وإقفال ذمة المورد (مدين: الموردين، دائن: النقدية/البنك).</td>
+                  <td><span class="table-tag">account_move</span> <span class="table-tag">account_move_line</span></td>
+                </tr>
+
+                <!-- Accounting -->
+                <tr data-cat="accounting">
+                  <td><span class="func-name">getChartOfAccounts</span></td>
+                  <td><span class="file-tag">api/accountingController.js</span></td>
+                  <td><code>GET /api/accounting/chart-of-accounts</code></td>
+                  <td>جلب شجرة الحسابات الخماسية المستويات المنسجمة مع معايير Odoo المحاسبية.</td>
+                  <td><span class="table-tag">account_account</span></td>
+                </tr>
+                <tr data-cat="accounting">
+                  <td><span class="func-name">createMove</span></td>
+                  <td><span class="file-tag">api/accountingController.js</span></td>
+                  <td><code>POST /api/accounting/moves</code></td>
+                  <td>ترحيل قيد يومية يدوي مع التحقق الصارم من توازن المدين والدائن (Double-Entry).</td>
+                  <td><span class="table-tag">account_move</span> <span class="table-tag">account_move_line</span></td>
+                </tr>
+                <tr data-cat="accounting">
+                  <td><span class="func-name">getTrialBalance</span></td>
+                  <td><span class="file-tag">api/accountingController.js</span></td>
+                  <td><code>GET /api/accounting/trial-balance</code></td>
+                  <td>استخراج ميزان المراجعة وتجميع الأرصدة الافتتاحية والحركات الجارية والإقفالية.</td>
+                  <td><span class="table-tag">account_move_line</span> <span class="table-tag">account_account</span></td>
+                </tr>
+
+                <!-- Branches -->
+                <tr data-cat="branches">
+                  <td><span class="func-name">createInterBranchTransfer</span></td>
+                  <td><span class="file-tag">api/branchesController.js</span></td>
+                  <td><code>POST /api/branches/transfers</code></td>
+                  <td>خصم البضاعة من فرع المصدر وإنشاء شحنة لوجستية قيد النقل (In Transit).</td>
+                  <td><span class="table-tag">ingredients</span> <span class="table-tag">stock_inter_branch_transfers</span></td>
+                </tr>
+                <tr data-cat="branches">
+                  <td><span class="func-name">receiveInterBranchTransfer</span></td>
+                  <td><span class="file-tag">api/branchesController.js</span></td>
+                  <td><code>POST /api/branches/transfers/:id/receive</code></td>
+                  <td>إيداع البضاعة بفرع المقصد وترحيل قيود الحسابات الجارية التبادلية بين الفروع.</td>
+                  <td><span class="table-tag">ingredients</span> <span class="table-tag">stock_inter_branch_transfers</span> <span class="table-tag">account_move</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="common/auth-check.js"></script>
+  <script src="common/sidebar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#090d16',
+        primaryColor: '#00ff88',
+        primaryTextColor: '#030712',
+        primaryBorderColor: '#00ff88',
+        lineColor: '#38bdf8',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#0f172a'
+      }
+    });
+
+    function switchFlowTab(tabKey) {
+      document.querySelectorAll('.flow-pane').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.flow-tab-btn').forEach(b => b.classList.remove('active'));
+
+      const targetPane = document.getElementById(`pane-${tabKey}`);
+      if (targetPane) targetPane.classList.add('active');
+
+      const activeBtn = Array.from(document.querySelectorAll('.flow-tab-btn')).find(b => b.getAttribute('onclick').includes(tabKey));
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    let currentFilterCat = 'all';
+
+    function setDirFilter(cat, btn) {
+      currentFilterCat = cat;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterDirectoryTable();
+    }
+
+    function filterDirectoryTable() {
+      const query = document.getElementById('funcSearchInput')?.value.trim().toLowerCase() || '';
+      const rows = document.querySelectorAll('#masterDirTable tbody tr');
+
+      rows.forEach(row => {
+        const cat = row.getAttribute('data-cat');
+        const text = row.innerText.toLowerCase();
+
+        const matchCat = currentFilterCat === 'all' || cat === currentFilterCat;
+        const matchQuery = !query || text.includes(query);
+
+        if (matchCat && matchQuery) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
