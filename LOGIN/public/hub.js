@@ -50,7 +50,6 @@ const bentoCategories = {
       { url: '/rbac.html', name: 'إدارة الأدوار ومصفوفة الصلاحيات (RBAC)', icon: 'fa-shield-halved' },
       { url: '/dashboard/classic-dashboard.html', name: 'لوحة التحليلات والإحصائيات الكلاسيكية', icon: 'fa-chart-line' },
       { url: '/settings.html', name: 'إعدادات النظام وصيانة الطابعات', icon: 'fa-cog' },
-      { url: '/system-flowchart.html', name: 'الخريطة المعمارية والمخطط الانسيابي (Blueprint)', icon: 'fa-network-wired' },
       { url: '/notifications.html', name: 'مركز الإشعارات والتنبيهات', icon: 'fa-bell' }
     ]
   }

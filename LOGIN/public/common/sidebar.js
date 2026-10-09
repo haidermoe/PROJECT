@@ -92,7 +92,6 @@ const ROLE_MENUS = {
     { title: '📅 جداول الدوام', href: '/shifts.html' },
     { title: '📅 طلبات الإجازات', href: '/leaves.html' },
     { title: '🔔 الإشعارات', href: '/notifications.html' },
-    { title: '🗺️ خريطة النظام والفلوجارت', href: '/system-flowchart.html' },
     { title: '⚙️ الإعدادات', href: '/settings.html' }
   ],
 
@@ -114,7 +113,6 @@ const ROLE_MENUS = {
     { title: '📅 جداول الدوام', href: '/shifts.html' },
     { title: '⏰ البصمة والحضور', href: '/attendance.html' },
     { title: '📅 طلبات الإجازات', href: '/leaves.html' },
-    { title: '🗺️ خريطة النظام والفلوجارت', href: '/system-flowchart.html' },
     { title: '🔔 الإشعارات', href: '/notifications.html' }
   ],
 
