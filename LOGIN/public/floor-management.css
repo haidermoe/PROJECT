@@ -32,16 +32,16 @@
 }
 
 .floor-tab-pill.active {
-  background: #3b82f6;
-  color: #fff;
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: #00ff88;
+  color: #030712;
+  border-color: #00ff88;
+  box-shadow: 0 4px 14px rgba(0, 255, 136, 0.4);
 }
 
 .designer-banner {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid #3b82f6;
-  color: #93c5fd;
+  background: rgba(0, 255, 136, 0.12);
+  border: 1px solid #00ff88;
+  color: #00ff88;
   padding: 12px 20px;
   border-radius: var(--radius-sm);
   margin-bottom: 15px;
@@ -51,13 +51,149 @@
   font-size: 0.9rem;
 }
 
-/* Floor 2D Canvas */
+/* Floor 2D Architectural Blueprint Canvas */
 .floor-canvas-wrapper {
-  background: #0b1120;
-  border: 2px solid var(--border-color);
+  background: #060d1a;
+  border: 2px solid rgba(0, 255, 136, 0.2);
   border-radius: var(--radius-md);
   overflow: auto;
   position: relative;
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.9);
+  min-height: 650px;
+}
+
+.floor-canvas.architectural-canvas {
+  width: 1400px;
+  height: 800px;
+  position: relative;
+  background-color: #060e1d;
+  background-image: 
+    linear-gradient(rgba(0, 255, 136, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+}
+
+/* Tool Buttons in Architectural Studio */
+.btn-tool {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-tool:hover {
+  background: #334155;
+  color: #00ff88;
+  border-color: #00ff88;
+}
+
+/* Waiter Matrix Card */
+.waiter-card {
+  background: #111c30;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 16px;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.waiter-card:hover {
+  border-color: rgba(0, 255, 136, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.waiter-card .section-badge {
+  font-size: 11px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.waiter-card .shift-badge {
+  font-size: 11px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* Architectural Elements (Wall, Door, Bar, Station, Cashier) */
+.arch-element {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f8fafc;
+  user-select: none;
+  z-index: 8;
+  cursor: pointer;
+  transition: outline 0.15s;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.arch-element:hover {
+  outline: 2px dashed #00ff88;
+}
+
+.arch-element.element-wall {
+  background: #475569;
+  border: 1.5px solid #64748b;
+  border-radius: 2px;
+}
+
+.arch-element.element-door {
+  background: rgba(245, 158, 11, 0.25);
+  border: 2px dashed #f59e0b;
+  color: #fbbf24;
+  border-radius: 4px;
+}
+
+.arch-element.element-bar {
+  background: linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%);
+  border: 2px solid #8b5cf6;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.arch-element.element-service_station {
+  background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.arch-element.element-cashier {
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+  border: 2px solid #10b981;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.arch-element.element-pillar {
+  background: #334155;
+  border: 2px solid #94a3b8;
+  border-radius: 50%;
+}
+
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
   min-height: 650px;
 }

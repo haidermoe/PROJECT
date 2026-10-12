@@ -17,8 +17,14 @@ let allMenu = [];
 let allStations = [];
 let allRecipes = [];
 let allNotes = [];
+let allWaiters = [];
+let allAssignments = [];
 let currentFloorId = null;
 let isDesignerMode = false;
+let draggedItemType = null; // 'table' or 'element'
+let draggedItemId = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (typeof requireAuth !== 'undefined') {
@@ -26,7 +32,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!authValid) return;
   }
 
+  // ضبط التاريخ الافتراضي اليوم
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const filterDateInput = document.getElementById('shiftsDateFilter');
+  if (filterDateInput) filterDateInput.value = todayStr;
+  const assignDateInput = document.getElementById('assignShiftDate');
+  if (assignDateInput) assignDateInput.value = todayStr;
+
   await loadFloorsAndTables();
+  await loadWaitersAndAssignments();
   await loadMenuAndStations();
   await loadQuickNotes();
   await loadAnalytics();
@@ -46,15 +60,19 @@ window.switchTab = function(tabId) {
 
   const designerBtn = document.getElementById('btnToggleDesigner');
   const saveLayoutBtn = document.getElementById('btnSaveLayout');
+  const archToolbar = document.getElementById('architecturalToolbar');
   if (tabId === 'map') {
     if (designerBtn) designerBtn.style.display = 'inline-flex';
     if (saveLayoutBtn && isDesignerMode) saveLayoutBtn.style.display = 'inline-flex';
+    if (archToolbar && isDesignerMode) archToolbar.style.display = 'flex';
     renderCanvasTables();
   } else {
     if (designerBtn) designerBtn.style.display = 'none';
     if (saveLayoutBtn) saveLayoutBtn.style.display = 'none';
+    if (archToolbar) archToolbar.style.display = 'none';
   }
 };
+
 
 // ===============================
 // 2) تحميل وإدارة الصالات والطاولات
@@ -161,7 +179,173 @@ window.deleteFloor = async function(id, name) {
 };
 
 // ===============================
-// 3) المخطط الرسومي 2D Canvas & وضع التصميم
+// 2.1) مصفوفة تكليف وتوزيع شفتات الويترية على السكاشن (Waiters & Shifts Matrix)
+// ===============================
+async function loadWaitersAndAssignments() {
+  try {
+    const dateInput = document.getElementById('shiftsDateFilter');
+    const selectedDate = dateInput ? dateInput.value : new Date().toISOString().slice(0, 10);
+
+    // 1. جلب قائمة الويترية المؤهلين
+    const resWaiters = await fetch('/api/pos-restaurant/waiters-list', { headers });
+    const jsonWaiters = await resWaiters.json();
+    if (jsonWaiters.status === 'success') {
+      allWaiters = jsonWaiters.data || [];
+      populateAssignWaitersDropdown();
+    }
+
+    // 2. جلب التكليفات للتاريخ المحدد
+    const resAssign = await fetch(`/api/pos-restaurant/waiter-assignments?date=${selectedDate}`, { headers });
+    const jsonAssign = await resAssign.json();
+    if (jsonAssign.status === 'success') {
+      allAssignments = jsonAssign.data || [];
+    }
+
+    renderWaitersMatrix();
+    updateCurrentFloorWaiterBadge();
+  } catch (err) {
+    console.error('❌ خطأ في تحميل شفتات وتكليفات الويترية:', err);
+  }
+}
+
+function populateAssignWaitersDropdown() {
+  const waiterSelect = document.getElementById('assignWaiterSelect');
+  if (!waiterSelect) return;
+  waiterSelect.innerHTML = allWaiters.map(w => `
+    <option value="${w.id}" data-name="${w.full_name || w.username}">
+      ${w.full_name || w.username} (${w.role === 'hall_manager' ? 'مسؤول صالة' : w.role === 'cashier' ? 'كاشير' : 'كابتن ويتر'})
+    </option>
+  `).join('');
+}
+
+function renderWaitersMatrix() {
+  const container = document.getElementById('waiterSectionsMatrix');
+  if (!container) return;
+
+  if (allFloors.length === 0) {
+    container.innerHTML = '<div style="color:#94a3b8; grid-column:1/-1; text-align:center; padding:30px;">لم يتم إضافة سكاشن بعد.</div>';
+    return;
+  }
+
+  container.innerHTML = allFloors.map((floor, idx) => {
+    // البحث عن التكليف النشط لهذا السكشن
+    const assignment = allAssignments.find(a => a.floor_id === floor.id);
+    const waiterName = assignment ? assignment.waiter_name : (floor.active_waiter_name || 'غير مكلّف');
+    const shiftName = assignment ? assignment.shift_name : (floor.active_shift || 'صباحي');
+    const notes = assignment?.notes || 'جاهز للخدمة';
+    const isAssigned = Boolean(assignment || floor.active_waiter_name);
+
+    return `
+      <div class="waiter-card" style="border-right: 4px solid ${isAssigned ? '#00ff88' : '#ef4444'};">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div style="font-weight:700; font-size:14px; color:#f8fafc;">
+              🏢 ${floor.name}
+            </div>
+            <span class="section-badge">سكشن #${floor.sequence || (idx + 1)}</span>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; margin: 12px 0; background:#0b1322; padding:10px; border-radius:8px;">
+            <div style="width:38px; height:38px; border-radius:50%; background:${isAssigned ? 'rgba(0,255,136,0.15)' : 'rgba(239,68,68,0.15)'}; display:flex; align-items:center; justify-content:center; color:${isAssigned ? '#00ff88' : '#ef4444'}; font-size:18px;">
+              <i class="fa-solid fa-user-tie"></i>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:11px; color:#94a3b8;">الويتر المسؤول:</div>
+              <div style="font-weight:700; font-size:13px; color:#f8fafc;">${waiterName}</div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; margin-bottom:12px;">
+            <span style="color:#94a3b8;">الشفت / الدوام:</span>
+            <span class="shift-badge">${shiftName}</span>
+          </div>
+
+          <div style="font-size:11px; color:#64748b; background:#060d1a; padding:6px 10px; border-radius:6px; margin-bottom:12px;">
+            <i class="fa-solid fa-note-sticky"></i> ${notes}
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px;">
+          <button onclick="openAssignWaiterModal(${floor.id})" style="flex:1; background:#1e293b; color:#00ff88; border:1px solid rgba(0,255,136,0.3); padding:7px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+            <i class="fa-solid fa-arrows-rotate"></i> تبديل الويتر
+          </button>
+          <button onclick="selectFloorAndOpenMap(${floor.id})" style="background:#00ff88; color:#030712; border:none; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer;" title="عرض المخطط الهندسي">
+            <i class="fa-solid fa-map-location-dot"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.selectFloorAndOpenMap = function(floorId) {
+  selectFloor(floorId);
+  switchTab('map');
+};
+
+function updateCurrentFloorWaiterBadge() {
+  const currentFloor = allFloors.find(f => f.id === currentFloorId);
+  if (!currentFloor) return;
+
+  const assignment = allAssignments.find(a => a.floor_id === currentFloor.id);
+  const waiterName = assignment ? assignment.waiter_name : (currentFloor.active_waiter_name || 'غير محدد');
+  const shiftName = assignment ? assignment.shift_name : (currentFloor.active_shift || 'صباحي');
+
+  const nameEl = document.getElementById('currentFloorWaiterName');
+  const shiftEl = document.getElementById('currentFloorShiftBadge');
+  if (nameEl) nameEl.textContent = waiterName;
+  if (shiftEl) shiftEl.textContent = shiftName;
+}
+
+// نافذة تكليف الويتر
+window.openAssignWaiterModal = function(floorId = null) {
+  const floorSelect = document.getElementById('assignFloorSelect');
+  if (floorSelect) {
+    floorSelect.innerHTML = allFloors.map(f => `
+      <option value="${f.id}" ${f.id === (floorId || currentFloorId) ? 'selected' : ''}>${f.name}</option>
+    `).join('');
+  }
+
+  const modal = document.getElementById('modalAssignWaiter');
+  if (modal) modal.style.display = 'flex';
+};
+
+window.closeAssignWaiterModal = function() {
+  const modal = document.getElementById('modalAssignWaiter');
+  if (modal) modal.style.display = 'none';
+};
+
+window.submitAssignWaiter = async function(e) {
+  e.preventDefault();
+  const floor_id = parseInt(document.getElementById('assignFloorSelect').value);
+  const waiterSelect = document.getElementById('assignWaiterSelect');
+  const user_id = parseInt(waiterSelect.value);
+  const selectedOpt = waiterSelect.options[waiterSelect.selectedIndex];
+  const waiter_name = selectedOpt ? selectedOpt.getAttribute('data-name') : 'ويتر';
+  const shift_name = document.getElementById('assignShiftSelect').value;
+  const shift_date = document.getElementById('assignShiftDate').value;
+  const notes = document.getElementById('assignShiftNotes').value.trim();
+
+  try {
+    const res = await fetch('/api/pos-restaurant/assign-waiter', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ floor_id, user_id, waiter_name, shift_name, shift_date, notes })
+    });
+    const result = await res.json();
+    if (result.status !== 'success') throw new Error(result.message);
+
+    alert(`✅ ${result.message}`);
+    closeAssignWaiterModal();
+    await loadFloorsAndTables();
+    await loadWaitersAndAssignments();
+  } catch (err) {
+    alert(`❌ خطأ: ${err.message}`);
+  }
+};
+
+// ===============================
+// 3) المخطط الهندسي المعماري 2D Canvas & استوديو التصميم
 // ===============================
 function renderFloorsTabs() {
   const container = document.getElementById('floorsTabsBar');
@@ -178,6 +362,7 @@ function renderFloorsTabs() {
 window.selectFloor = function(floorId) {
   currentFloorId = floorId;
   renderFloorsTabs();
+  updateCurrentFloorWaiterBadge();
   renderCanvasTables();
 };
 
@@ -187,20 +372,93 @@ window.toggleDesignerMode = function() {
   const banner = document.getElementById('designerBanner');
   const btnSave = document.getElementById('btnSaveLayout');
   const btnToggle = document.getElementById('btnToggleDesigner');
+  const archToolbar = document.getElementById('architecturalToolbar');
 
   if (isDesignerMode) {
     canvas?.classList.add('designer-active');
     if (banner) banner.style.display = 'flex';
     if (btnSave) btnSave.style.display = 'inline-flex';
+    if (archToolbar) archToolbar.style.display = 'flex';
     if (btnToggle) btnToggle.innerHTML = '<i class="fa-solid fa-check"></i> إنهاء وضع التصميم';
   } else {
     canvas?.classList.remove('designer-active');
     if (banner) banner.style.display = 'none';
     if (btnSave) btnSave.style.display = 'none';
+    if (archToolbar) archToolbar.style.display = 'none';
     if (btnToggle) btnToggle.innerHTML = '<i class="fa-solid fa-pen-ruler"></i> وضع تصميم المخطط';
   }
   renderCanvasTables();
 };
+
+// توليد الكراسي الهندسية حول الطاولة
+function generateTableChairsHtml(shape, width, height, seats, statusColor) {
+  const chairs = [];
+  const chairSize = 14;
+  const halfSize = chairSize / 2;
+
+  if (shape === 'round') {
+    // توزيع كراسي محيطية دائرية
+    const radius = width / 2;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const chairDistance = radius + 9;
+
+    for (let i = 0; i < seats; i++) {
+      const angle = (i * 2 * Math.PI) / seats - Math.PI / 2;
+      const cx = centerX + chairDistance * Math.cos(angle) - halfSize;
+      const cy = centerY + chairDistance * Math.sin(angle) - halfSize;
+      chairs.push(`
+        <div style="position:absolute; left:${Math.round(cx)}px; top:${Math.round(cy)}px; width:${chairSize}px; height:${chairSize}px; border-radius:50%; background:#1e293b; border:2px solid ${statusColor}; box-shadow:0 2px 6px rgba(0,0,0,0.5); pointer-events:none; z-index:2;"></div>
+      `);
+    }
+  } else {
+    // طاولة مربعة أو مستطيلة: توزيع الكراسي بالتساوي على الأضلاع
+    const topBottomSeats = Math.ceil(seats / 2);
+    const leftRightSeats = seats - topBottomSeats;
+
+    // كراسي علوية وسفلية
+    const topSeatsCount = Math.ceil(topBottomSeats / 2);
+    const bottomSeatsCount = topBottomSeats - topSeatsCount;
+
+    for (let i = 0; i < topSeatsCount; i++) {
+      const step = width / (topSeatsCount + 1);
+      const cx = step * (i + 1) - halfSize;
+      chairs.push(`
+        <div style="position:absolute; left:${Math.round(cx)}px; top:-12px; width:${chairSize}px; height:${chairSize}px; border-radius:4px; background:#1e293b; border:2px solid ${statusColor}; pointer-events:none; z-index:2;"></div>
+      `);
+    }
+
+    for (let i = 0; i < bottomSeatsCount; i++) {
+      const step = width / (bottomSeatsCount + 1);
+      const cx = step * (i + 1) - halfSize;
+      chairs.push(`
+        <div style="position:absolute; left:${Math.round(cx)}px; bottom:-12px; width:${chairSize}px; height:${chairSize}px; border-radius:4px; background:#1e293b; border:2px solid ${statusColor}; pointer-events:none; z-index:2;"></div>
+      `);
+    }
+
+    // كراسي الجوانب (يمين ويسار)
+    const rightSeats = Math.ceil(leftRightSeats / 2);
+    const leftSeats = leftRightSeats - rightSeats;
+
+    for (let i = 0; i < rightSeats; i++) {
+      const step = height / (rightSeats + 1);
+      const cy = step * (i + 1) - halfSize;
+      chairs.push(`
+        <div style="position:absolute; right:-12px; top:${Math.round(cy)}px; width:${chairSize}px; height:${chairSize}px; border-radius:4px; background:#1e293b; border:2px solid ${statusColor}; pointer-events:none; z-index:2;"></div>
+      `);
+    }
+
+    for (let i = 0; i < leftSeats; i++) {
+      const step = height / (leftSeats + 1);
+      const cy = step * (i + 1) - halfSize;
+      chairs.push(`
+        <div style="position:absolute; left:-12px; top:${Math.round(cy)}px; width:${chairSize}px; height:${chairSize}px; border-radius:4px; background:#1e293b; border:2px solid ${statusColor}; pointer-events:none; z-index:2;"></div>
+      `);
+    }
+  }
+
+  return chairs.join('');
+}
 
 function renderCanvasTables() {
   const canvas = document.getElementById('floorCanvas');
@@ -208,48 +466,85 @@ function renderCanvasTables() {
 
   const currentFloor = allFloors.find(f => f.id === currentFloorId);
   const tables = currentFloor ? (currentFloor.tables || []) : [];
+  const elements = currentFloor ? (currentFloor.elements || []) : [];
 
-  if (tables.length === 0) {
-    canvas.innerHTML = `
-      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:400px; color:#94a3b8;">
-        <i class="fa-solid fa-chair" style="font-size:3rem; margin-bottom:12px; opacity:0.4;"></i>
-        <div>لا توجد طاولات مضافة في هذه الصالة بعد.</div>
-        <button onclick="switchTab('tables')" style="margin-top:12px; background:#00ff88; color:#030712; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">
-          ➕ إضافة طاولة لهذه الصالة
-        </button>
+  let html = '';
+
+  // 1. رسم العناصر المعمارية (جدران، أبواب، كاونترات، محطات خدمة)
+  elements.forEach(el => {
+    const posX = Math.max(0, parseInt(el.position_x) || 50);
+    const posY = Math.max(0, parseInt(el.position_y) || 50);
+    const width = Math.max(10, parseInt(el.width) || 100);
+    const height = Math.max(10, parseInt(el.height) || 20);
+    const rot = parseInt(el.rotation) || 0;
+    const type = el.element_type || 'wall';
+
+    let icon = 'fa-border-all';
+    if (type === 'door') icon = 'fa-door-open';
+    else if (type === 'bar') icon = 'fa-martini-glass-citrus';
+    else if (type === 'service_station') icon = 'fa-bell-concierge';
+    else if (type === 'cashier') icon = 'fa-cash-register';
+    else if (type === 'pillar') icon = 'fa-monument';
+
+    html += `
+      <div class="arch-element element-${type}"
+           id="velement-${el.id}"
+           data-type="element"
+           data-id="${el.id}"
+           data-x="${posX}"
+           data-y="${posY}"
+           style="position:absolute; left:${posX}px; top:${posY}px; width:${width}px; height:${height}px; transform:rotate(${rot}deg); cursor:${isDesignerMode ? 'grab' : 'pointer'};"
+           draggable="${isDesignerMode}"
+           ondragstart="onCanvasItemDragStart(event, 'element', ${el.id})"
+           onclick="onVisualElementClick(${el.id})">
+        <span style="display:inline-flex; align-items:center; gap:4px; pointer-events:none; padding:2px 6px;">
+          <i class="fa-solid ${icon}"></i>
+          <span>${el.name || ''}</span>
+        </span>
       </div>
     `;
-    return;
-  }
+  });
 
-  canvas.innerHTML = tables.map(t => {
+  // 2. رسم الطاولات مع الكراسي الهندسية
+  tables.forEach(t => {
     const isOccupied = t.status === 'occupied';
-    const statusColor = isOccupied ? '#ef4444' : '#00ff88';
+    const isBilled = t.status === 'billed';
+    const statusColor = isOccupied ? '#ef4444' : isBilled ? '#f59e0b' : '#00ff88';
     const posX = Math.max(0, parseInt(t.position_x) || 50);
     const posY = Math.max(0, parseInt(t.position_y) || 50);
-    const width = Math.max(70, parseInt(t.width) || 120);
-    const height = Math.max(70, parseInt(t.height) || 120);
+    const width = Math.max(70, parseInt(t.width) || 110);
+    const height = Math.max(70, parseInt(t.height) || 110);
     const shape = t.shape || 'square';
-    const borderRadius = shape === 'round' ? '50%' : '12px';
+    const borderRadius = shape === 'round' ? '50%' : '14px';
+    const seats = Math.max(1, parseInt(t.seats) || 4);
 
-    return `
+    const chairsHtml = generateTableChairsHtml(shape, width, height, seats, statusColor);
+
+    html += `
       <div class="visual-table ${isDesignerMode ? 'draggable' : ''}" 
            id="vtable-${t.id}"
+           data-type="table"
            data-id="${t.id}"
            data-x="${posX}"
            data-y="${posY}"
-           style="position:absolute; left:${posX}px; top:${posY}px; width:${width}px; height:${height}px; border-radius:${borderRadius}; background:#111827; border:2px solid ${statusColor}; box-shadow:0 8px 20px rgba(0,0,0,0.6); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:${isDesignerMode ? 'grab' : 'pointer'}; user-select:none; z-index:10;"
+           style="position:absolute; left:${posX}px; top:${posY}px; width:${width}px; height:${height}px; border-radius:${borderRadius}; background:radial-gradient(circle, #1e293b 0%, #0b1322 100%); border:2px solid ${statusColor}; box-shadow:0 8px 24px rgba(0,0,0,0.6); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:${isDesignerMode ? 'grab' : 'pointer'}; user-select:none; z-index:10;"
            draggable="${isDesignerMode}"
-           ondragstart="onTableDragStart(event)"
+           ondragstart="onCanvasItemDragStart(event, 'table', ${t.id})"
            onclick="onVisualTableClick(${t.id})">
-        <div style="font-weight:700; font-size:1.1rem; color:#f8fafc;">${t.table_number}</div>
-        <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">💺 ${t.seats} كراسي</div>
-        <div style="font-size:0.7rem; color:${statusColor}; font-weight:600; margin-top:4px;">
-          ${isOccupied ? '🔴 مشغولة' : '🟢 شاغرة'}
+        
+        <!-- الكراسي المعمارية المحيطة -->
+        ${chairsHtml}
+
+        <div style="font-weight:800; font-size:1.15rem; color:#f8fafc; pointer-events:none;">${t.table_number}</div>
+        <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px; pointer-events:none;">💺 ${seats} مقاعد</div>
+        <div style="font-size:0.7rem; color:${statusColor}; font-weight:700; margin-top:4px; pointer-events:none;">
+          ${isOccupied ? '🔴 مشغولة' : isBilled ? '🟡 تطلب الحساب' : '🟢 شاغرة'}
         </div>
       </div>
     `;
-  }).join('');
+  });
+
+  canvas.innerHTML = html;
 
   if (isDesignerMode) {
     canvas.ondragover = onCanvasDragOver;
@@ -257,13 +552,10 @@ function renderCanvasTables() {
   }
 }
 
-// منطق السحب والإفلات للطاولات
-let draggedTableId = null;
-let dragOffsetX = 0;
-let dragOffsetY = 0;
-
-window.onTableDragStart = function(e) {
-  draggedTableId = e.currentTarget.getAttribute('data-id');
+// السحب والإفلات للطاولات والعناصر المعمارية
+window.onCanvasItemDragStart = function(e, type, id) {
+  draggedItemType = type;
+  draggedItemId = id;
   const rect = e.currentTarget.getBoundingClientRect();
   dragOffsetX = e.clientX - rect.left;
   dragOffsetY = e.clientY - rect.top;
@@ -277,65 +569,195 @@ window.onCanvasDragOver = function(e) {
 
 window.onCanvasDrop = function(e) {
   e.preventDefault();
-  if (!draggedTableId) return;
+  if (!draggedItemId || !draggedItemType) return;
 
   const canvas = document.getElementById('floorCanvas');
   const canvasRect = canvas.getBoundingClientRect();
   let newX = e.clientX - canvasRect.left - dragOffsetX;
   let newY = e.clientY - canvasRect.top - dragOffsetY;
 
+  // Snapping to 10px grid
   newX = Math.max(10, Math.round(newX / 10) * 10);
   newY = Math.max(10, Math.round(newY / 10) * 10);
 
-  const el = document.getElementById(`vtable-${draggedTableId}`);
-  if (el) {
-    el.style.left = `${newX}px`;
-    el.style.top = `${newY}px`;
-    el.setAttribute('data-x', newX);
-    el.setAttribute('data-y', newY);
-  }
-
-  // تحديث الذاكرة المحلية
   const currentFloor = allFloors.find(f => f.id === currentFloorId);
-  if (currentFloor) {
-    const tableObj = currentFloor.tables.find(t => String(t.id) === String(draggedTableId));
-    if (tableObj) {
-      tableObj.position_x = newX;
-      tableObj.position_y = newY;
+
+  if (draggedItemType === 'table') {
+    const el = document.getElementById(`vtable-${draggedItemId}`);
+    if (el) {
+      el.style.left = `${newX}px`;
+      el.style.top = `${newY}px`;
+      el.setAttribute('data-x', newX);
+      el.setAttribute('data-y', newY);
+    }
+    if (currentFloor) {
+      const tableObj = currentFloor.tables?.find(t => String(t.id) === String(draggedItemId));
+      if (tableObj) {
+        tableObj.position_x = newX;
+        tableObj.position_y = newY;
+      }
+    }
+  } else if (draggedItemType === 'element') {
+    const el = document.getElementById(`velement-${draggedItemId}`);
+    if (el) {
+      el.style.left = `${newX}px`;
+      el.style.top = `${newY}px`;
+      el.setAttribute('data-x', newX);
+      el.setAttribute('data-y', newY);
+    }
+    if (currentFloor) {
+      const elementObj = currentFloor.elements?.find(elem => String(elem.id) === String(draggedItemId));
+      if (elementObj) {
+        elementObj.position_x = newX;
+        elementObj.position_y = newY;
+      }
     }
   }
-  draggedTableId = null;
+
+  draggedItemId = null;
+  draggedItemType = null;
 };
 
-// حفظ المخطط المعماري
-window.saveCurrentFloorLayout = async function() {
+// حفظ المخطط الهندسي المعماري بالكامل
+window.saveFloorArchitecturalBlueprint = async function() {
   const currentFloor = allFloors.find(f => f.id === currentFloorId);
-  if (!currentFloor || !currentFloor.tables) return;
+  if (!currentFloor) return;
 
   try {
-    const res = await fetch(`/api/pos-restaurant/floors/${currentFloorId}/layout`, {
+    const res = await fetch(`/api/pos-restaurant/floors/${currentFloorId}/architectural-blueprint`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ tables: currentFloor.tables })
+      body: JSON.stringify({
+        tables: currentFloor.tables || [],
+        elements: currentFloor.elements || []
+      })
     });
     const json = await res.json();
     if (json.status !== 'success') throw new Error(json.message);
 
-    alert('✅ تم حفظ المخطط المعماري للصالة بنجاح!');
+    alert('✅ تم حفظ المخطط الهندسي المعماري للصالة بنجاح!');
   } catch (err) {
     alert(`❌ خطأ في حفظ المخطط: ${err.message}`);
   }
 };
 
-window.onVisualTableClick = function(tableId) {
+// إضافة عنصر معماري سريع
+window.addArchitecturalElement = function(type) {
+  const currentFloor = allFloors.find(f => f.id === currentFloorId);
+  if (!currentFloor) return;
+
+  if (!currentFloor.elements) currentFloor.elements = [];
+
+  const defaultNames = {
+    wall: 'جدار فاصل',
+    door: 'باب / مدخل',
+    bar: 'كاونتر البار',
+    service_station: 'محطة خدمة ويتر',
+    cashier: 'كاشير الصالة',
+    pillar: 'عمود ديكوري'
+  };
+
+  const defaultSizes = {
+    wall: { w: 120, h: 12 },
+    door: { w: 80, h: 14 },
+    bar: { w: 140, h: 70 },
+    service_station: { w: 130, h: 60 },
+    cashier: { w: 120, h: 60 },
+    pillar: { w: 35, h: 35 }
+  };
+
+  const size = defaultSizes[type] || { w: 100, h: 30 };
+  const newElement = {
+    id: Date.now(), // معرف مؤقت
+    floor_id: currentFloorId,
+    element_type: type,
+    name: defaultNames[type] || 'عنصر معماري',
+    position_x: 200,
+    position_y: 150,
+    width: size.w,
+    height: size.h,
+    rotation: 0,
+    color: '#3b82f6'
+  };
+
+  currentFloor.elements.push(newElement);
+  renderCanvasTables();
+};
+
+window.addNewTableQuick = function(shape = 'square') {
+  const currentFloor = allFloors.find(f => f.id === currentFloorId);
+  if (!currentFloor) return;
+
+  const currentCount = (currentFloor.tables || []).length + 1;
+  const newTable = {
+    id: Date.now(),
+    floor_id: currentFloorId,
+    table_number: `T${currentCount}`,
+    seats: shape === 'round' ? 4 : 6,
+    shape: shape,
+    position_x: 150,
+    position_y: 150,
+    width: shape === 'round' ? 100 : 140,
+    height: shape === 'round' ? 100 : 90,
+    status: 'available'
+  };
+
+  if (!currentFloor.tables) currentFloor.tables = [];
+  currentFloor.tables.push(newTable);
+  renderCanvasTables();
+};
+
+window.onVisualElementClick = function(elemId) {
   if (isDesignerMode) {
     const currentFloor = allFloors.find(f => f.id === currentFloorId);
-    const table = currentFloor?.tables?.find(t => t.id === tableId);
-    if (table) openEditTableModal(table);
-  } else {
-    window.location.href = `/waiter.html`;
+    const elem = currentFloor?.elements?.find(e => String(e.id) === String(elemId));
+    if (elem) openEditElementModal(elem);
   }
 };
+
+function openEditElementModal(elem) {
+  document.getElementById('editElementId').value = elem.id;
+  document.getElementById('editElementName').value = elem.name || '';
+  document.getElementById('editElementWidth').value = elem.width || 100;
+  document.getElementById('editElementHeight').value = elem.height || 20;
+  document.getElementById('editElementRotation').value = elem.rotation || 0;
+  document.getElementById('editElementColor').value = elem.color || '#3b82f6';
+
+  const modal = document.getElementById('modalEditElement');
+  if (modal) modal.style.display = 'flex';
+}
+
+window.closeEditElementModal = function() {
+  const modal = document.getElementById('modalEditElement');
+  if (modal) modal.style.display = 'none';
+};
+
+window.submitUpdateElementModal = function() {
+  const id = document.getElementById('editElementId').value;
+  const currentFloor = allFloors.find(f => f.id === currentFloorId);
+  const elem = currentFloor?.elements?.find(e => String(e.id) === String(id));
+  if (!elem) return;
+
+  elem.name = document.getElementById('editElementName').value.trim();
+  elem.width = parseInt(document.getElementById('editElementWidth').value) || 100;
+  elem.height = parseInt(document.getElementById('editElementHeight').value) || 20;
+  elem.rotation = parseInt(document.getElementById('editElementRotation').value) || 0;
+  elem.color = document.getElementById('editElementColor').value;
+
+  closeEditElementModal();
+  renderCanvasTables();
+};
+
+window.submitDeleteElementFromModal = function() {
+  const id = document.getElementById('editElementId').value;
+  const currentFloor = allFloors.find(f => f.id === currentFloorId);
+  if (currentFloor && currentFloor.elements) {
+    currentFloor.elements = currentFloor.elements.filter(e => String(e.id) !== String(id));
+  }
+  closeEditElementModal();
+  renderCanvasTables();
+};
+
 
 function openEditTableModal(table) {
   document.getElementById('editTableId').value = table.id;

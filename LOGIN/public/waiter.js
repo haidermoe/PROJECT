@@ -59,11 +59,15 @@ function renderFloorTabs() {
   const container = document.getElementById('floorsBar');
   if (!container) return;
 
-  container.innerHTML = allFloors.map(floor => `
-    <button class="floor-tab ${floor.id === selectedFloorId ? 'active' : ''}" onclick="selectFloor(${floor.id})">
-      🏛️ ${floor.name} (${floor.tables?.length || 0})
-    </button>
-  `).join('');
+  container.innerHTML = allFloors.map(floor => {
+    const waiterInfo = floor.active_waiter_name ? ` • 👨‍🍳 ${floor.active_waiter_name}` : '';
+    return `
+      <button class="floor-tab ${floor.id === selectedFloorId ? 'active' : ''}" onclick="selectFloor(${floor.id})" style="position:relative;">
+        <span>🏛️ ${floor.name} (${floor.tables?.length || 0})</span>
+        <small style="display:block; font-size:10px; color:#38bdf8; margin-top:2px;">${waiterInfo}</small>
+      </button>
+    `;
+  }).join('');
 }
 
 window.selectFloor = function(floorId) {
@@ -84,12 +88,14 @@ function renderTables() {
 
   grid.innerHTML = currentFloor.tables.map(table => {
     const isOccupied = table.status === 'occupied' || !!table.current_order_id;
-    const statusText = isOccupied ? '🔴 مشغولة' : '🟢 شاغرة';
+    const isBilled = table.status === 'billed';
+    const statusText = isOccupied ? '🔴 مشغولة' : isBilled ? '🟡 تطلب الحساب' : '🟢 شاغرة';
     const amountHtml = isOccupied && table.order_total ? `<div class="table-amount">${parseFloat(table.order_total).toLocaleString()} د.ع</div>` : '';
-    const waiterHtml = isOccupied && table.waiter_name ? `<div style="font-size:0.75rem; color:#94a3b8;">${table.waiter_name}</div>` : '';
+    const waiterAssigned = table.waiter_name || currentFloor.active_waiter_name;
+    const waiterHtml = waiterAssigned ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;"><i class="fa-solid fa-user-tie"></i> ${waiterAssigned}</div>` : '';
 
     return `
-      <div class="table-card ${isOccupied ? 'occupied' : 'available'}" onclick="openTableOrder(${table.id})">
+      <div class="table-card ${isOccupied ? 'occupied' : isBilled ? 'billed' : 'available'}" onclick="openTableOrder(${table.id})">
         <span class="table-badge">${statusText}</span>
         <div class="table-number">${table.table_number}</div>
         <div class="table-seats">👥 سعة: ${table.seats} مقاعد</div>

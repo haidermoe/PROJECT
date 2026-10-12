@@ -50,4 +50,18 @@ router.post('/order/send', controller.sendWaiterOrder);
 // محاسبة الطلب وإخلاء الطاولة وتوليد القيد المحاسبي
 router.post('/order/pay', controller.payAndCloseOrder);
 
+// ===============================
+// تكليف وشفتات الويترية على السكاشن (Waiters & Shifts Matrix)
+// ===============================
+router.get('/waiters-list', controller.getWaitersList);
+router.get('/waiter-assignments', controller.getWaiterAssignments);
+router.post('/assign-waiter', controller.assignWaiterToFloor);
+
+// ===============================
+// العناصر المعمارية والمخطط الهندسي (Architectural Blueprint)
+// ===============================
+router.get('/floors/:floorId/elements', controller.getFloorElements);
+router.post('/floors/:floorId/architectural-blueprint', controller.saveFloorArchitecturalBlueprint);
+
 module.exports = router;
+

@@ -60,18 +60,50 @@
 
       <!-- ألسنة التبويب -->
       <div class="tabs-nav">
-        <button class="tab-btn active" id="tabBtn-floors" onclick="switchTab('floors')">🏢 1. الصالات والسكشنات</button>
-        <button class="tab-btn" id="tabBtn-map" onclick="switchTab('map')">🗺️ 2. المخطط الرسومي للصالة (2D Map)</button>
-        <button class="tab-btn" id="tabBtn-tables" onclick="switchTab('tables')">🍽️ 3. قائمة وتوزيع الطاولات</button>
-        <button class="tab-btn" id="tabBtn-analytics" onclick="switchTab('analytics')">📊 4. تحليلات أداء الصالة</button>
-        <button class="tab-btn" id="tabBtn-menu" onclick="switchTab('menu')">🍔 5. المنيو وربط الوصفات</button>
-        <button class="tab-btn" id="tabBtn-notes" onclick="switchTab('notes')">⚡ 6. ملاحظات المطبخ السريعة</button>
+        <button class="tab-btn active" id="tabBtn-shifts" onclick="switchTab('shifts')">👨‍🍳 1. مصفوفة شفتات وتوزيع الويترية (10 سكاشن)</button>
+        <button class="tab-btn" id="tabBtn-floors" onclick="switchTab('floors')">🏢 2. الصالات والسكشنات</button>
+        <button class="tab-btn" id="tabBtn-map" onclick="switchTab('map')">📐 3. المخطط الهندسي المعماري (Architectural Blueprint)</button>
+        <button class="tab-btn" id="tabBtn-tables" onclick="switchTab('tables')">🍽️ 4. قائمة وتوزيع الطاولات</button>
+        <button class="tab-btn" id="tabBtn-analytics" onclick="switchTab('analytics')">📊 5. تحليلات أداء الصالة</button>
+        <button class="tab-btn" id="tabBtn-menu" onclick="switchTab('menu')">🍔 6. المنيو وربط الوصفات</button>
+        <button class="tab-btn" id="tabBtn-notes" onclick="switchTab('notes')">⚡ 7. ملاحظات المطبخ السريعة</button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- تبويب 0: مصفوفة شفتات وتوزيع الويترية (Waiters & Shifts Matrix) -->
+      <!-- ============================================== -->
+      <div id="tab-shifts" class="tab-pane active">
+        <div style="background:#0f172a; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:20px; margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+            <div>
+              <h3 style="margin:0; font-size:18px; color:#f8fafc; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-users-gear" style="color:#00ff88;"></i>
+                <span>لوحة التحكم بتوزيع الويترية والشفتات على جميع سكاشن الصالة</span>
+              </h3>
+              <p style="margin:5px 0 0 0; font-size:13px; color:#94a3b8;">
+                تحديد كابتن ويتر مسؤول لكل سكشن، متابعة دوام الويترية المتغير (صباحي / مسائي / شفت كامل)، وتبديل المهام بضغطة زر واحدة.
+              </p>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:13px; color:#94a3b8;">تاريخ الدوام:</span>
+              <input type="date" id="shiftsDateFilter" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:6px 12px; border-radius:6px; font-size:13px;" onchange="loadWaitersAndAssignments()" />
+              <button class="btn-primary" onclick="openAssignWaiterModal()" style="display:inline-flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-user-plus"></i> تكليف / تبديل ويتر
+              </button>
+            </div>
+          </div>
+
+          <!-- شبكة كروت السكاشن مع الويتر المسؤول -->
+          <div id="waiterSectionsMatrix" class="waiter-sections-matrix" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:16px;">
+            <!-- تولد كروت السكاشن والويترية برمجياً -->
+          </div>
+        </div>
       </div>
 
       <!-- ============================================== -->
       <!-- تبويب 1: إدارة الصالات والسكشنات -->
       <!-- ============================================== -->
-      <div id="tab-floors" class="tab-pane active">
+      <div id="tab-floors" class="tab-pane">
         <div class="content-split">
           <div class="form-card">
             <h3 class="card-title">➕ إضافة صالة / سكشن جديد</h3>
@@ -98,29 +130,70 @@
       </div>
 
       <!-- ============================================== -->
-      <!-- تبويب 2: المخطط الرسومي للصالة 2D (Visual Canvas & Designer) -->
+      <!-- تبويب 2: المخطط الهندسي المعماري للصالة 2D (Visual Canvas & Designer) -->
       <!-- ============================================== -->
       <div id="tab-map" class="tab-pane">
-        <!-- شريط اختيار الصالات -->
-        <div class="floors-tabs-bar" id="floorsTabsBar" style="margin-bottom:15px;">
-          <!-- ألسنة الصالات تولد برمجياً -->
+        <!-- شريط الصالة والويتر المسؤول عنها -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px; background:#0f172a; border:1px solid #1e293b; padding:12px 18px; border-radius:10px;">
+          <!-- شريط اختيار الصالات -->
+          <div class="floors-tabs-bar" id="floorsTabsBar" style="margin-bottom:0; flex:1;">
+            <!-- ألسنة الصالات تولد برمجياً -->
+          </div>
+          <!-- بطاقة الويتر المسؤول عن هذا السكشن حالياً -->
+          <div id="currentFloorWaiterBadge" style="display:inline-flex; align-items:center; gap:8px; background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); padding:6px 14px; border-radius:20px; font-size:13px; color:#00ff88;">
+            <i class="fa-solid fa-user-tie"></i>
+            <span>الويتر المسؤول: <strong id="currentFloorWaiterName">جاري التحميل...</strong></span>
+            <span id="currentFloorShiftBadge" style="background:#1e293b; color:#38bdf8; padding:2px 8px; border-radius:10px; font-size:11px;">صباحي</span>
+            <button onclick="openAssignWaiterModal(currentFloorId)" style="background:transparent; border:none; color:#f59e0b; cursor:pointer; font-size:12px; text-decoration:underline; margin-right:4px;">تغيير</button>
+          </div>
+        </div>
+
+        <!-- شريط أدوات العناصر المعمارية (Architectural Elements Toolbox) -->
+        <div id="architecturalToolbar" style="display:none; background:#0f172a; border:1px solid rgba(0,255,136,0.3); border-radius:8px; padding:10px 16px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:12px; font-weight:700; color:#00ff88; margin-left:6px;"><i class="fa-solid fa-shapes"></i> إضافة عناصر معمارية:</span>
+            <button type="button" class="btn-tool" onclick="addArchitecturalElement('wall')"><i class="fa-solid fa-border-all"></i> جدار / قاطع</button>
+            <button type="button" class="btn-tool" onclick="addArchitecturalElement('door')"><i class="fa-solid fa-door-open"></i> باب / مدخل</button>
+            <button type="button" class="btn-tool" onclick="addArchitecturalElement('bar')"><i class="fa-solid fa-martini-glass-citrus"></i> كاونتر بار</button>
+            <button type="button" class="btn-tool" onclick="addArchitecturalElement('service_station')"><i class="fa-solid fa-bell-concierge"></i> محطة خدمة سيرفيس</button>
+            <button type="button" class="btn-tool" onclick="addArchitecturalElement('cashier')"><i class="fa-solid fa-cash-register"></i> كاشير الصالة</button>
+            <button type="button" class="btn-tool" onclick="addArchitecturalElement('pillar')"><i class="fa-solid fa-monument"></i> عمود ديكوري</button>
+            <button type="button" class="btn-tool" onclick="addNewTableQuick('round')"><i class="fa-solid fa-circle"></i> طاولة دائرية</button>
+            <button type="button" class="btn-tool" onclick="addNewTableQuick('rectangle')"><i class="fa-solid fa-vector-square"></i> طاولة مستطيلة</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" onclick="saveFloorArchitecturalBlueprint()" style="background:#00ff88; color:#030712; border:none; padding:7px 16px; border-radius:6px; font-weight:700; cursor:pointer; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-floppy-disk"></i> حفظ المخطط المعماري
+            </button>
+          </div>
         </div>
 
         <!-- تنبيه وضع التصميم -->
-        <div class="designer-banner" id="designerBanner" style="display: none; background: rgba(0, 255, 136, 0.1); border: 1px dashed #00ff88; padding: 12px 18px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-          <div style="display:flex; align-items:center; gap:8px; color:#00ff88;">
-            <i class="fa-solid fa-hand-pointer"></i>
-            <span><strong>وضع التصميم مفعّل:</strong> اسحب الطاولات لتغيير أماكنها في الصالة، أو انقر عليها لتعديل أبعادها وكراسيها.</span>
+        <div class="designer-banner" id="designerBanner" style="display: none; background: rgba(0, 255, 136, 0.1); border: 1px dashed #00ff88; padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display:flex; align-items:center; gap:8px; color:#00ff88; font-size:13px;">
+            <i class="fa-solid fa-pen-ruler"></i>
+            <span><strong>استوديو التخطيط المعماري مفعّل:</strong> اسحب الطاولات، الجدران، ومحطات الخدمة لتوزيع الصالة بدقة هندسية واقعية.</span>
           </div>
-          <button class="btn-sm btn-success" onclick="saveCurrentFloorLayout()" style="background:#00ff88; color:#030712; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">
-            <i class="fa-solid fa-check"></i> حفظ المخطط الآن
-          </button>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-sm btn-success" onclick="saveFloorArchitecturalBlueprint()" style="background:#00ff88; color:#030712; border:none; padding:6px 12px; border-radius:6px; font-weight:700; cursor:pointer;">
+              <i class="fa-solid fa-check"></i> حفظ المخطط الهندسي
+            </button>
+          </div>
         </div>
 
-        <!-- مساحة رسم وتوزيع الصالة 2D Canvas -->
-        <div class="floor-canvas-wrapper" style="position:relative; width:100%; min-height:550px; background:radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px) 0 0 / 24px 24px, #0b111e; border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden;">
-          <div class="floor-canvas" id="floorCanvas" style="position:relative; width:100%; min-height:550px;">
-            <!-- الطاولات مع الكراسي تولد هنا برمجياً -->
+        <!-- مساحة رسم وتوزيع الصالة 2D Blueprint Canvas -->
+        <div class="floor-canvas-wrapper" style="position:relative; width:100%; min-height:600px; background-color:#060d1a; border:2px solid #1e293b; border-radius:12px; overflow:auto;">
+          <!-- شبكة الرسم المعماري الهندسي Blueprint Grid -->
+          <div class="blueprint-legend" style="position:absolute; top:12px; right:12px; z-index:50; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.1); padding:8px 14px; border-radius:8px; font-size:12px; color:#cbd5e1; display:flex; gap:14px; align-items:center;">
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:#10b981; display:inline-block;"></span> شاغرة</span>
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:#ef4444; display:inline-block;"></span> مشغولة</span>
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> تطلب الحساب</span>
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:#3b82f6; display:inline-block;"></span> محطة خدمة</span>
+            <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:50%; background:#64748b; display:inline-block;"></span> جدار / قاطع</span>
+          </div>
+
+          <div class="floor-canvas architectural-canvas" id="floorCanvas" style="position:relative; width:1300px; height:750px;">
+            <!-- الطاولات مع الكراسي والعناصر المعمارية تولد هنا برمجياً -->
           </div>
         </div>
       </div>
@@ -382,6 +455,104 @@
         <div style="display:flex; gap:10px;">
           <button onclick="closeEditTableModal()" style="background:#334155; color:#fff; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;">إلغاء</button>
           <button onclick="submitUpdateTableModal()" style="background:#00ff88; color:#030712; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">حفظ التعديل</button>
+        </div>
+      </div>
+    </div>
+  <!-- Modal: تكليف وتبديل ويتر على سكشن معين -->
+  <div class="modal" id="modalAssignWaiter" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+    <div class="modal-dialog" style="background:#0f172a; border:1px solid #1e293b; border-radius:12px; width:90%; max-width:480px; padding:22px; box-shadow:0 20px 40px rgba(0,0,0,0.8);">
+      <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h2 style="font-size:1.15rem; color:#f8fafc; margin:0; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-user-tag" style="color:#00ff88;"></i>
+          <span>تكليف ويتر مسؤول على السكشن</span>
+        </h2>
+        <button class="close-btn" onclick="closeAssignWaiterModal()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+      <form id="assignWaiterForm" onsubmit="submitAssignWaiter(event)">
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom:14px;">
+            <label style="display:block; color:#94a3b8; margin-bottom:6px; font-size:13px;">اختر الصالة / السكشن *</label>
+            <select id="assignFloorSelect" style="width:100%; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" required>
+              <!-- خيارات السكاشن -->
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label style="display:block; color:#94a3b8; margin-bottom:6px; font-size:13px;">اختر الويتر المسؤول *</label>
+            <select id="assignWaiterSelect" style="width:100%; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" required>
+              <!-- خيارات الويترية -->
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label style="display:block; color:#94a3b8; margin-bottom:6px; font-size:13px;">فترة الشفت / الدوام *</label>
+            <select id="assignShiftSelect" style="width:100%; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" required>
+              <option value="صباحي (08:00 - 16:00)">☀️ صباحي (08:00 - 16:00)</option>
+              <option value="مسائي (16:00 - 00:00)">🌙 مسائي (16:00 - 00:00)</option>
+              <option value="شفت كامل (12:00 - 23:00)">⭐ شفت كامل (12:00 - 23:00)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label style="display:block; color:#94a3b8; margin-bottom:6px; font-size:13px;">تاريخ التكليف *</label>
+            <input type="date" id="assignShiftDate" style="width:100%; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" required />
+          </div>
+          <div class="form-group">
+            <label style="display:block; color:#94a3b8; margin-bottom:6px; font-size:13px;">ملاحظات أو توصيات للويتر</label>
+            <input type="text" id="assignShiftNotes" placeholder="مثلاً: التركيز على خدمة طاولات VIP أو العوائل" style="width:100%; padding:9px 12px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" />
+          </div>
+        </div>
+        <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="button" onclick="closeAssignWaiterModal()" style="background:#334155; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">إلغاء</button>
+          <button type="submit" style="background:#00ff88; color:#030712; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">💾 تثبيت التكليف</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: تعديل العنصر المعماري (جدار، باب، كاونتر) -->
+  <div class="modal" id="modalEditElement" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+    <div class="modal-dialog" style="background:#0f172a; border:1px solid #1e293b; border-radius:12px; width:90%; max-width:440px; padding:20px; box-shadow:0 20px 40px rgba(0,0,0,0.8);">
+      <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h2 style="font-size:1.1rem; color:#f8fafc; margin:0;">📐 تعديل العنصر المعماري</h2>
+        <button class="close-btn" onclick="closeEditElementModal()" style="background:transparent; border:none; color:#94a3b8; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editElementId" />
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="display:block; color:#94a3b8; margin-bottom:4px; font-size:13px;">اسم / وصف العنصر</label>
+          <input type="text" id="editElementName" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" />
+        </div>
+        <div style="display:flex; gap:12px; margin-bottom:12px;">
+          <div style="flex:1;">
+            <label style="display:block; color:#94a3b8; margin-bottom:4px; font-size:13px;">العرض (px)</label>
+            <input type="number" id="editElementWidth" min="10" max="600" step="5" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" />
+          </div>
+          <div style="flex:1;">
+            <label style="display:block; color:#94a3b8; margin-bottom:4px; font-size:13px;">الارتفاع (px)</label>
+            <input type="number" id="editElementHeight" min="10" max="600" step="5" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;" />
+          </div>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <label style="display:block; color:#94a3b8; margin-bottom:4px; font-size:13px;">زاوية الدوران (°)</label>
+            <select id="editElementRotation" style="width:100%; padding:8px 10px; background:#1e293b; border:1px solid #334155; border-radius:6px; color:#fff;">
+              <option value="0">0° أفقي</option>
+              <option value="90">90° عمودي</option>
+              <option value="180">180°</option>
+              <option value="270">270°</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="display:block; color:#94a3b8; margin-bottom:4px; font-size:13px;">اللون</label>
+            <input type="color" id="editElementColor" style="width:100%; height:38px; padding:2px 4px; background:#1e293b; border:1px solid #334155; border-radius:6px; cursor:pointer;" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; margin-top:20px;">
+        <button onclick="submitDeleteElementFromModal()" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); padding:8px 14px; border-radius:6px; cursor:pointer;">
+          <i class="fa-solid fa-trash"></i> حذف العنصر
+        </button>
+        <div style="display:flex; gap:8px;">
+          <button onclick="closeEditElementModal()" style="background:#334155; color:#fff; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;">إلغاء</button>
+          <button onclick="submitUpdateElementModal()" style="background:#00ff88; color:#030712; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">حفظ</button>
         </div>
       </div>
     </div>

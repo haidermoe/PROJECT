@@ -6,12 +6,13 @@
  */
 
 const { appPool } = require('../database/appConnection');
+const { authPool } = require('../database/authConnection');
 const { createOrderAndRoutePrint } = require('./printRoutingService');
 const { depleteOrderFromStation } = require('./stationStockService');
 const cacheService = require('./cacheService');
 
 // ===============================
-// 1) جلب الصالات والطاولات وحالتها
+// 1) جلب الصالات والطاولات وحالتها والعناصر المعمارية
 // ===============================
 exports.getFloorsAndTables = async (req, res) => {
   try {
@@ -35,10 +36,16 @@ exports.getFloorsAndTables = async (req, res) => {
       ORDER BY t.floor_id ASC, t.id ASC
     `);
 
-    // تجميع الطاولات داخل كل صالة
+    // جلب العناصر المعمارية (جدران، أبواب، كاونترات، محطات خدمة)
+    const [elements] = await appPool.query(`
+      SELECT * FROM pos_floor_elements ORDER BY floor_id ASC, id ASC
+    `);
+
+    // تجميع الطاولات والعناصر داخل كل صالة
     const floorMap = floors.map(floor => ({
       ...floor,
-      tables: tables.filter(t => t.floor_id === floor.id)
+      tables: tables.filter(t => t.floor_id === floor.id),
+      elements: elements.filter(el => el.floor_id === floor.id)
     }));
 
     res.json({
@@ -704,4 +711,162 @@ exports.getStationsAndRecipes = async (req, res) => {
     res.status(500).json({ status: 'error', message: err.message });
   }
 };
+
+// ===============================
+// 12) إدارة وتوزيع الويترية والشفتات على السكاشن (Waiters & Shifts Management)
+// ===============================
+exports.getWaitersList = async (req, res) => {
+  try {
+    const [waiters] = await authPool.query(`
+      SELECT id, username, full_name, role 
+      FROM users 
+      WHERE is_active = 1 AND (role = 'waiter' OR role = 'hall_manager' OR role = 'cashier')
+      ORDER BY role ASC, full_name ASC
+    `);
+    res.json({ status: 'success', data: waiters });
+  } catch (err) {
+    console.error('❌ خطأ في getWaitersList:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+exports.getWaiterAssignments = async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    const [assignments] = await appPool.query(`
+      SELECT 
+        a.*,
+        f.name AS floor_name,
+        f.sequence AS floor_sequence
+      FROM pos_floor_waiter_assignments a
+      JOIN pos_floors f ON a.floor_id = f.id
+      WHERE a.shift_date = ? AND a.is_active = 1
+      ORDER BY f.sequence ASC, a.id ASC
+    `, [date]);
+    res.json({ status: 'success', data: assignments });
+  } catch (err) {
+    console.error('❌ خطأ في getWaiterAssignments:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+exports.assignWaiterToFloor = async (req, res) => {
+  try {
+    const { floor_id, user_id, waiter_name, shift_name = 'صباحي', shift_date, notes = '' } = req.body;
+    if (!floor_id || !user_id || !waiter_name) {
+      return res.status(400).json({ status: 'error', message: 'الصالة، معرف الويتر، واسم الويتر مطلوبة' });
+    }
+
+    const targetDate = shift_date || new Date().toISOString().slice(0, 10);
+    const assignedBy = req.user ? req.user.id : null;
+
+    // تعطيل التكليف السابق لنفس الصالة في نفس التاريخ إذا وجد
+    await appPool.query(`
+      UPDATE pos_floor_waiter_assignments 
+      SET is_active = 0 
+      WHERE floor_id = ? AND shift_date = ?
+    `, [floor_id, targetDate]);
+
+    // تسجيل التكليف الجديد
+    const [result] = await appPool.query(`
+      INSERT INTO pos_floor_waiter_assignments 
+      (floor_id, user_id, waiter_name, shift_name, shift_date, is_active, assigned_by, notes)
+      VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+    `, [floor_id, user_id, waiter_name, shift_name, targetDate, assignedBy, notes]);
+
+    // تحديث الصالة بالويتر النشط والشفت الحالي
+    await appPool.query(`
+      UPDATE pos_floors 
+      SET active_waiter_id = ?, active_waiter_name = ?, active_shift = ?
+      WHERE id = ?
+    `, [user_id, waiter_name, shift_name, floor_id]);
+
+    res.json({
+      status: 'success',
+      message: `تم تكليف الويتر (${waiter_name}) على الصالة بنجاح بالشفت (${shift_name})`,
+      assignmentId: result.insertId
+    });
+  } catch (err) {
+    console.error('❌ خطأ في assignWaiterToFloor:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+// ===============================
+// 13) إدارة العناصر المعمارية للصالة (Architectural Elements CRUD)
+// ===============================
+exports.getFloorElements = async (req, res) => {
+  try {
+    const { floorId } = req.params;
+    const [elements] = await appPool.query(
+      `SELECT * FROM pos_floor_elements WHERE floor_id = ? ORDER BY id ASC`,
+      [floorId]
+    );
+    res.json({ status: 'success', data: elements });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+};
+
+exports.saveFloorArchitecturalBlueprint = async (req, res) => {
+  const connection = await appPool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const { floorId } = req.params;
+    const { tables = [], elements = [] } = req.body;
+
+    // 1. تحديث الطاولات مع أبعادها، دورانها وشكلها
+    for (const t of tables) {
+      if (t.id) {
+        await connection.query(`
+          UPDATE pos_tables
+          SET position_x = ?, position_y = ?, width = ?, height = ?, rotation = ?, shape = ?, seats = ?, table_number = ?
+          WHERE id = ? AND floor_id = ?
+        `, [
+          Math.max(0, parseInt(t.position_x) || 0),
+          Math.max(0, parseInt(t.position_y) || 0),
+          Math.max(40, parseInt(t.width) || 100),
+          Math.max(40, parseInt(t.height) || 100),
+          parseInt(t.rotation) || 0,
+          t.shape || 'square',
+          Math.max(1, parseInt(t.seats) || 4),
+          t.table_number || String(t.id),
+          t.id,
+          floorId
+        ]);
+      }
+    }
+
+    // 2. مزامنة العناصر المعمارية: مسح العناصر السابقة للصالة وإعادة إدخالها
+    if (Array.isArray(elements)) {
+      await connection.query(`DELETE FROM pos_floor_elements WHERE floor_id = ?`, [floorId]);
+      for (const el of elements) {
+        await connection.query(`
+          INSERT INTO pos_floor_elements (floor_id, element_type, name, position_x, position_y, width, height, rotation, color)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          floorId,
+          el.element_type || 'wall',
+          el.name || '',
+          Math.max(0, parseInt(el.position_x) || 0),
+          Math.max(0, parseInt(el.position_y) || 0),
+          Math.max(10, parseInt(el.width) || 100),
+          Math.max(10, parseInt(el.height) || 20),
+          parseInt(el.rotation) || 0,
+          el.color || '#64748b'
+        ]);
+      }
+    }
+
+    await connection.commit();
+    res.json({ status: 'success', message: 'تم حفظ المخطط الهندسي المعماري للصالة بجميع أبعاده وعناصره بنجاح!' });
+  } catch (err) {
+    await connection.rollback();
+    console.error('❌ خطأ في saveFloorArchitecturalBlueprint:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  } finally {
+    connection.release();
+  }
+};
+
 
